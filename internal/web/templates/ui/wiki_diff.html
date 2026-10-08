@@ -1,0 +1,9 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Base}}/history">{{template "icon-back"}}History</a><span>/ Revision {{.Seq}}</span></div>
+<section class="panel" aria-labelledby="diff-h">
+<div class="panel-head"><h2 id="diff-h" class="grow">Changes from revision {{add .Seq -1}} to {{.Seq}}</h2><a class="btn" href="{{.Base}}/r/{{.Seq}}">Open revision {{.Seq}}</a></div>
+{{if .Diff}}<div class="diff wide">{{range .Diff}}{{template "diff-file" .}}{{end}}</div>
+{{else if .TooLarge}}<p class="panel-note">This change is too large to show here. Download both revisions to compare them.</p>
+{{else}}<p class="panel-note">The text is the same as in revision {{add .Seq -1}}.</p>{{end}}
+</section>
+{{end}}{{end}}

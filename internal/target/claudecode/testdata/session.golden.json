@@ -1,0 +1,1 @@
+{"systemMessage":"loadout: 1 update is held back by your edits (payments/planner 1.3.0). Run loadout status.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"loadout could not update payments/planner to 1.3.0 because the user edited the installed files."}}

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en" class="frame-{{.Kind}}"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="{{if eq .Kind "drawio"}}light{{else if .Theme}}{{.Theme}}{{else}}light dark{{end}}">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="{{static "frame.css"}}">
+</head>
+<body class="frame-{{.Kind}}" data-kind="{{.Kind}}" data-page="{{.Page}}">
+<pre id="src" hidden>{{.Source}}</pre>
+<div id="out" role="img" aria-label="{{.Title}}"></div>
+<p id="err" role="alert" hidden></p>
+<script src="{{static "preview.js"}}"></script>
+<script src="/auth/static/{{.Lib}}"></script>
+</body>
+</html>

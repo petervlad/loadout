@@ -1,0 +1,74 @@
+{{define "facts"}}<dl class="facts stats">{{range .}}
+<dt>{{.Label}}</dt><dd>{{if .Pill}}<span class="pill pill-{{.Pill}}">{{.Value}}</span>{{else}}<span class="val">{{.Value}}</span>{{end}}{{with .Note}}<span class="note">{{.}}</span>{{end}}</dd>{{end}}
+</dl>{{end}}
+{{define "section"}}{{if .Facts}}{{template "facts" .Facts}}{{else}}<p class="panel-note">{{.Message}}</p>{{end}}{{with .Hint}}<p class="panel-foot">{{.}}</p>{{end}}{{end}}
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/account">{{template "icon-back"}}Account</a></div>
+<div class="page-head">
+<h1>Server</h1>
+<p class="lead-sm">Numbers for the whole registry, every project included. Only admins see this page. Checked <time datetime="{{stamp .Checked}}">{{exact .Checked}}</time>.</p>
+</div>
+
+<dl class="tiles">{{range .Tiles}}
+<div class="tile{{with .Tone}} tile-{{.}}{{end}}"><dt>{{.Label}}</dt><dd class="value">{{.Value}}</dd><dd class="note">{{.Note}}</dd></div>{{end}}
+</dl>
+
+<div class="grid2">
+<section class="panel" aria-labelledby="host-h">
+<div class="panel-head"><h2 id="host-h">Host</h2></div>
+{{template "section" .Host}}
+{{with .HostConsole}}<p class="panel-foot"><a href="{{.}}" rel="noopener noreferrer">Open the host's console</a>. It may open only from the network the provider allows, such as the company network or its VPN.</p>{{end}}
+</section>
+
+<section class="panel" aria-labelledby="disk-h">
+<div class="panel-head"><h2 id="disk-h">Storage</h2></div>
+{{with .Disk}}<div class="diskbar">{{if .Shown}}<p id="disk-text"><span class="val">{{.Text}}</span></p>
+<meter class="meter" min="0" max="100" low="80" high="90" optimum="0" value="{{.Percent}}" aria-label="Disk used" aria-describedby="disk-text">{{.Percent}}%</meter>{{else}}<p>The disk could not be read. {{.Err}}</p>{{end}}</div>{{end}}
+{{template "facts" .Storage}}
+</section>
+</div>
+
+{{if ne .Hetzner.State "off"}}<div class="grid2">
+<section class="panel" aria-labelledby="hz-h">
+<div class="panel-head"><h2 id="hz-h">Hetzner server</h2></div>
+{{with .Hetzner}}{{if eq .State "error"}}<p class="panel-note" role="status"><strong>Hetzner unavailable:</strong> {{.Reason}}</p>
+{{else}}{{template "facts" .Facts}}{{end}}{{end}}
+</section>
+
+<section class="panel" aria-labelledby="cost-h">
+<div class="panel-head"><h2 id="cost-h">Estimated monthly cost</h2></div>
+{{with .Hetzner}}{{if eq .State "ok"}}<table class="cost">
+<thead><tr><th scope="col">Item</th><th scope="col" class="amount">A month</th></tr></thead>
+<tbody>{{range .Cost}}
+<tr><th scope="row">{{.Label}}{{with .Detail}}<span class="desc">{{.}}</span>{{end}}</th><td class="amount">{{.Amount}}</td></tr>{{end}}
+</tbody>
+<tfoot><tr><th scope="row">Total</th><td class="amount">{{.Total}}</td></tr></tfoot>
+</table>
+<p class="panel-foot">Estimated from Hetzner's list prices, with {{.VAT}}% VAT as Hetzner states it for your account. The Cloud API has no invoices: the bill itself is in the Hetzner Console. Hetzner figures are checked <time datetime="{{stamp .Checked}}">{{ago .Checked}}</time> and kept for 5 minutes.{{with .Unpriced}} {{.}}{{end}}</p>
+{{else}}<p class="panel-note">Shown once the Hetzner server can be read.</p>{{end}}{{end}}
+</section>
+</div>
+
+{{end}}<div class="grid2">
+<section class="panel" aria-labelledby="backup-h">
+<div class="panel-head"><h2 id="backup-h">Backups</h2></div>
+{{template "section" .Backups}}
+</section>
+
+<section class="panel" aria-labelledby="count-h">
+<div class="panel-head"><h2 id="count-h">Registry</h2></div>
+{{template "section" .Counts}}
+</section>
+</div>
+
+<div class="grid2">
+<section class="panel" aria-labelledby="mail-h">
+<div class="panel-head"><h2 id="mail-h">Login mail</h2></div>
+{{template "section" .Mail}}
+</section>
+<section class="panel" aria-labelledby="proc-h">
+<div class="panel-head"><h2 id="proc-h">Process</h2></div>
+{{template "section" .Process}}
+</section>
+</div>
+{{end}}{{end}}

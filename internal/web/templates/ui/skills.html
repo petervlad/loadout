@@ -1,0 +1,73 @@
+{{define "content"}}{{with .Page}}
+<div class="page-head">
+<h1>Start here</h1>
+<p class="lead">loadout shares how your team works with the AI tools you already use: Claude Code and GitHub Copilot. Your team writes it down once, as small helpers. loadout copies them onto your machine and keeps them up to date. You ask your AI tool as usual, and it uses your team's helpers.</p>
+</div>
+<p class="rule-note" role="note"><strong>loadout never runs AI and never sees your questions.</strong> Your own AI tool does that, on your machine.</p>
+
+<section class="start-sec" aria-labelledby="how-h">
+<h2 id="how-h">How it works</h2>
+<ol class="flow-steps" role="list">
+<li class="flow-step"><h3>A team publishes helpers</h3><p>Someone on your team writes down how you work and publishes it to this registry.</p></li>
+<li class="flow-step"><h3>loadout installs them</h3>
+<div class="flow-tools"><span class="pill pill-kind">Claude Code</span><span class="pill pill-kind">GitHub Copilot</span></div>
+<p>The <code>loadout</code> command copies them into your AI tool and brings new versions.</p></li>
+<li class="flow-step"><h3>You ask your AI tool</h3><p>Ask as you always do. Your AI tool now knows how your team works.</p></li>
+</ol>
+</section>
+
+<section class="start-sec" aria-labelledby="words-h">
+<h2 id="words-h">Words you will meet</h2>
+<p class="lead-sm">The two you meet most: you choose an agent, and a skill chooses itself.</p>
+<div class="panel">
+<dl class="words">
+<div class="word"><dt>Agent</dt><dd><p>A helper with one job, such as planning a change. You pick it by name in your AI tool.</p><p class="word-like">Like a colleague you call over.</p></dd></div>
+<div class="word"><dt>Skill</dt><dd><p>A how-to that your AI tool reads on its own when your question matches it.</p><p class="word-like">Like a recipe in the drawer.</p></dd></div>
+<div class="word"><dt>Knowledge base</dt><dd><p>A folder of documents your AI tool can read when it needs them, such as runbooks or team rules.</p><p class="word-like">Like the team binder.</p></dd></div>
+<div class="word"><dt>Package</dt><dd><p>One agent, skill or knowledge base, with a version number. A new version replaces the old one on your machine.</p></dd></div>
+<div class="word"><dt>Registry</dt><dd><p>This website. Teams publish their packages here, and loadout installs them from here.</p></dd></div>
+<div class="word"><dt>Project, team, layer</dt><dd><p>Whose package it is. A project holds what all its teams share (layer L0). A team holds its own (layer L1).</p></dd></div>
+</dl>
+</div>
+</section>
+
+<section class="start-sec" aria-labelledby="start-h">
+<h2 id="start-h">Get started</h2>
+<div class="panel">
+{{if $.SignIn}}<div class="setting start-signin">
+<p class="grow"><strong>Already in a team?</strong> Sign in to see your team's packages. Not in one yet? Ask a maintainer of your team to invite you.</p>
+<a class="btn btn-lg btn-primary" href="{{$.SignIn}}">Sign in</a>
+</div>{{end}}
+<ol class="start-steps" role="list">
+<li class="start-step"><h3>Install loadout</h3><p>loadout is a small program you run in a terminal. <a href="{{.InstallDocs}}">How to install loadout</a></p></li>
+<li class="start-step"><h3>Connect it to this registry</h3>
+<p>{{if $.SignIn}}It opens this website in your browser. Sign in, check that the code matches, and approve.{{else}}It opens this website in your browser. You are already signed in, so check that the code matches and approve.{{end}} It also adds the skills below to your AI tool.</p>
+<div class="copyrow"><code class="cmd" id="start-login">{{.Login}}</code>{{template "copy" "start-login"}}</div></li>
+<li class="start-step"><h3>Install your team's packages</h3><p>Everything your team and your project publish.</p>
+<div class="copyrow"><code class="cmd" id="start-install">loadout install --all</code>{{template "copy" "start-install"}}</div></li>
+<li class="start-step"><h3>Start a new session in your AI tool</h3><p>Claude Code and Copilot read new helpers when a session starts. Then ask as usual.</p></li>
+<li class="start-step"><h3>Stay up to date</h3><p>Run this now and then to get new versions. It never overwrites changes you made yourself.</p>
+<div class="copyrow"><code class="cmd" id="start-sync">loadout sync</code>{{template "copy" "start-sync"}}</div></li>
+</ol>
+</div>
+</section>
+
+<section class="start-sec" aria-labelledby="skills-h">
+<h2 id="skills-h">Skills that come with loadout</h2>
+<p class="lead-sm">They teach your AI tool to use loadout, so you can ask for things in your own words instead of learning the commands.</p>
+<ul class="skill-cards" aria-labelledby="skills-h">{{range .Cards}}
+{{template "skill-card" .}}{{end}}
+</ul>
+</section>
+{{template "skills-install" .}}
+{{end}}{{end}}
+
+{{define "skills-install"}}<section class="panel" aria-labelledby="install-h">
+<div class="cmdcard">
+{{template "icon-terminal"}}
+<div class="text"><strong id="install-h"><code>loadout login</code> adds these skills for you</strong><span>Run this to add them now, or to bring back one you removed.</span></div>
+<code class="cmd cmd-short" id="setup">{{.Install}}</code>
+{{template "copy" "setup"}}
+</div>
+<p class="panel-foot">The text of loadout {{.Version}}, the version this registry runs. <code>loadout sync</code> keeps yours in step. Each skill tells your AI tool to ask you before anything your team would see, and never to handle your tokens.</p>
+</section>{{end}}

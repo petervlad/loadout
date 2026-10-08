@@ -1,0 +1,38 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Base}}">{{template "icon-back"}}Wiki</a></div>
+{{with .Stale}}<section class="panel" aria-labelledby="stale-h">
+<div class="panel-head"><div class="grow"><h2 id="stale-h">{{if .Since}}What changed since revision {{.Since}}{{else}}What was saved while you were editing{{end}}</h2>
+<p>Revision {{.Seq}} by {{.Author}}. Lines with + are new, lines with − are gone.</p></div>
+<a class="btn" href="{{.Link}}">Open revision {{.Seq}}</a></div>
+{{if .Diff}}<div class="diff wide">{{range .Diff}}{{template "diff-file" .}}{{end}}</div>
+{{else}}<p class="panel-note">The change cannot be shown here. Open revision {{.Seq}} to read it.</p>{{end}}
+</section>{{end}}
+<form class="panel wiki-form" method="post" action="{{.Base}}" aria-labelledby="edit-h">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="base" value="{{.Rev}}">
+<input type="hidden" name="format" value="{{.Format}}">
+{{if .From}}<input type="hidden" name="from" value="{{.From}}">{{end}}
+<button type="submit" class="vh" tabindex="-1" aria-hidden="true">Save</button>
+<div class="panel-head wiki-edit-head">
+<h2 id="edit-h" class="grow">{{if .Rev}}Edit the wiki{{else}}Write the wiki{{end}}</h2>
+<div class="segmented" role="group" aria-label="View">
+<button type="submit" name="view" value="write" formaction="{{.Base}}/edit" aria-pressed="{{if .Preview}}false{{else}}true{{end}}">Write</button>
+<button type="submit" name="view" value="preview" formaction="{{.Base}}/edit" aria-pressed="{{if .Preview}}true{{else}}false{{end}}">Preview</button>
+</div>
+</div>
+{{if .From}}<p class="file-note" role="note">This text is revision {{.From}}. Saving it makes it the newest revision; the ones after it stay in the history.</p>{{end}}
+<div class="wiki-write"{{if .Preview}} hidden{{end}}>
+<label for="wiki-text" class="vh">Page text</label>
+<textarea id="wiki-text" name="text" class="field wiki-text" rows="30" spellcheck="true" aria-describedby="{{if eq $.Field "wiki-text"}}form-error {{end}}wiki-hint"{{if eq $.Field "wiki-text"}} aria-invalid="true"{{if not .Stale}} autofocus{{end}}{{end}}>
+{{.Text}}</textarea>
+<p class="hint wiki-hint" id="wiki-hint">{{if .MDX}}This page is MDX: components and import lines show as code; the Markdown around them renders.{{else}}Markdown. Mermaid and draw.io blocks become diagrams once you save. Images are not shown.{{end}} Up to 256 KB.</p>
+</div>
+{{if .Preview}}{{with .RenderNote}}<p class="file-note" role="note">{{.}}</p>{{end}}
+<div class="md doc-md wiki-md wiki-preview">{{if .HTML}}{{.HTML}}{{else}}<p class="muted">Nothing to preview yet.</p>{{end}}</div>{{end}}
+<div class="wiki-foot">
+<div class="fieldrow wiki-note"><label for="wiki-note">What changed <span class="muted">(optional)</span></label>
+<input id="wiki-note" name="note" class="field" maxlength="200" value="{{.Note}}" autocomplete="off"{{invalid $.Field "wiki-note"}}></div>
+<div class="wiki-buttons"><a class="btn" href="{{.Base}}">Cancel</a><button type="submit" class="btn btn-primary">Save</button></div>
+</div>
+</form>
+{{end}}{{end}}

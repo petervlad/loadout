@@ -1,0 +1,41 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/t/{{$.NS}}/settings">{{template "icon-back"}}Settings</a></div>
+<div class="panel">
+<div class="setting">
+<div class="grow">
+<h2>Models for agents</h2>
+<p>An agent asks for a fast, balanced or deep model, never a vendor's model. Here you choose what each AI tool runs for {{.Namespace}}{{if .Above}}: an empty field inherits the value from {{.Above}}{{else}}, and every team in it inherits{{end}}. loadout only writes the name into the installed agent file; the tool and your own subscription run it.</p>
+</div>
+</div>
+</div>
+
+<form class="tiers-form" method="post" action="/t/{{$.NS}}/tiers">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+{{$page := .}}
+{{range .Tools}}{{$tool := .}}
+<section class="panel" aria-labelledby="tool-{{.Name}}-h">
+<div class="panel-head"><div><h2 id="tool-{{.Name}}-h">{{.Product}}</h2><p>{{.Help}}</p></div></div>
+<table class="list tiers">
+<colgroup><col class="w160"><col><col class="w190"></colgroup>
+<thead><tr><th scope="col">Agent asks for</th><th scope="col">Model</th><th scope="col">Reasoning effort</th></tr></thead>
+<tbody>{{range .Rows}}
+<tr>
+<th scope="row"><span class="name">{{.Label}}</span><span class="desc">{{.About}}</span></th>
+<td><label class="tier-label" for="{{.ModelField}}"><span class="vh">{{$tool.Product}} </span>Model<span class="vh"> for {{.Label}}</span></label>
+<input class="field" id="{{.ModelField}}" name="{{.ModelField}}" value="{{.Model}}" placeholder="{{.Inherited}}" maxlength="80" autocomplete="off" spellcheck="false"{{invalid $.Field .ModelField}}></td>
+<td><label class="tier-label" for="{{.EffortField}}"><span class="vh">{{$tool.Product}} </span>Reasoning effort<span class="vh"> for {{.Label}}</span></label>
+<select class="sel" id="{{.EffortField}}" name="{{.EffortField}}"{{invalid $.Field .EffortField}}>{{$e := .Effort}}<option value="">{{.InheritedEffort}}</option>{{range $page.Efforts}}<option value="{{.}}"{{if eq (print .) $e}} selected{{end}}>{{.}}</option>{{end}}</select></td>
+</tr>{{end}}
+</tbody>
+</table>
+{{with .Notes}}<ul class="tier-notes">{{range .}}<li>{{.}}</li>{{end}}</ul>{{end}}
+</section>
+{{end}}
+<div class="panel">
+<div class="setting tiers-save">
+<p class="grow">Installs pick changes up on their next sync: automatically for agents set to update automatically, as a notice for the others. A file someone edited is never overwritten.</p>
+<button type="submit" class="btn btn-primary btn-lg">Save</button>
+</div>
+</div>
+</form>
+{{end}}{{end}}

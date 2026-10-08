@@ -1,0 +1,67 @@
+# Caddy front end for the loadout registry.
+# LOADOUT_DOMAIN comes from a systemd drop-in written by deploy.sh
+# (/etc/systemd/system/caddy.service.d/loadout.conf). No domain? Use
+# <ip-with-dashes>.sslip.io, e.g. 203-0-113-7.sslip.io; Caddy gets a real
+# Let's Encrypt certificate for it.
+#
+# /etc/caddy/loadout.d/*.caddy is for what only your setup needs, and is empty
+# by default. deploy.sh puts site.caddy there when you ask for a static site.
+# A file there may also hold a global block, for a tunnel or load balancer
+# that ends on this machine and so hides the client's address from Caddy:
+#
+#   {
+#   	servers {
+#   		trusted_proxies static 203.0.113.0/24
+#   		client_ip_headers CF-Connecting-IP
+#   	}
+#   }
+#
+# This import comes first because Caddy wants a global block before any site.
+import /etc/caddy/loadout.d/*.caddy
+
+{$LOADOUT_DOMAIN} {
+	encode zstd gzip
+
+	request_body {
+		max_size 40MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		# Only if loadout set none: it sends DENY itself, and SAMEORIGIN on
+		# the diagram frames its preview pages embed.
+		?X-Frame-Options "DENY"
+		# same-origin, not no-referrer: with no-referrer browsers send
+		# "Origin: null" on form posts, and the CSRF check refuses them.
+		Referrer-Policy "same-origin"
+		# Only if loadout set none: the API sends this strict policy itself,
+		# the sign-in pages send their own (they need their stylesheet).
+		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+		-Server
+	}
+
+	# {client_ip} is the peer's address, or the address named by the global
+	# trusted_proxies and client_ip_headers when a file in loadout.d sets them.
+	# loadout trusts X-Real-IP only from this machine.
+	reverse_proxy 127.0.0.1:7420 {
+		header_up X-Real-IP {client_ip}
+	}
+
+	log {
+		output file /var/log/caddy/loadout-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		# Sign-in links carry a one-time token in the query; keep it out of
+		# the log. (Caddy already redacts cookies and Authorization.)
+		format filter {
+			wrap json
+			fields {
+				request>uri query {
+					replace token REDACTED
+				}
+			}
+		}
+	}
+}

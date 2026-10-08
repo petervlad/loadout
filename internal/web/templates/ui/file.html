@@ -1,0 +1,28 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Package}}">{{template "icon-back"}}{{.ID}}</a></div>
+<div class="page-head file-head">
+<h1><code>{{range $i, $s := segments .Path}}{{if $i}}/<wbr>{{end}}{{$s}}{{end}}</code></h1>
+<p class="lead-sm"><span class="num">{{.Version}}</span> · {{size .Size}} · {{.Body.What}}{{if .Newest}} · <a href="{{.Newest}}">The newest is {{.Latest}}</a>{{end}}</p>
+</div>
+<section class="panel" aria-labelledby="preview-h">
+<div class="panel-head file-bar">
+<h2 id="preview-h" class="grow">{{if .Source}}Source{{else if .Body.Download}}Download{{else}}Preview{{end}}</h2>
+{{if .Rendered}}{{if .Source}}<a class="btn" href="{{.Self}}">Show preview</a>{{else}}<a class="btn" href="{{.Self}}?source=1">Show source</a>{{end}}{{end}}
+<a class="btn" href="{{.Raw}}">{{template "icon-download"}}Download<span class="vh"> {{.Path}}</span></a>
+</div>
+{{with .Body.Note}}<p class="file-note" role="note">{{.}}</p>{{end}}
+{{if .Body.Download}}<div class="empty"><h2>No preview for this kind of file</h2><p>Download it to open it on your computer.</p></div>
+{{else if .Body.HTML}}<div class="md doc-md">{{.Body.HTML}}</div>
+{{else if .Body.Diagram}}{{with .Body.Diagram}}{{if .Pages}}<nav class="page-tabs" aria-label="Pages">{{range .Pages}}<a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}</nav>
+{{end}}<figure class="diagram diagram-file{{if .Canvas}} diagram-canvas{{end}}" data-frame="{{.Frame}}" data-title="{{.Title}}">
+<pre class="diagram-src"><code>{{.Source}}</code></pre>
+<figcaption class="diagram-note js-hide">Diagrams are drawn with JavaScript on.</figcaption>
+{{range .Notes}}<p class="diagram-note">{{.}}</p>{{end}}
+</figure>{{end}}
+{{else}}<pre class="markdown file-text">{{.Body.Text}}</pre>{{end}}
+</section>
+{{if or .Prev .Next}}<nav class="file-nav" aria-label="Files of {{.ID}} {{.Version}}">
+{{with .Prev}}<a class="file-step file-prev" rel="prev" href="{{$.Page.Base}}/files/{{.}}"><span class="file-step-label">{{template "icon-back"}}Previous</span><code>{{.}}</code></a>{{end}}
+{{with .Next}}<a class="file-step file-next" rel="next" href="{{$.Page.Base}}/files/{{.}}"><span class="file-step-label">Next{{template "icon-chevron"}}</span><code>{{.}}</code></a>{{end}}
+</nav>{{end}}
+{{end}}{{end}}

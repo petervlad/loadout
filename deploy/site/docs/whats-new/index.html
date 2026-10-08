@@ -1,0 +1,404 @@
+<!doctype html>
+<!-- Generated from docs/CHANGES.md by docs/guide/build.sh. Edit the Markdown, not this file. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="What each loadout update added and fixed, newest first.">
+<title>What's new in loadout</title>
+<style>
+/* The palette, radii and fonts of the registry's web pages
+   (internal/web/static/style.css), so the docs look like the same product.
+   No script and no external files: the site's CSP allows inline style only. */
+:root {
+  color-scheme: light dark;
+  --ground: #f5f5f7;
+  --panel: #ffffff;
+  --panel-alt: #fafafc;
+  --sidebar: #ececf0;
+  --sidebar-line: #dcdce1;
+  --sidebar-hover: #e8e8ed;
+  --line: #e5e5ea;
+  --line-soft: #efeff4;
+  --field-line: #d2d2d7;
+  --text: #1d1d1f;
+  --text-2: #515154;
+  --muted: #6e6e73;
+  --muted-2: #5b5b60;
+  --link: #0066cc;
+  --code-bg: #f5f5f7;
+  --inline-code: #efeff4;
+  --own-bg: #e8f0fb;
+  --own-text: #004f9e;
+  --fix-bg: #ececf0;
+  --fix-text: #3a3a3c;
+  --segment: #e3e3e8;
+  --segment-on: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #111113;
+    --panel: #1c1c1e;
+    --panel-alt: #202023;
+    --sidebar: #19191b;
+    --sidebar-line: #2e2e32;
+    --sidebar-hover: #2a2a2e;
+    --line: #2f2f33;
+    --line-soft: #2a2a2d;
+    --field-line: #46464b;
+    --text: #f5f5f7;
+    --text-2: #c7c7cc;
+    --muted: #a1a1a6;
+    --muted-2: #a1a1a6;
+    --link: #4aa3ff;
+    --code-bg: #111113;
+    --inline-code: #2a2a2d;
+    --own-bg: #1a2e47;
+    --own-text: #8cc4ff;
+    --fix-bg: #2c2c30;
+    --fix-text: #d1d1d6;
+    --segment: #2a2a2d;
+    --segment-on: #4a4a4f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font: 0.9375rem/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px; }
+.skip { position: absolute; left: 12px; top: -48px; z-index: 10; padding: 8px 12px; border-radius: 8px; background: var(--panel); }
+.skip:focus { top: 12px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Shell: a sidebar with the contents beside the page on wide screens. */
+.app { display: flex; min-height: 100vh; }
+.side {
+  width: 264px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  padding: 20px 12px 32px; background: var(--sidebar); border-right: 1px solid var(--sidebar-line);
+}
+.brand {
+  display: flex; align-items: center; gap: 8px; padding: 0 10px 18px;
+  color: var(--text); font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.2px;
+}
+.brand:hover { text-decoration: none; }
+.brand span { color: var(--muted-2); font-weight: 400; }
+/* Guide and What's new: two pages of one site, switched like the
+   registry's tabs. The page shown is aria-current. */
+.switch { display: flex; gap: 2px; padding: 2px; background: var(--segment); border-radius: 9px; }
+.switch a {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; min-height: 30px; padding: 0 12px;
+  border-radius: 7px; color: var(--text); font-size: 0.8125rem; white-space: nowrap;
+}
+.switch a:hover { text-decoration: none; background: var(--sidebar-hover); }
+.switch a[aria-current="page"] { background: var(--segment-on); font-weight: 600; box-shadow: var(--shadow); }
+.side .switch { margin: 0 4px 14px; }
+.side-label { padding: 8px 10px 4px; font-size: 0.6875rem; font-weight: 600; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.4px; }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc a {
+  display: flex; align-items: center; min-height: 30px; padding: 4px 10px;
+  border-radius: 8px; color: var(--text); font-size: 0.875rem; line-height: 1.3;
+}
+.toc a:hover { background: var(--sidebar-hover); text-decoration: none; }
+/* The guide's one h1 is the page title, not an entry. */
+.toc > ul > li > a { display: none; }
+.toc ul ul a { min-height: 28px; font-size: 0.8125rem; color: var(--text-2); }
+.doc .toc ul { margin: 0; padding: 0; }
+.doc .toc li { margin: 0; }
+
+.main { flex-grow: 1; min-width: 0; padding: 28px 36px 64px; }
+.doc {
+  max-width: 820px; margin: 0 auto; padding: 36px 44px 44px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+}
+.mobile-toc { display: none; }
+
+/* Text */
+.doc h1 { margin: 0 0 12px; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; line-height: 1.15; }
+.doc h2 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.3px; line-height: 1.25; }
+
+/* Chapters: each level-2 section folds */
+details.chapter { border-top: 1px solid var(--line); }
+.chapter-fixed { padding: 16px 0 4px; border-top: 1px solid var(--line); }
+.chapter-fixed h2 { margin-bottom: 10px; }
+details.chapter:last-of-type { border-bottom: 1px solid var(--line); }
+details.chapter > summary {
+  display: flex; align-items: center; gap: 10px; padding: 16px 4px; cursor: pointer;
+  list-style: none; border-radius: 8px;
+}
+details.chapter > summary::-webkit-details-marker { display: none; }
+details.chapter > summary::before {
+  content: ""; flex: none; width: 8px; height: 8px; margin: 0 4px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg); transition: transform 0.15s ease;
+}
+details.chapter[open] > summary::before { transform: rotate(45deg); }
+details.chapter > summary:hover { background: var(--line-soft); }
+details.chapter > summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.chapter-body { padding: 0 4px 24px; }
+.chapter-body > :first-child { margin-top: 0; }
+.chapter-tools { display: flex; gap: 8px; justify-content: flex-end; margin: 16px 0 8px; }
+.chapter-tools[hidden] { display: none; }
+.chapter-tools button {
+  min-height: 32px; font: inherit; font-size: 0.8125rem; padding: 0 14px; border-radius: 8px; cursor: pointer;
+  color: var(--text); background: var(--panel); border: 1px solid var(--field-line);
+}
+.chapter-tools button:hover { background: var(--line-soft); }
+@media (prefers-reduced-motion: reduce) { details.chapter > summary::before, .mobile-toc summary::before { transition: none; } }
+.doc h3 { margin: 28px 0 8px; font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
+.doc h1 + p { font-size: 1.0625rem; color: var(--text-2); }
+.doc h2, .doc h3 { scroll-margin-top: 16px; }
+.doc h2:target, .doc h3:target { color: var(--own-text); }
+.doc p, .doc ul, .doc ol { margin: 0 0 12px; }
+.doc ul, .doc ol { padding-left: 22px; }
+.doc li { margin: 4px 0; }
+.doc li > p { margin: 0; }
+.doc strong { font-weight: 600; }
+
+code { font-family: var(--mono); font-size: 0.84em; }
+:not(pre) > code {
+  padding: 1px 5px; border-radius: 5px; background: var(--inline-code);
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 0 0 16px; padding: 12px 14px; overflow-x: auto;
+  background: var(--code-bg); border: 1px solid var(--line-soft); border-radius: 10px;
+  font-size: 0.8125rem; line-height: 1.55; tab-size: 4;
+}
+pre code { font-size: inherit; white-space: pre; }
+
+/* Tables look like the registry's lists, and scroll inside themselves. */
+.table { margin: 0 0 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; line-height: 1.45; }
+th {
+  padding: 9px 14px; text-align: left; vertical-align: bottom;
+  font-size: 0.75rem; font-weight: 600; color: var(--muted); background: var(--panel-alt);
+}
+td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+td code { white-space: nowrap; }
+.doc li .table { margin-top: 8px; }
+
+/* What's new: a rule above each month, the day under it, and items that
+   start with their tag. The word carries the meaning; the colour only helps
+   the eye find features among fixes. */
+.tag {
+  display: inline-block; min-width: 4.5rem; margin-right: 4px; padding: 0 8px; border-radius: 6px;
+  font-size: 0.75rem; font-weight: 600; line-height: 1.6rem; text-align: center; vertical-align: 1px;
+}
+.tag-feature { background: var(--own-bg); color: var(--own-text); }
+.tag-fix { background: var(--fix-bg); color: var(--fix-text); }
+.changes .doc h2 { margin: 32px 0 0; padding-top: 24px; border-top: 1px solid var(--line); }
+/* A day sits under its month: smaller and quieter, so the two never read
+   as the same level, even where the month heading shrinks on phones. */
+.changes .doc h3 { margin: 20px 0 10px; font-size: 0.9375rem; color: var(--text-2); }
+.changes .doc ul { list-style: none; padding-left: 0; }
+.changes .doc li { margin: 0 0 10px; }
+@media (min-width: 901px) {
+  /* Tags hang in a column of their own, so the sentences line up. */
+  .changes .doc li { position: relative; padding-left: 5.25rem; }
+  .changes .tag { position: absolute; left: 0; top: 0; }
+}
+
+/* Phones and narrow windows: contents on top, the page edge to edge. */
+@media (max-width: 900px) {
+  .app { display: block; }
+  .side { display: none; }
+  .main { padding: 0; }
+  body { background: var(--panel); }
+  .doc { max-width: none; padding: 20px 16px 48px; border: 0; border-radius: 0; }
+  .mobile-toc { display: block; padding: 0; margin: 0 0 8px; }
+  .mobile-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--sidebar); border-bottom: 1px solid var(--sidebar-line); }
+  .mobile-top .brand { padding: 0; }
+  /* Below about 330 px the switch wraps under the brand rather than
+     pushing the page sideways. */
+  .mobile-top { flex-wrap: wrap; gap: 8px 12px; padding: 10px 16px; }
+  .mobile-top .switch { margin-left: auto; }
+  .mobile-toc details { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-alt); }
+  .mobile-toc summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; font-weight: 600; cursor: pointer; list-style: none; border-radius: 10px; }
+  .mobile-toc summary::-webkit-details-marker { display: none; }
+  .mobile-toc summary::before {
+    content: ""; flex: none; width: 7px; height: 7px; margin: 0 3px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg); transition: transform 0.15s ease;
+  }
+  .mobile-toc details[open] > summary::before { transform: rotate(45deg); }
+  .mobile-toc .toc { padding: 0 8px 10px; }
+  .mobile-toc .toc a:hover { background: var(--line-soft); }
+  .doc h1 { font-size: 1.625rem; }
+  .doc h2 { font-size: 1.125rem; }
+  td code { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (min-width: 901px) { .mobile-top { display: none; } }
+/* Touch screens: every link and button at least 44 px tall. */
+@media (pointer: coarse) {
+  .toc a, .toc ul ul a, .chapter-tools button, .switch a { min-height: 44px; }
+}
+/* Increased contrast: stronger secondary text and separators. */
+@media (prefers-contrast: more) {
+  :root { --muted: #515154; --muted-2: #3a3a3c; --line: #aeaeb2; --line-soft: #c7c7cc; --field-line: #8a8a8e; --fix-text: #1d1d1f; }
+  .tag { box-shadow: inset 0 0 0 1px currentColor; }
+  .switch { box-shadow: inset 0 0 0 1px var(--line); }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root { --muted: #d1d1d6; --muted-2: #d1d1d6; --line: #636366; --line-soft: #48484a; --field-line: #8e8e93; --fix-text: #f5f5f7; }
+}
+</style>
+</head>
+<body class="changes">
+<a class="skip" href="#content">Skip to content</a>
+<header class="mobile-top">
+<a class="brand" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>loadout <span>docs</span></a>
+<nav class="switch" aria-label="Docs pages"><a href="/docs/">Guide</a><a href="/docs/whats-new/" aria-current="page">What's new</a></nav>
+</header>
+<div class="app" id="top">
+<div class="side">
+<a class="brand" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>loadout <span>docs</span></a>
+<nav class="switch" aria-label="Docs pages"><a href="/docs/">Guide</a><a href="/docs/whats-new/" aria-current="page">What's new</a></nav>
+<nav aria-label="Contents">
+<div class="side-label">Contents</div>
+<div class="toc">
+<ul>
+<li><a href="#whats-new-in-loadout">What's new in loadout</a>
+<ul>
+<li><a href="#october-2026">October 2026</a></li>
+<li><a href="#september-2026">September 2026</a></li>
+</ul></li>
+</ul>
+</div>
+</nav>
+</div>
+<main class="main" id="content">
+<article class="doc">
+<nav class="mobile-toc" aria-label="Contents">
+<details>
+<summary>Contents</summary>
+<div class="toc">
+<ul>
+<li><a href="#whats-new-in-loadout">What's new in loadout</a>
+<ul>
+<li><a href="#october-2026">October 2026</a></li>
+<li><a href="#september-2026">September 2026</a></li>
+</ul></li>
+</ul>
+</div>
+</details>
+</nav>
+<h1 id="whats-new-in-loadout">What's new in loadout</h1>
+<p>What changed in loadout, newest first. Each update lists what it added and what it fixed. The <a href="../">user guide</a> explains how to use each one.</p>
+<h2 id="october-2026">October 2026</h2>
+<h3 id="5-october-2026"><time datetime="2026-10-05">5 October 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A team's wiki page can end with a <strong>Course</strong>: lessons from a knowledge base the team publishes, listed in order. Each lesson opens on its own with <strong>Previous</strong> and <strong>Next</strong>, and has a link you can send to someone.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Owners choose the course on the team's <strong>Settings</strong> page, next to the wiki switch, or with <code>loadout namespace set TEAM --course TEAM/NAME</code> (<code>--course none</code> removes it). A team without a course of its own shows the project's, marked "From PROJECT".</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A <code>quiz</code> block in any Markdown document (lessons, package previews, skill pages and wiki pages) shows a question whose answers fold out, each saying whether it is right and why. A quiz that cannot be read says so and names the line.</li>
+</ul>
+<h3 id="4-october-2026"><time datetime="2026-10-04">4 October 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Wiki pages fold at each <code>##</code> heading: a page opens with its title, its first lines and a list of its sections, and <strong>Open all</strong> opens every one. A link to a heading opens the section it is in.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> This What's new page lists what each update added and fixed, newest first. The <strong>Guide</strong> and <strong>What's new</strong> switch at the top of the docs moves between the two.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The registry sidebar links to What's new, next to Docs. On a phone both show as icons in the top bar.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A proposal now remembers the release it was made from. When a newer release comes out first, its review page shows <strong>Behind 3.0.0</strong>, says who published that release and which files it changed, and <code>loadout review list</code> reads "open, behind 3.0.0".</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The diff of a proposal that is behind has three views: the proposal's own changes, what was released since, and what approving it would release.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Approving a proposal that is behind takes an explicit <strong>Approve over 3.0.0</strong> on the web, or <code>loadout review approve ID --over 3.0.0</code>, so nobody drops a newer release's changes by accident.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout rebase</code> brings a folder or a proposal up to date with the latest release on your machine. It merges line by line and marks conflicts for you to resolve; proposing again replaces your old proposal and keeps its prompts.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout propose</code> and <code>loadout publish</code> refuse a folder that is behind the latest release. Run <code>loadout rebase</code> first, or add <code>--base latest</code> to publish over it on purpose, for example from CI.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Releases show who published them.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> When your edits to an installed agent, skill or knowledge base hold back an update, <code>loadout sync</code> lists the files in the way and what to do, and remembers it. <code>loadout status</code> and the new <code>loadout notices</code> show it later without going online.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Claude Code and Copilot tell you at the start of a session when an update is held back by your edits. <code>loadout login</code> sets this up; if you are already signed in, run <code>loadout setup --hooks</code>. <code>loadout setup --no-hooks</code> turns it off and leaves your settings file as it was.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout install TEAM/NAME --merge</code> takes the new release and keeps your edits, line by line. Where both changed the same lines it marks them for you to resolve.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout sync</code> exits with code 2 while your edits hold back an update, so a cron job can tell it apart from a registry problem.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Pushover tells you about each new version once, not on every sync.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> loadout now has releases, starting with 0.1.0. <code>loadout version</code> names the release your CLI was built from.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> When a newer loadout is out, a line after your command says so, at most once a day, with the command to update. When an agent runs loadout, the line asks it to tell you. <code>loadout status</code>, <code>loadout notices</code> and the start of a Claude Code or Copilot session show it too. Set <code>LOADOUT_UPDATE_NOTICE=off</code> to turn it off.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> If your loadout is too old for your registry, every command says so.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> On phones, the project fold arrow no longer shows at the right edge of the top bar.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> A proposal's page and <code>loadout review show</code> compare it with the release it was made from, so changes released in between no longer look as if the author deleted them.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> The <strong>loadout docs</strong> logo takes you back to the registry page you opened the docs from, also after you move around the docs, reload, or come in through the install link on <strong>Start here</strong>.</li>
+</ul>
+<h3 id="3-october-2026"><time datetime="2026-10-03">3 October 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Each project and team can have a wiki: one page its members write and the whole team reads, with <strong>Write</strong> and <strong>Preview</strong> while editing, a history of every save and a way back to any older revision. An owner turns it on in <strong>Settings</strong> or with <code>loadout namespace set NAME --wiki on</code>.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> If someone saves the wiki while you are editing, your save is held back and the page shows your text again with their change above it, so nothing is lost.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout wiki pull</code>, <code>push</code>, <code>log</code> and <code>show</code> let you write the wiki in your own editor. <code>pull</code> never replaces a file with changes that are not on the registry.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The Members tab is now <strong>Settings</strong>: the team's people, review, the wiki switch, machine tokens and models in one place. Old links to Members still work.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The <strong>Start here</strong> page (<code>/skills</code>) explains loadout to newcomers: what it is, the words it uses, the first commands for this registry, and loadout's own skills.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A drawio block in a Markdown file is drawn as a diagram, like a mermaid block.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The models page warns that Copilot may ignore the model set for an agent when HydraFusion is chosen in its model picker, as it does on Auto.</li>
+</ul>
+<h3 id="1-october-2026"><time datetime="2026-10-01">1 October 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The logo opens a short home page: what loadout does in one line, a diagram of how it works, and loadout's own skills.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The <strong>Reviews</strong> tab says whether the team requires review.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> A form with a mistake now marks the field to fix, and an error on the server shows a page with a way back.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Choosing from a menu with the arrow keys, such as <strong>Sort by</strong>, waits for Enter instead of reloading the page at every step.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Pages load faster on a second visit: the browser keeps the styles and scripts until they change.</li>
+</ul>
+<h2 id="september-2026">September 2026</h2>
+<h3 id="30-september-2026"><time datetime="2026-09-30">30 September 2026</time></h3>
+<ul>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Release sizes on a package page show in KB and MB instead of bytes.</li>
+</ul>
+<h3 id="29-september-2026"><time datetime="2026-09-29">29 September 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Accounts. Sign up and sign in on the registry's website with email and password plus a mailed code, or with Google. <code>loadout login</code> signs in the CLI through the browser, and <code>loadout logout</code> signs it out.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> One sign-in covers every team you belong to on a registry and the project above them. What you may do follows your role in each team at that moment, so a new role needs no new login.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Roles: member, maintainer, owner and admin. Maintainers add and remove people on the website or with <code>loadout member</code>; owners of a project are owners of every team in it.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Projects: every team belongs to a project, whose packages all its teams read. Admins create projects and owners create teams in them on the website; owners can also use <code>loadout namespace create</code>.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The registry's website: a sidebar of your projects and teams, the packages each team reads, proposals with both versions' answers side by side and the diff, approve, reject and withdraw, members, machine tokens and an account page with a light or dark appearance.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The website follows the system's increased contrast setting, and its buttons are easier to tap on touch screens. Remove, revoke, reject and withdraw ask before they act.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Skills and knowledge bases join agents as package kinds. <code>loadout new skill</code> and <code>loadout new kb</code> start one; a knowledge base gets an index loadout writes for you, and may hold Mermaid and draw.io diagrams.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Agents can use the <code>skill</code> tool, which grants Skill in Claude Code.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout import</code> turns the agents, skills and folders of documents you already have into packages, ready to publish.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Filter and sort packages by kind and by layer, on the team page and with <code>loadout list --kind</code>, <code>--layer</code> and <code>--sort</code>.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout status</code> shows one line per skill folder; <code>--files</code> lists every file.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The user guide is online at <code>/docs</code>, with a Docs link in the registry's sidebar. The guide's title takes you back to the page you came from.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout review TEAM/NAME</code> runs the version you have and the newest proposal on the proposal's prompts in your own AI tool, next to the team's other packages, and attaches the report to the proposal. <code>--safe</code> refuses anything that would need your approval.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Review answers show as formatted text on the website; long ones show their first 150 words, and <strong>Show whole answers</strong> opens both.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Anyone on the team can add prompts to a proposal on its page, and the next <code>loadout review</code> asks them too.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A project owner can release their own proposal without a second person's review, with a note saying why. The release is marked "Released without review" for everyone to see.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Projects choose which model and reasoning effort each AI tool runs for the <code>fast</code>, <code>balanced</code> and <code>deep</code> hints, and teams inherit or override them, on the <strong>Choose models</strong> page or with <code>loadout namespace set</code>. <code>loadout sync</code> applies a change like a new version.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Invite someone to a project and any of its teams in one step, on the website or with <code>loadout member invite</code>. They get a sign-in link, by mail when the registry sends mail.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Admins get a <strong>Server details</strong> page: estimated monthly cost, disk, backups, and how many projects, teams, packages and accounts the registry holds.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> loadout's own skills teach your AI agent to use loadout. <code>loadout login</code> installs them, and anyone can read them on the website.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Download any release as a zip, or a single file, from the package page.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Open a package's files in the browser: Markdown is formatted, and Mermaid and draw.io diagrams are drawn, with a tab per draw.io page.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Login tokens expire after 90 days. <strong>Sign out everywhere</strong> on the account page, or <code>loadout logout --all</code>, ends every session and token at once.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Machine tokens for CI can propose but never approve or reject, and count as the person who made them.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> <code>loadout login</code> opens only the registry's own sign-in page, and asks before saving a token for a team you did not name.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Sign-in is better protected: setting a password signs out your other sessions, a new code replaces the one before it, and an old sign-up code can no longer change an account.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> After you leave a team, <code>loadout list</code> and <code>loadout install --all</code> skip it and carry on with your other teams.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> loadout never writes or deletes through a skill folder that is a symbolic link.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Fields in a skill's frontmatter that loadout does not use, such as <code>allowed-tools</code>, are kept as written.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> A skill's description may be 1,024 characters long in any language; it was counted in bytes before.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> <code>loadout status</code> no longer reports a skill's files as missing when a closer layer's skill of the same name shadows it.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> Updating a skill in which a file became a folder, or a folder a file, works.</li>
+</ul>
+<h3 id="28-september-2026"><time datetime="2026-09-28">28 September 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The first release. Write an agent once, in one tool-neutral format, and loadout installs it into Claude Code and GitHub Copilot, translating its tools and model for each. <code>loadout new</code>, <code>install</code>, <code>uninstall</code> and <code>status</code> cover a single machine.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A registry for the team: <code>loadout serve</code> runs one on any always-on machine, <code>loadout publish</code> shares a package, and teammates <code>list</code>, <code>install</code> and <code>sync</code> it.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Each installed package has a policy for updates: <code>notify</code> (the default), <code>auto</code> or <code>pin</code>. <code>loadout sync</code> can also send a phone notification through Pushover.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout diff</code> shows what changed between versions, and <code>loadout rollback</code> goes back to an older one and pins it.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Layers: a team reads the packages of the namespace above it, and when both ship a package with the same name, the team's wins. <code>loadout layers</code> shows the order; <code>loadout install --all</code> installs everything.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Join a team with an invite: <code>loadout team join</code>, <code>list</code> and <code>leave</code>.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Proposals: <code>loadout propose</code> uploads a candidate with the prompts you tested it with, and a teammate compares it with the current release in their own AI tool before approving it.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Your own files are safe: loadout never overwrites a file it did not write, or one you edited, without <code>--force</code>, and it works when your tool folders are symbolic links into a dotfiles repository.</li>
+</ul>
+</article>
+</main>
+</div>
+<script src="/docs/docs.js"></script>
+</body>
+</html>

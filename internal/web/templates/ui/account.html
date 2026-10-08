@@ -1,0 +1,70 @@
+{{define "content"}}{{with .Page}}
+<div class="page-head"><h1>Account</h1></div>
+<section class="panel" aria-labelledby="profile-h">
+<div class="panel-head"><h2 id="profile-h">Profile</h2></div>
+<dl class="facts">
+<dt>Email</dt><dd>{{$.User.Email}}</dd>
+{{if $.User.Name}}<dt>Name</dt><dd>{{$.User.Name}}</dd>{{end}}
+<dt>Signs in with</dt><dd>{{.SignIn}}</dd>
+{{if $.User.IsAdmin}}<dt>Admin</dt><dd>Yes, of this whole registry</dd>{{end}}
+</dl>
+{{if .FirstAdmin}}<p class="hint"><strong>First-run admin.</strong> Its password was shown once when the registry first started, and a service manager may still keep it in its log. Change it on the registry host with <code>loadout user password --email {{$.User.Email}}</code>. This reminder stays while this account exists.</p>{{end}}
+</section>
+<section class="panel" aria-labelledby="teams-h">
+<div class="panel-head"><h2 id="teams-h">Teams and projects</h2></div>
+{{if .Memberships}}<table class="list">
+<colgroup><col><col class="w160"><col class="w160"></colgroup>
+<thead><tr><th scope="col">Namespace</th><th scope="col">Role</th><th scope="col">Since</th></tr></thead>
+<tbody>{{range .Memberships}}
+<tr><td class="wide"><a class="name" href="/t/{{.Namespace}}">{{.Namespace}}</a></td><td class="secondary">{{role .Role}}</td><td class="muted"><time datetime="{{stamp .Since}}" title="{{exact .Since}}">{{month .Since}}</time></td></tr>{{end}}
+</tbody>
+</table>
+{{else if $.CreateLabel}}<div class="setting"><div class="grow"><h3>Nothing here yet</h3><p>Create your first project, then the teams in it and their people.</p></div><a class="btn btn-primary" href="/new">{{template "icon-plus"}}{{$.CreateLabel}}</a></div>
+{{else}}<p class="hint">You are not in any team yet. Ask a maintainer of your team to invite {{$.User.Email}}.</p>{{end}}
+<div class="cmdcard">
+{{template "icon-terminal"}}
+<div class="text"><strong>Sign in on your terminal</strong><span>You approve it here, in the browser.</span></div>
+<code class="cmd" id="login">{{.Login}}</code>
+{{template "copy" "login"}}
+</div>
+</section>
+{{if .Server}}<section class="panel" aria-labelledby="server-h">
+<div class="setting">
+<div class="grow"><h2 id="server-h">Server</h2><p>Costs, disk, backups and counts for the whole registry. Only admins see them.</p></div>
+<a class="btn" href="/account/server">Server details{{template "icon-chevron"}}</a>
+</div>
+</section>
+{{end}}<section class="panel" aria-labelledby="look-h">
+<div class="panel-head"><h2 id="look-h">Appearance</h2></div>
+<form method="post" action="/account/theme" data-dirty>
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<fieldset class="themes">
+<legend class="vh">Appearance</legend>
+<label class="check"><input type="radio" name="theme" value="system"{{if not $.Theme}} checked{{end}}>System</label>
+<label class="check"><input type="radio" name="theme" value="light"{{if eq $.Theme "light"}} checked{{end}}>Light</label>
+<label class="check"><input type="radio" name="theme" value="dark"{{if eq $.Theme "dark"}} checked{{end}}>Dark</label>
+<button type="submit" class="btn" data-save>Save</button>
+</fieldset>
+</form>
+</section>
+<section class="panel" aria-labelledby="out-h">
+<div class="panel-head"><h2 id="out-h">Sign out</h2></div>
+<form class="setting" method="post" action="/auth/logout">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<div class="grow"><h3>This browser</h3><p>You can sign in again any time.</p></div>
+<button type="submit" class="btn">Sign out</button>
+</form>
+<div class="setting">
+<div class="grow"><h3>Everywhere</h3><p>Ends every browser session and every token from loadout login, on all your machines.</p></div>
+<details class="menu">
+<summary class="btn btn-danger">Sign out everywhere…</summary>
+<form class="pop" method="post" action="/account">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="action" value="signout-everywhere">
+<p class="secondary">Sign out on every browser and machine? Each terminal needs loadout login again before it can install or sync.</p>
+<div class="row"><a class="btn" href="/account">Cancel</a><button type="submit" class="btn btn-danger">Sign out everywhere</button></div>
+</form>
+</details>
+</div>
+</section>
+{{end}}{{end}}

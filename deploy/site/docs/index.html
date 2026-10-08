@@ -1,0 +1,1428 @@
+<!doctype html>
+<!-- Generated from docs/GUIDE.md by docs/guide/build.sh. Edit the Markdown, not this file. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="How to install, write, share and review AI agents, skills and knowledge bases with loadout.">
+<title>loadout docs</title>
+<style>
+/* The palette, radii and fonts of the registry's web pages
+   (internal/web/static/style.css), so the docs look like the same product.
+   No script and no external files: the site's CSP allows inline style only. */
+:root {
+  color-scheme: light dark;
+  --ground: #f5f5f7;
+  --panel: #ffffff;
+  --panel-alt: #fafafc;
+  --sidebar: #ececf0;
+  --sidebar-line: #dcdce1;
+  --sidebar-hover: #e8e8ed;
+  --line: #e5e5ea;
+  --line-soft: #efeff4;
+  --field-line: #d2d2d7;
+  --text: #1d1d1f;
+  --text-2: #515154;
+  --muted: #6e6e73;
+  --muted-2: #5b5b60;
+  --link: #0066cc;
+  --code-bg: #f5f5f7;
+  --inline-code: #efeff4;
+  --own-bg: #e8f0fb;
+  --own-text: #004f9e;
+  --fix-bg: #ececf0;
+  --fix-text: #3a3a3c;
+  --segment: #e3e3e8;
+  --segment-on: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #111113;
+    --panel: #1c1c1e;
+    --panel-alt: #202023;
+    --sidebar: #19191b;
+    --sidebar-line: #2e2e32;
+    --sidebar-hover: #2a2a2e;
+    --line: #2f2f33;
+    --line-soft: #2a2a2d;
+    --field-line: #46464b;
+    --text: #f5f5f7;
+    --text-2: #c7c7cc;
+    --muted: #a1a1a6;
+    --muted-2: #a1a1a6;
+    --link: #4aa3ff;
+    --code-bg: #111113;
+    --inline-code: #2a2a2d;
+    --own-bg: #1a2e47;
+    --own-text: #8cc4ff;
+    --fix-bg: #2c2c30;
+    --fix-text: #d1d1d6;
+    --segment: #2a2a2d;
+    --segment-on: #4a4a4f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--text);
+  font: 0.9375rem/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px; }
+.skip { position: absolute; left: 12px; top: -48px; z-index: 10; padding: 8px 12px; border-radius: 8px; background: var(--panel); }
+.skip:focus { top: 12px; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Shell: a sidebar with the contents beside the page on wide screens. */
+.app { display: flex; min-height: 100vh; }
+.side {
+  width: 264px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  padding: 20px 12px 32px; background: var(--sidebar); border-right: 1px solid var(--sidebar-line);
+}
+.brand {
+  display: flex; align-items: center; gap: 8px; padding: 0 10px 18px;
+  color: var(--text); font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.2px;
+}
+.brand:hover { text-decoration: none; }
+.brand span { color: var(--muted-2); font-weight: 400; }
+/* Guide and What's new: two pages of one site, switched like the
+   registry's tabs. The page shown is aria-current. */
+.switch { display: flex; gap: 2px; padding: 2px; background: var(--segment); border-radius: 9px; }
+.switch a {
+  flex: 1 1 0; display: flex; align-items: center; justify-content: center; min-height: 30px; padding: 0 12px;
+  border-radius: 7px; color: var(--text); font-size: 0.8125rem; white-space: nowrap;
+}
+.switch a:hover { text-decoration: none; background: var(--sidebar-hover); }
+.switch a[aria-current="page"] { background: var(--segment-on); font-weight: 600; box-shadow: var(--shadow); }
+.side .switch { margin: 0 4px 14px; }
+.side-label { padding: 8px 10px 4px; font-size: 0.6875rem; font-weight: 600; color: var(--muted-2); text-transform: uppercase; letter-spacing: 0.4px; }
+.toc ul { list-style: none; margin: 0; padding: 0; }
+.toc a {
+  display: flex; align-items: center; min-height: 30px; padding: 4px 10px;
+  border-radius: 8px; color: var(--text); font-size: 0.875rem; line-height: 1.3;
+}
+.toc a:hover { background: var(--sidebar-hover); text-decoration: none; }
+/* The guide's one h1 is the page title, not an entry. */
+.toc > ul > li > a { display: none; }
+.toc ul ul a { min-height: 28px; font-size: 0.8125rem; color: var(--text-2); }
+.doc .toc ul { margin: 0; padding: 0; }
+.doc .toc li { margin: 0; }
+
+.main { flex-grow: 1; min-width: 0; padding: 28px 36px 64px; }
+.doc {
+  max-width: 820px; margin: 0 auto; padding: 36px 44px 44px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+}
+.mobile-toc { display: none; }
+
+/* Text */
+.doc h1 { margin: 0 0 12px; font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; line-height: 1.15; }
+.doc h2 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.3px; line-height: 1.25; }
+
+/* Chapters: each level-2 section folds */
+details.chapter { border-top: 1px solid var(--line); }
+.chapter-fixed { padding: 16px 0 4px; border-top: 1px solid var(--line); }
+.chapter-fixed h2 { margin-bottom: 10px; }
+details.chapter:last-of-type { border-bottom: 1px solid var(--line); }
+details.chapter > summary {
+  display: flex; align-items: center; gap: 10px; padding: 16px 4px; cursor: pointer;
+  list-style: none; border-radius: 8px;
+}
+details.chapter > summary::-webkit-details-marker { display: none; }
+details.chapter > summary::before {
+  content: ""; flex: none; width: 8px; height: 8px; margin: 0 4px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg); transition: transform 0.15s ease;
+}
+details.chapter[open] > summary::before { transform: rotate(45deg); }
+details.chapter > summary:hover { background: var(--line-soft); }
+details.chapter > summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.chapter-body { padding: 0 4px 24px; }
+.chapter-body > :first-child { margin-top: 0; }
+.chapter-tools { display: flex; gap: 8px; justify-content: flex-end; margin: 16px 0 8px; }
+.chapter-tools[hidden] { display: none; }
+.chapter-tools button {
+  min-height: 32px; font: inherit; font-size: 0.8125rem; padding: 0 14px; border-radius: 8px; cursor: pointer;
+  color: var(--text); background: var(--panel); border: 1px solid var(--field-line);
+}
+.chapter-tools button:hover { background: var(--line-soft); }
+@media (prefers-reduced-motion: reduce) { details.chapter > summary::before, .mobile-toc summary::before { transition: none; } }
+.doc h3 { margin: 28px 0 8px; font-size: 1.0625rem; font-weight: 600; line-height: 1.3; }
+.doc h1 + p { font-size: 1.0625rem; color: var(--text-2); }
+.doc h2, .doc h3 { scroll-margin-top: 16px; }
+.doc h2:target, .doc h3:target { color: var(--own-text); }
+.doc p, .doc ul, .doc ol { margin: 0 0 12px; }
+.doc ul, .doc ol { padding-left: 22px; }
+.doc li { margin: 4px 0; }
+.doc li > p { margin: 0; }
+.doc strong { font-weight: 600; }
+
+code { font-family: var(--mono); font-size: 0.84em; }
+:not(pre) > code {
+  padding: 1px 5px; border-radius: 5px; background: var(--inline-code);
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 0 0 16px; padding: 12px 14px; overflow-x: auto;
+  background: var(--code-bg); border: 1px solid var(--line-soft); border-radius: 10px;
+  font-size: 0.8125rem; line-height: 1.55; tab-size: 4;
+}
+pre code { font-size: inherit; white-space: pre; }
+
+/* Tables look like the registry's lists, and scroll inside themselves. */
+.table { margin: 0 0 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; line-height: 1.45; }
+th {
+  padding: 9px 14px; text-align: left; vertical-align: bottom;
+  font-size: 0.75rem; font-weight: 600; color: var(--muted); background: var(--panel-alt);
+}
+td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+td code { white-space: nowrap; }
+.doc li .table { margin-top: 8px; }
+
+/* What's new: a rule above each month, the day under it, and items that
+   start with their tag. The word carries the meaning; the colour only helps
+   the eye find features among fixes. */
+.tag {
+  display: inline-block; min-width: 4.5rem; margin-right: 4px; padding: 0 8px; border-radius: 6px;
+  font-size: 0.75rem; font-weight: 600; line-height: 1.6rem; text-align: center; vertical-align: 1px;
+}
+.tag-feature { background: var(--own-bg); color: var(--own-text); }
+.tag-fix { background: var(--fix-bg); color: var(--fix-text); }
+.changes .doc h2 { margin: 32px 0 0; padding-top: 24px; border-top: 1px solid var(--line); }
+/* A day sits under its month: smaller and quieter, so the two never read
+   as the same level, even where the month heading shrinks on phones. */
+.changes .doc h3 { margin: 20px 0 10px; font-size: 0.9375rem; color: var(--text-2); }
+.changes .doc ul { list-style: none; padding-left: 0; }
+.changes .doc li { margin: 0 0 10px; }
+@media (min-width: 901px) {
+  /* Tags hang in a column of their own, so the sentences line up. */
+  .changes .doc li { position: relative; padding-left: 5.25rem; }
+  .changes .tag { position: absolute; left: 0; top: 0; }
+}
+
+/* Phones and narrow windows: contents on top, the page edge to edge. */
+@media (max-width: 900px) {
+  .app { display: block; }
+  .side { display: none; }
+  .main { padding: 0; }
+  body { background: var(--panel); }
+  .doc { max-width: none; padding: 20px 16px 48px; border: 0; border-radius: 0; }
+  .mobile-toc { display: block; padding: 0; margin: 0 0 8px; }
+  .mobile-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--sidebar); border-bottom: 1px solid var(--sidebar-line); }
+  .mobile-top .brand { padding: 0; }
+  /* Below about 330 px the switch wraps under the brand rather than
+     pushing the page sideways. */
+  .mobile-top { flex-wrap: wrap; gap: 8px 12px; padding: 10px 16px; }
+  .mobile-top .switch { margin-left: auto; }
+  .mobile-toc details { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-alt); }
+  .mobile-toc summary { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; font-weight: 600; cursor: pointer; list-style: none; border-radius: 10px; }
+  .mobile-toc summary::-webkit-details-marker { display: none; }
+  .mobile-toc summary::before {
+    content: ""; flex: none; width: 7px; height: 7px; margin: 0 3px;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg); transition: transform 0.15s ease;
+  }
+  .mobile-toc details[open] > summary::before { transform: rotate(45deg); }
+  .mobile-toc .toc { padding: 0 8px 10px; }
+  .mobile-toc .toc a:hover { background: var(--line-soft); }
+  .doc h1 { font-size: 1.625rem; }
+  .doc h2 { font-size: 1.125rem; }
+  td code { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (min-width: 901px) { .mobile-top { display: none; } }
+/* Touch screens: every link and button at least 44 px tall. */
+@media (pointer: coarse) {
+  .toc a, .toc ul ul a, .chapter-tools button, .switch a { min-height: 44px; }
+}
+/* Increased contrast: stronger secondary text and separators. */
+@media (prefers-contrast: more) {
+  :root { --muted: #515154; --muted-2: #3a3a3c; --line: #aeaeb2; --line-soft: #c7c7cc; --field-line: #8a8a8e; --fix-text: #1d1d1f; }
+  .tag { box-shadow: inset 0 0 0 1px currentColor; }
+  .switch { box-shadow: inset 0 0 0 1px var(--line); }
+}
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root { --muted: #d1d1d6; --muted-2: #d1d1d6; --line: #636366; --line-soft: #48484a; --field-line: #8e8e93; --fix-text: #f5f5f7; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="mobile-top">
+<a class="brand" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>loadout <span>docs</span></a>
+<nav class="switch" aria-label="Docs pages"><a href="/docs/" aria-current="page">Guide</a><a href="/docs/whats-new/">What's new</a></nav>
+</header>
+<div class="app" id="top">
+<div class="side">
+<a class="brand" href="#top"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>loadout <span>docs</span></a>
+<nav class="switch" aria-label="Docs pages"><a href="/docs/" aria-current="page">Guide</a><a href="/docs/whats-new/">What's new</a></nav>
+<nav aria-label="Contents">
+<div class="side-label">Contents</div>
+<div class="toc">
+<ul>
+<li><a href="#loadout-user-guide">loadout user guide</a>
+<ul>
+<li><a href="#the-one-rule">The one rule</a></li>
+<li><a href="#concepts">Concepts</a></li>
+<li><a href="#get-started">Get started</a></li>
+<li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
+<li><a href="#loadouts-own-skills">loadout's own skills</a></li>
+<li><a href="#everyday-commands">Everyday commands</a></li>
+<li><a href="#write-packages">Write packages</a></li>
+<li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
+<li><a href="#for-team-leads-and-admins">For team leads and admins</a></li>
+<li><a href="#rules-and-limits">Rules and limits</a></li>
+<li><a href="#command-reference">Command reference</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul></li>
+</ul>
+</div>
+</nav>
+</div>
+<main class="main" id="content">
+<article class="doc">
+<nav class="mobile-toc" aria-label="Contents">
+<details>
+<summary>Contents</summary>
+<div class="toc">
+<ul>
+<li><a href="#loadout-user-guide">loadout user guide</a>
+<ul>
+<li><a href="#the-one-rule">The one rule</a></li>
+<li><a href="#concepts">Concepts</a></li>
+<li><a href="#get-started">Get started</a></li>
+<li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
+<li><a href="#loadouts-own-skills">loadout's own skills</a></li>
+<li><a href="#everyday-commands">Everyday commands</a></li>
+<li><a href="#write-packages">Write packages</a></li>
+<li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
+<li><a href="#for-team-leads-and-admins">For team leads and admins</a></li>
+<li><a href="#rules-and-limits">Rules and limits</a></li>
+<li><a href="#command-reference">Command reference</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ul></li>
+</ul>
+</div>
+</details>
+</nav>
+<h1 id="loadout-user-guide">loadout user guide</h1>
+<p>loadout shares your team's AI agents, skills and knowledge bases with everyone on the team, in the AI tools they already use: Claude Code and GitHub Copilot. You publish a package once; each teammate installs it with one command and gets updates with <code>loadout sync</code>.</p>
+<p><a href="https://loadout.lat/docs/whats-new/">What's new</a> lists what each update of loadout added and fixed.</p>
+<section class="chapter-fixed">
+<h2 id="the-one-rule">The one rule</h2>
+</section>
+<p>loadout moves files. It never runs a model and never holds an AI key. Every agent, skill and knowledge base runs in each person's own AI tool, on their own subscription.</p>
+<p>That includes <code>loadout review</code>, the one command that starts an agent: it runs on the reviewer's laptop, in the reviewer's own Claude Code or Copilot CLI. The registry only stores text.</p>
+<div class="chapter-tools" id="chapter-tools" hidden><button type="button" data-open>Open all</button><button type="button" data-close>Close all</button></div>
+<details class="chapter"><summary>
+<h2 id="concepts">Concepts</h2>
+</summary><div class="chapter-body">
+<h3 id="packages">Packages</h3>
+<p>A package is one of three kinds:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>You write</th>
+<th>Your AI tool gets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>agent</td>
+<td><code>agent.md</code>: a prompt plus the tools and model it needs</td>
+<td>one agent file per tool</td>
+</tr>
+<tr>
+<td>skill</td>
+<td><code>SKILL.md</code> plus optional files (<code>references/</code>, <code>scripts/</code>, <code>assets/</code>)</td>
+<td>a skill folder</td>
+</tr>
+<tr>
+<td>knowledge base (<code>kb</code>)</td>
+<td>Markdown or text documents, in folders if you like</td>
+<td>a skill folder whose <code>SKILL.md</code> loadout writes: an index of the documents</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every package folder also has a <code>loadout.yaml</code> with its id, kind, version and a one-line description.</p>
+<p>A package id is <code>namespace/name</code>, for example <code>payments/planner</code>. Names use lowercase letters, digits and single hyphens, at most 64 characters.</p>
+<p>Versions look like <code>1.4.0</code>. A published version never changes, and every new version must be higher than the last. You install the newest version unless you ask for one: <code>payments/planner@1.2.0</code>.</p>
+<p>A knowledge base costs nothing until it is used: both tools read only a skill's description at startup and open its files when a task needs them.</p>
+<h3 id="registry-namespaces-projects-and-teams">Registry, namespaces, projects and teams</h3>
+<p>The registry is the server your team publishes to and installs from, for example <code>https://registry.example.com</code>. It has a website too.</p>
+<p>A namespace is the first part of a package id. There are two kinds:</p>
+<ul>
+<li>A <strong>team</strong> (such as <code>payments</code>) holds one team's packages.</li>
+<li>A <strong>project</strong> (such as <code>acme</code>) sits above several teams and holds what they all share, such as <code>acme/python-standards</code>.</li>
+</ul>
+<p>Every team belongs to a project. Members of a team read their team's packages and the project's, and count as members of the project: they may propose changes to it, but not publish there. They never see a sibling team's packages.</p>
+<h3 id="layers">Layers</h3>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What it is</th>
+<th>Managed by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0</td>
+<td>the project: shared by every team in it</td>
+<td>loadout</td>
+</tr>
+<tr>
+<td>L1</td>
+<td>your team</td>
+<td>loadout</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>your own files in your tools' folders (agents and skills you made yourself)</td>
+<td>you, not loadout</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>When two layers ship a package with the same name, the closer layer wins: your team's <code>payments/planner</code> shadows the project's <code>acme/planner</code>, and only the team's file is installed. <code>loadout status</code> then shows the project's copy as "shadowed by payments/planner". Uninstall the team's package and the project's comes back when you install it again.</p>
+<p>loadout never touches L2. If a package would overwrite a file you made yourself, the install stops and names the file. Your file stays unless you pass <code>--force</code>.</p>
+<h3 id="roles">Roles</h3>
+<p>Everyone who signs in has a role in a team or project:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Can do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>member</td>
+<td>install, sync, propose new versions, edit the wiki</td>
+</tr>
+<tr>
+<td>maintainer (of a team)</td>
+<td>everything a member can, plus publish, approve or reject proposals (not their own), add and remove members, make machine tokens</td>
+</tr>
+<tr>
+<td>owner (of a project)</td>
+<td>everything a maintainer can, as owner of the project and of every team below it; create teams in the project; add maintainers; turn review and the wiki on or off and choose its course; approve their own proposals as owner, with a note, which everyone can see</td>
+</tr>
+<tr>
+<td>admin (whole registry)</td>
+<td>everything: create projects, make owners, delete empty namespaces</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Anyone in a team is also a member of the project above it: they install its packages and may propose changes to it, and the project's maintainers or owners decide. They read the project's wiki too, but edit it only with a role in the project. A team maintainer is not a project maintainer; an owner adds that role separately.</p>
+<p>On a registry in simple login mode there is no sign-up: an admin gives you an account and a password (<code>loadout user password --email E</code> on the registry host). A brand-new simple-login registry has one account, the admin <code>admin@loadout.local</code>: its one-time password is printed once in the service's log (<code>journalctl -u loadout</code>) unless the operator set <code>LOADOUT_ADMIN_PASSWORD</code>. Sign in with it, then have the operator change it with <code>loadout user password --email admin@loadout.local</code>, because the log keeps the printed one. It is created only while the registry has no account at all.</p>
+<p>A new member needs no account first. A maintainer adds their email; they sign up with that address (or Google) and run <code>loadout login</code>.</p>
+<h3 id="review">Review</h3>
+<p>A team can require review. Then nobody publishes directly, not even maintainers: every new version is a <strong>proposal</strong> that a teammate approves.</p>
+<p>A proposal carries the prompts the author tested with. A reviewer reads the diff and can run <code>loadout review TEAM/NAME</code>, which runs the version they have and the candidate on those prompts in the reviewer's own AI tool and shows the answers side by side. Approving turns the proposal into a normal release that everyone gets with <code>sync</code>.</p>
+<p>A proposal remembers the release it was made from. When someone releases a newer version while it is open, the proposal is <strong>behind</strong>: approving it as it is would release the author's files without that newer release's changes, and everyone's next sync would undo them. loadout says so wherever the proposal shows, refuses a plain approval, and gives the author <code>loadout rebase</code> to bring the proposal up to date on their own machine.</p>
+<p>Nobody approves their own proposal, with one exception: an owner of the project (or of the team's project above it) may approve their own, so a small team, or an owner alone, can still release. They say so explicitly and say why, and the proposal and the release are marked "Released without review" for everyone to see. Admins who are not owners there, and machine tokens, never do. Any member may propose, even to the project layer above their team; only that layer's maintainers or owners decide.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="get-started">Get started</h2>
+</summary><div class="chapter-body">
+<h3 id="1-install-the-cli">1. Install the CLI</h3>
+<p>Pick one:</p>
+<ul>
+<li><strong>The release binary.</strong> <code>curl -fsSL https://raw.githubusercontent.com/petervlad/loadout/main/scripts/install.sh | sh</code> downloads the archive for your system from the project's GitHub releases, checks it against <code>checksums.txt</code> and puts <code>loadout</code> in <code>~/.local/bin</code> (<code>LOADOUT_INSTALL_DIR</code> changes it, <code>LOADOUT_VERSION</code> picks a release). Or download the archive from the releases page yourself; Windows ships a <code>.zip</code>.</li>
+<li><strong>Homebrew</strong> (macOS), once the cask is published: <code>brew install --cask petervlad/tap/loadout</code>.</li>
+<li><strong>Go</strong> 1.27 or newer: <code>go install github.com/petervlad/loadout/cmd/loadout@latest</code>, or from a clone, <code>go install ./cmd/loadout</code>. Make sure <code>$(go env GOPATH)/bin</code> is on your <code>PATH</code>.</li>
+</ul>
+<pre class="sh"><code>loadout version</code></pre>
+<p><code>loadout version</code> names the release you built. Built from a release tag it says <code>loadout 0.4.0</code>; built from a commit after it, <code>loadout after 0.4.0 (built 4 Oct 2026 from b42ddb9)</code>; from a clone without any release yet, <code>loadout dev (built 4 Oct 2026 from b42ddb9)</code>. <code>modified</code> in the brackets means you built it with changes of your own in the folder.</p>
+<h3 id="2-sign-in">2. Sign in</h3>
+<p>Your team lead gives you the registry address and adds your email to the team. Then:</p>
+<pre class="sh"><code>loadout login --remote https://registry.example.com</code></pre>
+<p>loadout shows a code and opens the registry in your browser. Sign up or sign in (email and password plus a mailed code, or Google), check that the code matches and approve.</p>
+<p>One sign-in covers every team you belong to on that registry, and the projects above them. The token says who you are; what you may do is your role in each team at that moment, so joining another team or getting a new role needs no new login. <code>loadout team list</code> shows the teams you joined; if a maintainer adds you to a new team, run <code>loadout login</code> again to see it in <code>list</code>.</p>
+<p>Your login token works for 90 days. Run <code>loadout login</code> again to renew it.</p>
+<p>Signing in also gives your AI agent loadout's own skills, so you can ask it things like "install the team's packages" or "propose my change to the planner" (see <a href="#loadouts-own-skills">loadout's own skills</a>).</p>
+<h3 id="3-install-everything">3. Install everything</h3>
+<pre class="sh"><code>loadout list              # what your team and project publish
+loadout install --all     # install all of it</code></pre>
+<p>Or pick one:</p>
+<pre class="sh"><code>loadout install payments/planner
+loadout install payments/runbooks</code></pre>
+<h3 id="4-stay-up-to-date">4. Stay up to date</h3>
+<pre class="sh"><code>loadout sync</code></pre>
+<p><code>sync</code> checks every installed package. What happens next depends on its policy (see <a href="#updates-and-policies">Updates</a>). It is safe to run from cron:</p>
+<pre class="sh"><code># every weekday at 9:00
+0 9 * * 1-5  loadout sync</code></pre>
+<p><code>sync</code> exits with code 0 when all went well, 1 when a registry could not be checked, and 2 while an <code>auto</code> update is held back by a file you edited (see <a href="#when-your-edits-hold-an-update-back">When your edits hold an update back</a>). A cron job that mails on failure therefore mails you about a held-back update every run until you resolve it; scripts that treat any non-zero code as a registry failure should look for 2.</p>
+<h4 id="a-newer-loadout">A newer loadout</h4>
+<p>Your registry says which loadout release it runs, and loadout compares it with its own version on the requests it makes anyway; it adds no request of its own. When yours is older, one line after a command says so, at most once a day for each new release:</p>
+<pre class="text"><code>loadout 0.5.0 is out (you have 0.4.0). To update, in your loadout folder: git pull &amp;&amp; go install ./cmd/loadout</code></pre>
+<ul>
+<li>The line goes to standard error, after the command's own output, and never changes what the command prints or its exit code. A script or cron job sees it at most once a day too; set <code>LOADOUT_UPDATE_NOTICE=off</code> in its environment to keep it out. <code>status</code>, <code>notices</code> and <code>version</code> still show it when you run them.</li>
+<li>If a registry says your loadout is too old for it ("registry.example.com needs loadout 0.3.0 or newer"), that line comes after every command, <code>LOADOUT_UPDATE_NOTICE=off</code> included, because it explains why a command may fail. Update, then try again.</li>
+<li>When an AI agent (Claude Code, Copilot) runs loadout, the line is written for the agent and asks it to tell you, once, with the command. It is told not to update loadout for you unless you ask.</li>
+<li><code>loadout version</code> shows the same from what a registry last said, without asking one: <code>0.5.0 is out ...</code>, or <code>Up to date as of 4 Oct</code>.</li>
+<li>A build of your own with changes in it, or one without a release (<code>loadout dev ...</code>), is never told.</li>
+</ul>
+<h3 id="joining-with-an-invite-instead">Joining with an invite instead</h3>
+<p>A registry without accounts uses invites. Your team lead sends you one (<code>ldi_...</code>); it holds the address, the team and a token, so keep it private. Save it to a file and run:</p>
+<pre class="sh"><code>loadout team join &lt; invite.txt</code></pre>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="set-up-claude-code-and-copilot">Set up Claude Code and Copilot</h2>
+</summary><div class="chapter-body">
+<p>loadout writes into the tools you have. It finds them by their folders: <code>~/.claude</code> for Claude Code and <code>~/.copilot</code> for Copilot. If a tool's folder does not exist, loadout skips that tool. Use <code>--target</code> to choose yourself:</p>
+<pre class="sh"><code>loadout install payments/planner --target claude
+loadout install payments/planner --target claude,copilot</code></pre>
+<h3 id="user-scope-and-project-scope">User scope and project scope</h3>
+<p>By default a package is installed for you, in your home folder (<code>--scope user</code>). With <code>--scope project</code> it goes into the git repository you are in, so everyone who clones the repo gets it:</p>
+<pre class="sh"><code>cd ~/src/billing-service
+loadout install payments/planner --scope project</code></pre>
+<p>In a repository loadout looks for <code>.claude</code> (Claude Code) and <code>.github</code> (Copilot).</p>
+<h3 id="where-files-land">Where files land</h3>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Claude Code</th>
+<th>Copilot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agents, user scope</td>
+<td><code>~/.claude/agents/NAME.md</code></td>
+<td><code>~/.copilot/agents/NAME.md</code></td>
+</tr>
+<tr>
+<td>Agents, project scope</td>
+<td><code>.claude/agents/NAME.md</code></td>
+<td><code>.github/agents/NAME.agent.md</code></td>
+</tr>
+<tr>
+<td>Skills and knowledge bases, user scope</td>
+<td><code>~/.claude/skills/NAME/</code></td>
+<td><code>~/.copilot/skills/NAME/</code></td>
+</tr>
+<tr>
+<td>Skills and knowledge bases, project scope</td>
+<td><code>.claude/skills/NAME/</code></td>
+<td><code>.claude/skills/NAME/</code> (the same folder)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In a repository both tools read <code>.claude/skills</code>, so loadout writes one copy for both.</p>
+<h3 id="check-that-it-worked">Check that it worked</h3>
+<p>Start a <strong>new session</strong> after installing: both tools read agents and skills when a session starts.</p>
+<ul>
+<li><strong>Claude Code:</strong> run <code>/agents</code> to see the installed agents. Skills and knowledge bases are picked up automatically; ask for something the skill's description covers.</li>
+<li><strong>Copilot CLI:</strong> run <code>/agent</code> to pick an installed agent. Skills are picked up automatically, like in Claude Code.</li>
+</ul>
+<p>On the loadout side, <code>loadout status</code> lists every installed file and whether it is intact.</p>
+<h3 id="messages-in-claude-code-and-copilot">Messages in Claude Code and Copilot</h3>
+<p>When your edits hold an update back (see <a href="#when-your-edits-hold-an-update-back">When your edits hold an update back</a>), a new session in your AI tool says so in one line, so you do not have to remember to run <code>loadout status</code>:</p>
+<pre class="text"><code>loadout: 1 update is held back by your edits (payments/planner 1.3.0). Run loadout status.</code></pre>
+<p>The same line tells you when a newer loadout is out (see <a href="#a-newer-loadout">A newer loadout</a>), at most once a day.</p>
+<p><code>loadout login</code> sets this up for you and says so in one line. It adds a session-start hook that runs <code>loadout notices</code>, which reads only files on your machine: what your last <code>sync</code> found, checked against your files, and what a registry last said about loadout releases. It never asks a registry and never calls a model, and it prints nothing when there is nothing to say.</p>
+<ul>
+<li><strong>Claude Code</strong> shows the line when a new session starts (not when you resume one), and your agent may mention it once. loadout adds one entry under <code>hooks.SessionStart</code> in <code>~/.claude/settings.json</code> and leaves everything else in the file exactly as it was. Before its first change it keeps a copy as <code>~/.claude/settings.json.loadout.bak</code>.</li>
+<li><strong>Copilot</strong> gets its own file, <code>~/.copilot/hooks/loadout.json</code>, which Copilot CLI and VS Code both read. VS Code shows the line; Copilot CLI hands it to the agent, which is asked to mention it in its first reply.</li>
+</ul>
+<p>Hooks go only into your home folder, never into a repository, and only into tools whose folder exists. If <code>~/.claude</code> or <code>settings.json</code> is a symbolic link (a dotfiles setup), or the file is not valid JSON, loadout leaves it alone and prints the entry for you to add by hand.</p>
+<pre class="sh"><code>loadout setup --hooks       # set them up now (signed in before they existed? run this once)
+loadout setup --no-hooks    # remove them; login will not add them again</code></pre>
+<p>Until you choose either, <code>sync</code> reminds you with one tip line when something is held back.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="loadouts-own-skills">loadout's own skills</h2>
+</summary><div class="chapter-body">
+<p>loadout comes with four skills that teach your AI agent to use loadout. Their text is inside the loadout program, so it always names the commands and flags of the loadout you have.</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Skill</th>
+<th>Your agent uses it when you want to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loadout-setup</code></td>
+<td>install loadout, sign in, join a team, install, sync, check, uninstall or roll back packages, choose how updates arrive, or fix an error</td>
+</tr>
+<tr>
+<td><code>loadout-author</code></td>
+<td>create or import an agent, skill or knowledge base, try it, publish it or propose a new version</td>
+</tr>
+<tr>
+<td><code>loadout-review</code></td>
+<td>review a teammate's proposal: run both versions, read the report, approve, reject or withdraw</td>
+</tr>
+<tr>
+<td><code>loadout-admin</code></td>
+<td>add, invite or remove people, change roles, make machine tokens, require review, choose models</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every one of them tells your agent to ask you before anything your team would see (publish, propose, approve, reject, withdraw, member and namespace changes, tokens), never to read or pass on a token (you run <code>loadout login</code> yourself), never to overwrite a file you edited with <code>--force</code> without asking, and that <code>loadout review</code> runs a teammate's package with full access, offering <code>--safe</code>.</p>
+<p><strong>How they arrive.</strong> <code>loadout login</code> installs them for you, in <code>~/.claude/skills</code> and <code>~/.copilot/skills</code>, whichever tools you have; the folder you run it in does not matter. <code>loadout status</code> lists them as <code>loadout/loadout-setup</code> and so on. <code>loadout sync</code> updates them when you install a newer loadout, and never overwrites one you edited.</p>
+<p><strong>No Claude Code or Copilot yet?</strong> Login still works and says so in one line. The skills are added by the next <code>loadout sync</code> after you install one of them, or right away with <code>--target</code> (which creates the tool's folder):</p>
+<pre class="sh"><code>loadout setup --skills --target claude</code></pre>
+<p><strong>Don't want one?</strong> Uninstall it; login and sync will not add it back:</p>
+<pre class="sh"><code>loadout uninstall loadout/loadout-admin
+loadout setup --skills               # changed your mind: all four again</code></pre>
+<p><code>loadout policy loadout/loadout-setup pin</code> keeps a skill at its version.</p>
+<p><strong>Skills for running a registry.</strong> Two more skills ship with loadout for the person who wants a registry of their own, and are not installed by login: <code>loadout setup --host-skills</code> adds <code>loadout-host-setup</code> and <code>loadout-host-provision</code> the same way. After that <code>sync</code> keeps them in step with the CLI but never adds them anywhere new, and <code>loadout uninstall</code> removes one for good until you run the command again. They are text your own AI agent follows with your own cloud account and tools; loadout calls no cloud and holds no key.</p>
+<p><strong>Read them on the website.</strong> Every registry has a <strong>Start here</strong> page at the top of the sidebar (<code>/skills</code>), open to anyone, even before signing in. It says what loadout is, explains the words (agent, skill, knowledge base, package, registry, project and team), lists the first commands with this registry's address, and shows the four skills with things you can ask your AI tool. Each skill's page has its text and reference files, and the loadout version they belong to.</p>
+<h3 id="your-projects-own-loadout-skill">Your project's own loadout skill</h3>
+<p>loadout's skills know loadout, not your company. They tell the agent to look for an installed skill named <code>&lt;project&gt;-loadout</code> (for example <code>acme-loadout</code>) or <code>loadout-local</code>, and to prefer it for anything company specific. A project owner writes one like any skill and publishes it on the project, so every team gets it:</p>
+<pre class="sh"><code>loadout new skill acme/acme-loadout</code></pre>
+<pre class="markdown"><code>---
+name: acme-loadout
+description: How Acme uses loadout - registry address, which team to join, our naming and review rules. Use together with the loadout skills whenever the user works with loadout at Acme.
+---
+# loadout at Acme
+
+- Registry: https://registry.acme.example. Sign in with `loadout login --remote https://registry.acme.example`.
+- New starters join their squad&#39;s team; ask in #dev-tools if you do not know which.
+- Package names start with the squad, for example `payments/payments-planner`.
+- Every team requires review; propose with at least three prompts from real tickets.
+- Never put customer data in a knowledge base.</code></pre>
+<p>Then <code>loadout publish acme-loadout</code>. Keep it short and factual: addresses, which team, local rules. Leave the commands to loadout's skills, which stay in step with the CLI. Put the description in quotes if it contains <code>: </code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="everyday-commands">Everyday commands</h2>
+</summary><div class="chapter-body">
+<h3 id="see-what-you-have">See what you have</h3>
+<pre class="sh"><code>loadout list          # packages you can install, with KIND and LAYER (L1 team, L0 project)
+loadout list --kind skill --sort updated   # only skills, newest first
+loadout list --layer payments   # only your team&#39;s own packages, not the project&#39;s
+loadout layers        # for each of your teams, the layers it reads, closest first
+loadout status        # what is installed: ok, modified, missing or shadowed
+loadout status --files   # every file of each skill folder
+loadout notices       # updates your edits hold back, one line each (nothing if none)</code></pre>
+<p>Below its table, <code>status</code> says what the last <code>sync</code> found, without asking a registry, and only what is still true:</p>
+<pre class="text"><code>As of the last sync (4 Oct 09:00):
+  payments/planner   1.3.0 held back: you edited planner.md (claude)
+  payments/runbooks  2.1.0 available: loadout install payments/runbooks</code></pre>
+<p>Revert your edit and the line turns into "available"; take the update or uninstall the package and it goes away. Run <code>loadout sync</code> for news from the registry.</p>
+<h3 id="updates-and-policies">Updates and policies</h3>
+<p>Each installed package has a policy:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>What <code>sync</code> does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>notify</code> (default)</td>
+<td>tells you a new version is out</td>
+</tr>
+<tr>
+<td><code>auto</code></td>
+<td>installs the new version</td>
+</tr>
+<tr>
+<td><code>pin</code></td>
+<td>nothing; you stay on this version</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre class="sh"><code>loadout policy payments/planner auto
+loadout install payments/runbooks --policy auto</code></pre>
+<p>A file you edited is never overwritten by <code>sync</code>. When your project changes which model its agents run, <code>sync</code> treats it like a new version of the agents it changes: <code>auto</code> applies it, <code>notify</code> reports "model settings changed", <code>pin</code> leaves the file alone.</p>
+<h3 id="when-your-edits-hold-an-update-back">When your edits hold an update back</h3>
+<p>If you edit an installed agent, skill or knowledge base, loadout keeps your version: an update never overwrites your edit. <code>sync</code> says so and gives you the choices:</p>
+<pre class="text"><code>$ loadout sync
+PACKAGE           SCOPE  INSTALLED  LATEST  RESULT
+payments/planner  user   1.2.0      1.3.0   held back by your edits
+
+payments/planner 1.3.0 is held back.
+Edited since loadout wrote it:
+  ~/.claude/agents/planner.md
+Keep your edits and take 1.3.0:   loadout install payments/planner --merge
+Replace your edits with 1.3.0:    loadout install payments/planner --force
+Keep your version, stop updates:  loadout policy payments/planner pin
+See what changed:                 loadout diff payments/planner</code></pre>
+<ul>
+<li><strong>Keep your edits and take the release.</strong> <code>loadout install payments/planner --merge</code> (see below).</li>
+<li><strong>Take the release as it is.</strong> <code>loadout install payments/planner --force</code> replaces your edits with 1.3.0. Copy anything you want to keep first.</li>
+<li><strong>Keep yours.</strong> <code>loadout policy payments/planner pin</code> stops updates for it; <code>sync</code> stops reporting it.</li>
+<li><strong>Look first.</strong> <code>loadout diff payments/planner</code> shows what the release changed.</li>
+</ul>
+<p>With <code>auto</code> the result reads "held back by your edits" and <code>sync</code> exits with code 2 until you choose. With <code>notify</code> it reads "update available, you edited 1 file" and exits 0: the update was never going to install by itself, but installing it would stop at your edit. A project install adds <code>--scope project</code>, and you run the commands in that repository.</p>
+<h4 id="keep-your-edits-with---merge">Keep your edits with <code>--merge</code></h4>
+<pre class="text"><code>$ loadout install payments/planner --merge
+updated payments/planner 1.2.0 to 1.3.0 (user scope), keeping your edits:
+  merged           ~/.claude/agents/planner.md
+  took the release 2 files you had not edited</code></pre>
+<p>loadout works out what it wrote for your version, compares it with your file and with 1.3.0, and puts both changes into your file, for each AI tool. A file you did not edit simply takes 1.3.0; a file the release did not change keeps your edit; a file you deleted comes back. Afterwards the package is at 1.3.0 and your merged files still count as your edits, so the next release is held back again and you merge again.</p>
+<p>When you and the release changed the same lines (or lines right next to each other), the file holds both versions between markers, as <code>loadout rebase</code> writes them:</p>
+<pre class="text"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; yours (edited 1.2.0)
+Always cite the ticket.
+||||||| installed 1.2.0
+Cite the ticket when there is one.
+=======
+Cite the ticket and its priority.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; release 1.3.0</code></pre>
+<p>Keep what should stay and delete the marker lines. Until you do, <code>--merge</code> refuses to merge the next release into the same files, and your AI tool reads the markers too; <code>loadout status</code>, <code>loadout notices</code> and the message at the start of a session say which files are left. A file too long to merge line by line (over 5,000 lines), or one whose earlier version loadout cannot rebuild exactly (your team changed its model settings since), holds both versions whole in one conflict. <code>--merge</code> needs a package installed from a registry; it refuses files loadout did not write, like any install, and cannot be combined with <code>--force</code>. loadout's own skills have no merge: <code>loadout setup --skills --force</code> replaces an edited one.</p>
+<p>loadout remembers what each sync found in <code>~/.loadout/syncstate.yaml</code>. With Pushover notifications on (set <code>LOADOUT_PUSHOVER_TOKEN</code>, your Pushover application token, and <code>LOADOUT_PUSHOVER_USER</code>, your user key, where <code>loadout sync</code> runs), each new version, held back or available, is pushed once, not on every sync. A push about a held-back update says how many files you edited, never their names. <code>sync</code> also pushes once when a newer loadout is out ("loadout 0.5.0 is out", with the command to update), or when a registry needs a newer loadout than yours; a push that fails is tried again on the next sync. <code>LOADOUT_UPDATE_NOTICE=off</code> leaves out the first of those.</p>
+<h3 id="look-at-changes-go-back">Look at changes, go back</h3>
+<pre class="sh"><code>loadout diff payments/planner                 # installed version vs latest
+loadout diff payments/planner 1.2.0 1.3.0     # any two versions
+loadout rollback payments/planner             # back to the previous release, then pinned
+loadout rollback payments/planner 1.1.0       # back to a given version
+loadout policy payments/planner auto          # take updates again</code></pre>
+<h3 id="remove-a-package">Remove a package</h3>
+<pre class="sh"><code>loadout uninstall payments/planner</code></pre>
+<p>Files you edited are kept; add <code>--force</code> to remove them too.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="write-packages">Write packages</h2>
+</summary><div class="chapter-body">
+<h3 id="create-one">Create one</h3>
+<pre class="sh"><code>loadout new agent payments/planner          # creates ./planner
+loadout new skill payments/release-checklist
+loadout new kb payments/runbooks</code></pre>
+<p><code>--dir</code> picks another folder. Every new package starts at version <code>0.1.0</code> and is valid right away.</p>
+<p><code>loadout.yaml</code> looks like this:</p>
+<pre class="yaml"><code>name: payments/planner
+kind: agent
+version: 0.1.0
+description: Turns a ticket into an implementation plan.</code></pre>
+<p>Add <code>targets: [claude]</code> if a package only makes sense in one tool.</p>
+<h3 id="agents">Agents</h3>
+<p>An agent is written once, in a tool-neutral format, and loadout translates it for each tool:</p>
+<pre class="markdown"><code>---
+name: planner
+description: Turn a ticket into an implementation plan. Use when the user says &quot;plan this&quot;.
+model: deep
+tools: [read, search, shell]
+---
+You are the team&#39;s planner. Read the ticket, find the code it touches,
+and return an ordered plan with the files to change and how to test it.</code></pre>
+<p>The <code>name</code> must match the package name. The <code>description</code> is what the tool reads to decide when to use the agent, so say when to use it.</p>
+<p><strong>Tools.</strong> List what the agent needs. loadout maps each name to the tool's own:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>loadout</th>
+<th>Claude Code</th>
+<th>Copilot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>read</code></td>
+<td>Read</td>
+<td>read</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>Grep, Glob</td>
+<td>search</td>
+</tr>
+<tr>
+<td><code>edit</code></td>
+<td>Edit, Write</td>
+<td>edit</td>
+</tr>
+<tr>
+<td><code>shell</code></td>
+<td>Bash</td>
+<td>execute</td>
+</tr>
+<tr>
+<td><code>web</code></td>
+<td>WebFetch, WebSearch</td>
+<td>web</td>
+</tr>
+<tr>
+<td><code>agent</code></td>
+<td>Agent</td>
+<td>agent</td>
+</tr>
+<tr>
+<td><code>skill</code></td>
+<td>Skill</td>
+<td>nothing to grant: Copilot loads skills on its own</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Leave the <code>tools</code> line out to allow every tool. An empty list, <code>tools: []</code>, is refused, because both tools would read it as "every tool" too.</p>
+<p><strong>Model.</strong> A hint, never a vendor model name: <code>fast</code>, <code>balanced</code> or <code>deep</code>. Leave it out to use whatever the person has chosen in their tool. What each hint runs is up to the project, per tool (see <a href="#models-for-agents">Models for agents</a>); without any settings it is:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Hint</th>
+<th>Claude Code</th>
+<th>Copilot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fast</code></td>
+<td>haiku</td>
+<td>the person's own choice</td>
+</tr>
+<tr>
+<td><code>balanced</code></td>
+<td>sonnet</td>
+<td>the person's own choice</td>
+</tr>
+<tr>
+<td><code>deep</code></td>
+<td>opus</td>
+<td>the person's own choice</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="skills">Skills</h3>
+<p>A skill is <code>SKILL.md</code> with steps, plus any files it needs next to it:</p>
+<pre class="markdown"><code>---
+name: release-checklist
+description: Walk through the release checklist. Use when the user asks to cut a release.
+---
+# Release checklist
+
+1. Check the changelog. The format is in [references/changelog.md](references/changelog.md).
+2. Run `scripts/check-version.sh`.</code></pre>
+<p>Keep <code>SKILL.md</code> short and put long material in <code>references/</code>: the tool reads it only when a step needs it. The description may be up to 1,024 characters. Other frontmatter fields you use (such as <code>allowed-tools</code> or <code>metadata</code>) are kept as they are.</p>
+<h3 id="knowledge-bases">Knowledge bases</h3>
+<p>A knowledge base is a folder of documents. loadout writes its <code>SKILL.md</code> for you, so don't add one.</p>
+<pre><code>runbooks/
+  loadout.yaml
+  README.md
+  deploy/rollback.md
+  deploy/hotfix.md
+  oncall/escalation.md
+  hosts.tsv</code></pre>
+<ul>
+<li>Documents are text: <code>.md</code>, <code>.markdown</code>, <code>.txt</code>, <code>.rst</code>, <code>.adoc</code>, <code>.csv</code>, <code>.tsv</code>, <code>.json</code>, <code>.yaml</code>, <code>.yml</code>, <code>.mmd</code>, <code>.mermaid</code>, <code>.drawio</code>.</li>
+<li>The first <code># Heading</code> of a Markdown file is its title in the index; other files use their file name.</li>
+<li>The description in <code>loadout.yaml</code> is required: it is what the tool reads to decide when to look in the knowledge base.</li>
+<li>Diagrams: Mermaid (a <code>.mmd</code> file or a mermaid block in Markdown), or draw.io saved uncompressed (a <code>.drawio</code> file or a drawio block in Markdown holding the XML; in draw.io turn off File &gt; Properties &gt; Compressed, then save).</li>
+<li>PDFs and images: turn them into text and diagrams first, for example by asking your own AI tool to convert them, and add the result.</li>
+<li>With more than 150 documents the index lists folders instead of every document, so keep related documents in folders with clear names.</li>
+</ul>
+<h4 id="a-knowledge-base-as-a-course">A knowledge base as a course</h4>
+<p>A team's wiki can show a knowledge base as a <strong>course</strong>: a box of lessons at the end of the page (an owner chooses it, see <a href="#the-website">The website</a>). Any knowledge base works; its Markdown files at the top level are the lessons, in name order, and documents in folders are reference material the lessons link to. Number the files with a leading zero, so <code>10-</code> comes after <code>09-</code>:</p>
+<pre><code>lime-course/
+  loadout.yaml
+  01-setup.md
+  02-propose.md
+  03-review.md
+  reference/commands.md</code></pre>
+<p>A lesson's title is its first <code># Heading</code>. A lesson may ask questions in a <code>quiz</code> block, a task list whose ticked boxes are the right answers:</p>
+<pre class="markdown"><code>```quiz
+Your proposal is behind the latest release. What do you run first?
+
+- [ ] loadout publish --base latest
+  That skips the merge, and a teammate may lose the release&#39;s changes.
+- [x] loadout rebase
+  It merges your folder onto the latest release on your machine; then you propose again.
+```</code></pre>
+<ul>
+<li>Everything before the first answer is the question, in Markdown.</li>
+<li>An answer starts at the beginning of a line with <code>- [ ]</code> (wrong) or <code>- [x]</code> (right). Several answers may be right.</li>
+<li>The lines below an answer, indented by two spaces, explain it. loadout writes <strong>Right.</strong> or <strong>Wrong.</strong> in front, so explain why rather than repeat the verdict.</li>
+<li>2 to 8 answers per question, at least one right.</li>
+</ul>
+<p>On the page each answer folds out to show its verdict and explanation. A quiz block renders in every Markdown document the registry shows, so open a lesson's preview on the package page to check it before you choose the knowledge base as a course; a block loadout cannot read stays as text, with a note saying which line to fix. In the AI tool the knowledge base installs like any other, so an agent there reads the same lessons, quizzes included.</p>
+<h3 id="try-it-before-you-publish">Try it before you publish</h3>
+<p>Install straight from the folder:</p>
+<pre class="sh"><code>loadout install ./planner</code></pre>
+<p>Start a new session and try it. When you are happy, publish.</p>
+<h3 id="publish">Publish</h3>
+<pre class="sh"><code>loadout publish planner                  # publish the version in loadout.yaml
+loadout publish planner --bump patch     # 1.4.0 -&gt; 1.4.1
+loadout publish planner --bump minor     # 1.4.0 -&gt; 1.5.0
+loadout publish planner --bump major     # 1.4.0 -&gt; 2.0.0</code></pre>
+<p><code>--bump</code> counts from the higher of the local version and the latest published one, and writes the new version into <code>loadout.yaml</code>. Publishing needs the maintainer role (or an owner or admin) and is refused when your team requires review.</p>
+<p>Before it uploads, <code>publish</code> works out which release your folder was made from: the release at the version in <code>loadout.yaml</code>, or the one your last <code>loadout rebase</code> merged onto. If someone released a newer version since, publishing would drop their changes, so it stops:</p>
+<pre class="text"><code>error: planner is based on 1.4.0, and 1.4.1 by dana@example.com was released since; its changes are not in your folder. Bring them in with: loadout rebase planner. If your folder already has them, publish with --base 1.4.1</code></pre>
+<p>Run <code>loadout rebase planner</code> (see <a href="#bring-a-folder-up-to-date">Bring a folder up to date</a>), or, when your folder already holds those changes, say so with <code>--base 1.4.1</code> (or <code>--base latest</code>).</p>
+<h3 id="propose-instead">Propose instead</h3>
+<p>When review is required, or you simply want a second pair of eyes:</p>
+<pre class="sh"><code>loadout propose planner --bump minor \
+  --note &quot;Cites the ticket in every step&quot; \
+  --prompt &quot;Plan PROJ-1234&quot; \
+  --prompt &quot;Plan a database migration&quot;</code></pre>
+<p>Give 1 to 20 prompts you tested with. For many prompts, put them in a file separated by lines that contain only <code>---</code>, and pass <code>--prompts-file prompts.md</code>.</p>
+<p><code>propose</code> makes the same check as <code>publish</code>: a folder made from an older release than the latest is refused before anything is uploaded, with the same two ways out (<code>loadout rebase</code>, or <code>--base</code>). The proposal records which release it was made from, so reviewers see what it changed.</p>
+<p>Proposing from a folder whose open proposal you made (the folder still has its version, or you rebased it) <strong>replaces</strong> that proposal in one step: the old one closes, links to the new one, and its prompts come along with the names of whoever added them. <code>--prompt</code> is then optional; prompts you give are added to the ones that came along. Its reports stay with the old proposal, since they compared other content.</p>
+<h3 id="bring-a-folder-up-to-date">Bring a folder up to date</h3>
+<p>When a newer release came out after your folder or proposal was made, <code>loadout rebase</code> merges your changes onto it, on your machine:</p>
+<pre class="sh"><code>loadout rebase planner                       # the folder in ./planner
+loadout rebase --proposal 3f2a9c01b7de       # start from a proposal&#39;s files, in ./planner</code></pre>
+<p>Commit the folder first: rebase rewrites its files. It fetches the release your folder was made from, the latest release and your folder, and merges them file by file and line by line. Changes to different lines both apply, and the same change made on both sides applies once:</p>
+<pre class="text"><code>$ loadout rebase planner
+planner: proposal 3f2a9c01b7de, made from 2.0.0, onto 3.0.0
+  merged      SKILL.md
+  from 3.0.0  references/api.md
+  yours       references/plan.md
+No conflicts; propose it with: loadout propose planner</code></pre>
+<p>Changes to the same lines (or lines right next to each other) are a <strong>conflict</strong>. The file then holds all three versions between markers, for you to resolve in your editor or AI tool:</p>
+<pre class="text"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; yours (proposal 3f2a9c01b7de)
+Always cite the ticket.
+||||||| base 2.0.0
+=======
+Answer in English.
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; release 3.0.0</code></pre>
+<p>Keep what should stay and delete the marker lines. <code>propose</code> and <code>publish</code> refuse the folder while any marker is left. A file deleted on one side and changed on the other has no markers: rebase keeps the changed one and asks you to decide. Delete it, or keep it with <code>loadout rebase planner --resolved references/old.md</code>.</p>
+<p>Then propose again: <code>loadout propose planner</code> replaces your open proposal. A folder that was not a proposal (you were about to publish) can be published instead. If your folder's version is not above the latest release any more, rebase raises it to the next patch and says so.</p>
+<p>rebase works out what the folder was made from in this order: <code>--base</code>, your last rebase of the folder, the open proposal at the folder's version, the release at that version, and otherwise the newest release below it (it says when it guessed). Give <code>--base 2.0.0</code> when it guesses wrong. It never calls an AI model; resolving conflicts is up to you and your own tools.</p>
+<h3 id="review-a-proposal">Review a proposal</h3>
+<pre class="sh"><code>loadout review list                          # open proposals
+loadout review show 3f2a9c01b7de             # note, prompts, diff
+loadout review payments/planner                  # run both versions in your own AI tool
+loadout review approve 3f2a9c01b7de          # it becomes a release
+loadout review reject 3f2a9c01b7de --note &quot;Loses the test step&quot;
+loadout review withdraw 3f2a9c01b7de         # the author takes it back</code></pre>
+<p>If you own the project, you may release your own proposal without a second person's review. Say why; teammates see the note, and the proposal, <code>review show</code>, <code>review list --all</code> and the package page mark it as released without review:</p>
+<pre class="sh"><code>loadout review approve 3f2a9c01b7de --as-owner --note &quot;Hotfix, nobody else is around today&quot;</code></pre>
+<p>When a newer release came out after a proposal was made, the proposal is <strong>behind</strong>. <code>review list</code> says "open, behind 3.0.0" (or "blocked by 3.1.0" once its own version, or a higher one, is released), and the website shows a <strong>Behind 3.0.0</strong> pill and a notice naming each newer release and who published it ("3.0.0 by Dana, 2 days ago"), and the files it would lose. <code>review show</code> says what the proposal was made from and diffs from there, so you read what the author changed:</p>
+<pre class="text"><code>Made from 2.0.0, proposes 3.1.0. The latest release is 3.0.0 by dana@example.com, released after it: approving releases 3.1.0 without 3.0.0&#39;s changes.</code></pre>
+<p>The diff page has three views: <strong>This proposal</strong> (what the author changed), <strong>Released since</strong> (what the proposal does not have) and <strong>After approval</strong> (what everyone gets on their next sync).</p>
+<p>A plain approval of a behind proposal is refused. Usually the author brings it up to date with <code>loadout rebase --proposal 3f2a9c01b7de</code> and proposes again. When the newer release is one the proposal deliberately replaces (a hotfix it redoes better, say), approve it over that release, which is recorded on the proposal:</p>
+<pre class="sh"><code>loadout review approve 3f2a9c01b7de --over 3.0.0 --note &quot;Redoes the 3.0.0 hotfix&quot;</code></pre>
+<p><code>--over</code> must name the latest release exactly; if another release came out while you were reading, the approval is refused and names it. On the website the button reads <strong>Approve over 3.0.0…</strong> and asks first. A proposal whose version was already released cannot be approved at all; the author brings it up to date with <code>loadout rebase --proposal ID</code>, which raises its version, and proposes again. A proposal replaced after a rebase reads "Replaced" and links to the new one.</p>
+<p>On a proposal's page on the website, anyone on the team can add the prompts they care about under <strong>Prompts</strong>; the next <code>loadout review</code> asks them too. You can edit or remove only the prompts you added, and a proposal keeps at least one. The page's <strong>Try it yourself</strong> box has the command to copy, and each report says where its two sides came from (installed, release or proposal), whether the tool ran with full access or in safe mode, and which team packages sat beside it.</p>
+<p>On the website the same is <strong>Approve as owner…</strong> on your own proposal. Publishing directly stays refused when review is required, for owners too: propose, then approve as owner.</p>
+<p><code>loadout review payments/planner</code> compares the version you have installed (else the latest release) with the newest open proposal (else the latest release), on the proposal's prompts. Pick other versions with <code>--from</code> and <code>--to</code>: a version such as <code>1.2.0</code>, <code>latest</code>, or a proposal id. Each version runs in its own throwaway folder next to the team's other packages (the latest release of each, as <code>install --all</code> gets them), so an agent can use the team's skills and knowledge bases; <code>--no-context</code> leaves them out.</p>
+<pre class="text"><code>$ loadout review payments/planner
+reviewing payments/planner
+  to:     proposal 3f2a9c01b7de (0.2.0) by alice@example.com
+  from:   installed 0.1.0
+  beside: 1 team package(s): payments/runbooks 0.1.0
+the report will be attached to proposal 3f2a9c01b7de, where everyone who reads payments on office can see it; add --no-upload to keep it on this machine
+running 1 prompt(s) x 1 run(s) x 2 version(s) = 2 claude run(s) on your own subscription, full access
+warning: running proposal 3f2a9c01b7de by alice@example.com with full access to this machine (files, shell, web); add --safe to refuse anything that needs approval.</code></pre>
+<p>Your tool runs a teammate's package with the access it normally has: it can read and change files, run commands and reach the web, and its answers may quote your files. Read the proposal first with <code>review show</code>, or add <code>--safe</code> to refuse anything that would need your approval. Copilot CLI refuses every tool call in safe mode, so it answers from the prompt alone; loadout says so before the run and in the report.</p>
+<p>The report is written to <code>review-ID.md</code> (<code>--out</code> picks another file) and, when the version under review is an open proposal, attached to it so teammates see the answers side by side on the website; <code>--no-upload</code> keeps it on this machine. Claude Code runs by default; <code>--tool copilot</code> uses the Copilot CLI. <code>--runs 3</code> runs each prompt three times, <code>--prompt</code> runs your own prompts instead (needed when both versions are releases), <code>--model</code> asks for a model, <code>--timeout</code> limits each run.</p>
+<p><code>loadout review compare ID</code> still works: it compares the latest release with that proposal and attaches the report only with <code>--upload</code>. It takes the same <code>--safe</code> and <code>--no-context</code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="bring-your-existing-agents-and-skills">Bring your existing agents and skills</h2>
+</summary><div class="chapter-body">
+<p>Already have agents or skills in <code>~/.claude</code> or <code>.github</code>? <code>loadout import</code> turns them into package folders. It does not publish; you check the result and publish as usual.</p>
+<pre class="sh"><code>loadout import agent ~/.claude/agents/planner.md --team payments
+loadout import agent .github/agents/*.agent.md --team payments --out packages/
+loadout import skill ~/.claude/skills/release-checklist --team payments
+loadout import kb ~/notes/runbooks --team payments --name runbooks \
+  --description &quot;How we deploy, roll back and escalate.&quot;
+loadout publish planner</code></pre>
+<ul>
+<li><strong>Agents:</strong> Claude Code tool names (Read, Grep, Bash, ...) and Copilot ones (read, search, execute, ...) become loadout's tools, and a model of haiku, sonnet or opus becomes fast, balanced or deep. If an agent uses a tool loadout has no name for, <code>--drop-unknown-tools</code> leaves it out. <code>--version</code> sets the first version.</li>
+<li><strong>Skills:</strong> the folder is copied as it is and a <code>loadout.yaml</code> is written next to <code>SKILL.md</code>.</li>
+<li><strong>Knowledge bases:</strong> the documents are copied; <code>--description</code> is required, <code>--name</code> sets the package name.</li>
+<li><strong>Names:</strong> a package takes the name its file gives; <code>--name</code> renames one input. Two inputs that would get the same name (an agent and a skill both called <code>setup-doctor</code>) are refused, so import one of them with <code>--name</code>.</li>
+<li><strong>Headers:</strong> a description with an unquoted <code>: </code> in it is not valid YAML; import quotes it in the copy and says so. Your original file is never changed.</li>
+<li><code>--out</code> chooses where the package folders go.</li>
+</ul>
+<p><strong>Tip:</strong> a skill must not point at files outside its own folder, such as <code>~/docs/runbook.md</code> or <code>../shared/style.md</code>. Those paths do not exist on a teammate's machine. Copy the documents into the skill's <code>references/</code> folder and link them relatively: <code>[runbook](references/runbook.md)</code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="for-team-leads-and-admins">For team leads and admins</h2>
+</summary><div class="chapter-body">
+<h3 id="the-website">The website</h3>
+<p>Open the registry address in a browser and sign in. The sidebar lists your projects with their teams below them; with one project, its teams are open already. The <strong>Docs</strong> link at the bottom opens this guide, and <strong>What's new</strong> below it lists what each update added and fixed; the title of either page takes you back to the page you came from. On a phone both are icons at the top, next to your name.</p>
+<ul>
+<li><strong>loadout skills:</strong> the skills that come with loadout (see <a href="#loadouts-own-skills">loadout's own skills</a>), readable by anyone, signed in or not.</li>
+<li><strong>Packages:</strong> everything the team reads, from its own layer and the project above, with the command that installs it. Tabs filter by kind (Agents, Skills, KBs) and by layer (All layers, the team, the project), with a count on each; <strong>Sort by</strong> orders the list by layer, name, kind, last update or number of releases. The search box looks at names, descriptions and kinds. A package page shows its releases and files.</li>
+<li><strong>A package page:</strong> <strong>Download</strong> gives the version you are looking at as a zip (<code>lime-planner-1.4.0.zip</code>, a folder with every file, <code>loadout.yaml</code> included), and each row of the releases table has its own download. Click a version to look at an older release; the page says which is the newest. Click a file (or <strong>Preview</strong> on the main file) to open it on a page of its own: Markdown is rendered, Mermaid and draw.io diagrams are drawn (a draw.io file gets a tab per page), anything else shows as text. <strong>Show source</strong> shows a Markdown file as written, <strong>Download</strong> saves one file, and <strong>Previous</strong> and <strong>Next</strong> walk through the package's files. Images are not shown: an image in Markdown appears as its alt text, and an <code>.svg</code> file shows as its text. Diagrams need JavaScript; without it you see their source. Links inside a draw.io diagram do not open on the page; download the file and open it in draw.io to follow them.</li>
+<li><strong>Reviews:</strong> open proposals, the answers of the current and candidate versions side by side (long answers show their first 150 words and a word count; <strong>Show whole answers</strong> opens both), the diff, and Approve, Reject or Withdraw. On your own proposal, an owner also gets <strong>Approve as owner…</strong>, which asks why.</li>
+<li><strong>Settings:</strong> the team's people and how it works. Under <strong>Members</strong>, add people by email, change roles and remove people. Below that: for owners, turn review and the wiki on or off and choose the wiki's <strong>Course</strong>; make and revoke machine tokens (a new token is shown once). On a team, <strong>Through the project</strong> lists the project's owners, who are owners of the team without being added to it; you change them in the project's Settings. Maintainers and owners get <strong>Choose models</strong>, which opens the model settings (see below); a <strong>Settings</strong> link at its top leads back. The tab was called Members before; old links to it still work.</li>
+<li><strong>Wiki:</strong> a tab that appears once an owner ticks <strong>Show a wiki</strong> in Settings (each project and team has its own switch, off at first). It holds one page that the team's members write and everyone in the team reads; members of a team also read the project's wiki, and a team's wiki links to it. The page shows its revision, who saved it and when; <strong>Show source</strong> shows it as written, <strong>History</strong> lists every save with its note and a <strong>Changes</strong> link, and the download button saves it as <code>wiki.md</code>. <strong>Edit</strong> opens the text with <strong>Write</strong> and <strong>Preview</strong> buttons that switch between the text and how it will look, without losing anything, then <strong>Save</strong>, with an optional line saying what changed. Mermaid and draw.io blocks become diagrams once you save; the preview shows their source. Each section that starts with a <code>##</code> heading folds: the page opens with its title, the text above the first <code>##</code> and a list of its sections, and you open the ones you need (<strong>Open all</strong> opens every one). The preview shows them open. A link to a heading, such as <code>#how-to-deploy</code>, opens the section it is in; headings get their link names from their text, in lower case with hyphens for spaces. In Chrome and Edge, find in page searches closed sections too and opens the one it finds. To go back to an older version, open it from History and choose <strong>Edit from this revision</strong>, then save it as the newest. If someone saved while you were editing, the page does not save: it shows your text again with what they changed above it. Merge their change into your text, then save again. Turning the wiki off hides the tab and keeps the history.</li>
+<li><strong>Course:</strong> at the end of the wiki page, below its sections, a box lists the lessons of the knowledge base an owner chose in Settings (<strong>Course</strong>, next to the wiki switch). It may be the team's own knowledge base or one of a project above it. A team without a course of its own shows its project's, labelled "From acme"; choosing one for the team replaces it. The box always shows the package's newest release. Open a lesson to read it in the box, with <strong>Previous</strong> and <strong>Next</strong> and the list folded above it; each lesson has its own address, so you can send a new teammate "lesson 3". If the chosen package cannot be shown (it is gone, it is no longer a knowledge base, or it has no top-level Markdown file), owners see a line saying so with a link to Settings, and everyone else sees no box.</li>
+<li><strong>Invite someone:</strong> a fold-out at the top of a project's Settings (click it to open). Owners and admins (and the project's maintainers, for the project alone) add a person to the project and any of its teams in one step: their email, a role in the project, and a tick with a role for each team. Either every role is given or none is, and a role they already have is raised, never lowered. The page then shows what changed where and a sign-in link to pass on; when the registry sends mail, loadout also mails them the invitation, naming you. The link holds no secret: it opens sign-in with their address filled in and brings them to the project afterwards.</li>
+<li><strong>New:</strong> admins create projects; owners create teams in their project. The name starts every package id and cannot be changed later. <code>loadout</code> and <code>skills</code> are taken by loadout itself.</li>
+<li><strong>Account:</strong> your roles, light or dark appearance, and "Sign out everywhere". Admins also get <strong>Server details</strong> (see below).</li>
+<li><strong>Approving a terminal sign-in:</strong> the page shows the code, your account and every team the token will cover, with your role in each. Approve only a code from your own terminal: whoever started that sign-in gets your access.</li>
+</ul>
+<h3 id="the-same-from-the-cli">The same from the CLI</h3>
+<p>After <code>loadout login</code>, these commands act on the registry you signed in to, with your role (<code>--remote NAME</code> picks another registry):</p>
+<pre class="sh"><code>loadout member add --namespace payments --email bob@example.com                 # a member
+loadout member add --namespace payments --email alice@example.com --role maintainer
+loadout member set --namespace payments --email alice@example.com --role member
+loadout member list --namespace payments
+loadout member remove --namespace payments --email bob@example.com              # also revokes his login tokens
+loadout member invite --namespace acme --email dana@example.com \
+  --team payments=maintainer --team mobile=member                             # the project and two teams at once, with a sign-in link
+
+loadout namespace create mobile --parent acme                               # owners: a new team in the project
+loadout namespace set payments --require-review on                              # owners and admins
+loadout namespace set payments --wiki on                                        # owners and admins: a Wiki tab
+loadout namespace set payments --course payments/onboarding                     # owners and admins: the wiki&#39;s course (none clears it)
+loadout namespace list                                                      # every project and team you belong to, with your role</code></pre>
+<p>Maintainers add members; owners add maintainers; admins add owners.</p>
+<p>Anyone who can edit the wiki can also write it in their own editor:</p>
+<pre class="sh"><code>loadout wiki pull --team payments                     # writes wiki.md (wiki.mdx for an MDX page)
+loadout wiki push wiki.md --team payments --note &quot;Add the on-call rota&quot;
+loadout wiki log --team payments                      # every revision: who, when, size, note
+loadout wiki show --team payments --revision 3        # print one revision</code></pre>
+<p><code>pull</code> remembers which revision your file is based on, and <code>push</code> saves your file as the revision after it. <code>pull</code> never replaces a file with changes that are not on the registry; pass <code>--force</code> to replace it anyway. If someone saved after your pull, <code>push</code> is refused and your file stays as it is. The message says what to do: pull their revision into another file (<code>loadout wiki pull theirs.md --team payments</code>), merge it into yours, then push with <code>--base</code> set to their revision. A file you never pulled can only start an empty page.</p>
+<h3 id="models-for-agents">Models for agents</h3>
+<p>An agent asks for a <code>fast</code>, <code>balanced</code> or <code>deep</code> model. The project decides, per AI tool, which model and which reasoning effort that means; its teams inherit every value and may override single ones. A namespace's maintainers and owners (an owner of the project is an owner of its teams too) and admins change them, on the website (Settings, <strong>Choose models</strong>) or with the CLI. Members don't see the page; <code>sync</code> applies the settings for them. loadout only writes the name into the installed agent file: the tool runs it on the person's own subscription.</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Claude Code</th>
+<th>Copilot (CLI and VS Code)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Model value</td>
+<td>an alias (<code>haiku</code>, <code>sonnet</code>, <code>opus</code>), a full ID (<code>claude-sonnet-5</code>)</td>
+<td>the name the model picker shows (<code>Claude Sonnet 5</code>)</td>
+</tr>
+<tr>
+<td>Written as</td>
+<td><code>model: opus</code></td>
+<td><code>model: Claude Sonnet 5 (copilot)</code> for VS Code and <code>models: [claude-sonnet-5]</code> for Copilot CLI</td>
+</tr>
+<tr>
+<td>Nothing set</td>
+<td>haiku, sonnet, opus</td>
+<td>nothing: the person's own choice</td>
+</tr>
+<tr>
+<td>Reasoning effort</td>
+<td><code>effort:</code> low, medium, high, xhigh or max</td>
+<td><code>reasoning-effort:</code>, the same five levels</td>
+</tr>
+<tr>
+<td>Context size</td>
+<td>in the model: <code>opus[1m]</code> for 1M tokens (Sonnet 5 and Opus 4.7 and later always have it)</td>
+<td>not in the agent file: choose it in the model picker, or <code>copilot --context long_context</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Three things to know about Copilot:</p>
+<ul>
+<li>When the Copilot model picker is on Auto, Copilot uses the session's model for every agent and ignores the one set here. Pick a model in the picker for these settings to apply.</li>
+<li>HydraFusion, a Copilot setting in research preview, lets Copilot choose or combine models for each task. When it is chosen in the model picker, Copilot may ignore the model set here, as it does on Auto. Pick a single model in the picker for these settings to apply.</li>
+<li>If a model set here is not allowed on your Copilot plan, Copilot falls back to the session's model without an error. A wrong or unavailable name never breaks an agent; it just runs on your own model choice.</li>
+</ul>
+<p>A personal <code>subagents</code> setting in <code>~/.copilot/settings.json</code> also wins over the file.</p>
+<pre class="sh"><code>loadout namespace set acme --model copilot:deep=&quot;Claude Sonnet 5&quot; --effort copilot:deep=high
+loadout namespace set payments --effort claude:deep=xhigh      # payments keeps acme&#39;s models, raises one effort
+loadout namespace set payments --model copilot:fast=           # an empty value inherits again
+loadout namespace tiers payments                               # what applies, and where each value comes from</code></pre>
+<p>A change reaches installs on their next <code>sync</code> like a new version: <code>auto</code> installs write the agent again, <code>notify</code> installs report "model settings changed" (run <code>loadout install TEAM/NAME</code> to apply it), <code>pin</code> installs stay as they are. Skills, knowledge bases and agents without a hint are not touched, and a file someone edited is never overwritten. <code>loadout review</code> runs both versions with your team's settings; <code>--model</code> still wins for a single run.</p>
+<h3 id="machine-tokens-for-ci">Machine tokens for CI</h3>
+<p>A machine token belongs to one team and never expires. It can read, or read and publish. It can propose but never approve or reject, and it counts as the person who made it, so nobody proposes with CI and approves the same change.</p>
+<pre class="sh"><code>loadout token create --team payments --publish --label ci-release
+loadout token list --team payments
+loadout token revoke TOKEN_ID --team payments</code></pre>
+<p>The token is shown once. In CI, read it from a secret:</p>
+<pre class="sh"><code>echo &quot;$LOADOUT_TOKEN&quot; | loadout remote add registry https://registry.example.com --token-stdin
+loadout publish ./planner --remote registry --bump patch --base latest</code></pre>
+<p><code>--base latest</code> tells <code>publish</code> that the checkout holds the latest content. A job that publishes with <code>--bump</code> and never commits the new version back otherwise looks behind from its second run on, since <code>loadout.yaml</code> still names an old release. Leave it out where the checkout may lag behind what was released.</p>
+<h3 id="run-your-own-registry">Run your own registry</h3>
+<p>Any always-on machine will do:</p>
+<pre class="sh"><code>loadout serve                                        # listens on :7420
+loadout token create --team payments --read --invite --url http://10.0.4.12:7420</code></pre>
+<p>Without accounts, teammates join with invites. For the website and <code>loadout login</code>, run it behind HTTPS with a public address; the repository's <code>deploy/</code> folder has a ready setup for any Debian or Ubuntu host you can ssh to (cloud VM, VPS or a home server) and for a container: copy <code>deploy/loadout.env.example</code>, fill it in, check it with <code>loadout serve --check --env-file FILE</code>, and deploy with <code>deploy/deploy.sh</code> (from a checkout, or <code>LOADOUT_VERSION=X.Y.Z</code> to install a checked release). If a proxy that is not on the registry's machine sits in front (a container platform, a tunnel, a load balancer), tell the registry which addresses it connects from and which header carries the client's address, so the sign-in limits count each person and not the proxy: <code>LOADOUT_TRUSTED_PROXIES=203.0.113.0/24</code> and <code>LOADOUT_CLIENT_IP_HEADER=Fly-Client-IP</code> (use the header your platform documents, one address per request; <code>X-Forwarded-For</code> is refused, and so is a range that covers every address). Without them loadout trusts only a proxy on the same machine. <code>loadout serve --check</code> shows what is set. Commands with <code>--data</code> run on the registry host as the operator, who alone makes the first admin: <code>loadout admin grant --email you@example.com</code>. (In simple login mode a new registry makes <code>admin@loadout.local</code> itself on its first start; see "Roles".)</p>
+<p><strong>Let your own AI agent set it up.</strong> <code>loadout setup --host-skills</code> installs two skills, and the first, <code>loadout-host-provision</code>, takes you from nothing to a running registry: ask your agent to "set up a loadout registry on Hetzner" (or AWS Lightsail, DigitalOcean, Fly.io, any VPS with ssh, or a home server). It checks that your cloud's command line tool is logged in, shows what it will create and what that costs, and asks before it spends money, changes DNS or deletes anything. It creates the machine with your public key, opens ports 22, 80 and 443, waits until your name points at the machine (Let's Encrypt limits failed attempts), installs loadout from a checked release with systemd and Caddy, turns on off-host backups and proves them with a restore into a scratch folder, then writes down what it made and how to tear it down. The second skill, <code>loadout-host-setup</code>, then chooses the login mode with you (email codes, email codes plus Google, simple login, or tokens only), has you fill in the settings file in your own editor (it checks it with <code>loadout serve --check</code>, which prints one line per part and never a secret), walks the sender-domain DNS records (SPF, DKIM, DMARC) for Amazon SES, Resend, Postmark or any SMTP provider, proves the mail with <code>loadout mail test</code> and the headers of the message that arrives, makes the first admin (<code>loadout admin grant</code>, and <code>loadout user password</code> for simple login), and creates the first project and team. There is one file per provider in the skill, with the provider's mail-port limits (DigitalOcean blocks 25, 465 and 587, so sign-in mail there needs port 2525 or 2587). The agent runs on your computer with your own logins: it never asks you to paste a secret (cloud tokens stay in the provider tool's store; you type passwords yourself), never reads your settings file, and loadout calls no cloud and runs no model for it.</p>
+<h3 id="the-server-page-admins">The server page (admins)</h3>
+<p>Admins open <strong>Account</strong>, then <strong>Server details</strong> (<code>/account/server</code>). Its numbers cover the whole registry, every project included, so nobody else sees the page, not even a project's owners (they get "Nothing here"). It shows:</p>
+<ul>
+<li>at the top: the host (or, on a Hetzner server, the estimated monthly cost), how full the disk is, when the last backup was made, and how long the server has run;</li>
+<li>the host: provider, region, size and contact as the operator wrote them in the environment file, plus what the machine says itself (host name, operating system, CPUs loadout sees) and the registry's address, with a link to the host's console when one is set (it may open only from the company network or VPN). The stated values are not measured, and without any the panel says which variables to set;</li>
+<li>only with a Hetzner token, the Hetzner server: name, type, location, status, backups, public IPs, volumes and this billing period's traffic, with a monthly cost estimated from Hetzner's list prices (VAT included as Hetzner states it; the Cloud API has no invoices, so the bill itself stays in the Hetzner Console);</li>
+<li>storage: the disk, the database and its write-ahead log, what releases, proposals and review reports take up, and the whole data folder;</li>
+<li>the nightly backups, the registry's counts (projects, teams, packages by kind, releases, proposals, accounts, memberships, sessions, tokens), the login mail queue and the process (version, uptime, memory).</li>
+</ul>
+<p>Each part works on its own: one that cannot be read says why, and the rest still shows. The page needs these settings in the server's environment (with the <code>deploy/</code> setup, in <code>/etc/loadout/loadout.env</code>):</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOADOUT_HOST_PROVIDER</code>, <code>LOADOUT_HOST_REGION</code>, <code>LOADOUT_HOST_SIZE</code></td>
+<td>Where the registry runs and how big it is, in plain words (up to 200 characters, one line each). Unset: the row is left out</td>
+</tr>
+<tr>
+<td><code>LOADOUT_HOST_CONTACT</code></td>
+<td>Who looks after the host, a team or an address. Unset: no contact row</td>
+</tr>
+<tr>
+<td><code>LOADOUT_HOST_CONSOLE</code></td>
+<td>An <code>https</code> link to the host's console. Anything else stops <code>loadout serve</code> at startup, naming the variable</td>
+</tr>
+<tr>
+<td><code>LOADOUT_HETZNER_TOKEN</code></td>
+<td>A <strong>read-only</strong> Hetzner Cloud API token of the server's project. Unset: the Hetzner and cost panels are not shown. Needed only on a Hetzner server</td>
+</tr>
+<tr>
+<td><code>LOADOUT_HETZNER_SERVER</code></td>
+<td>The server's id or name. Unset: the server whose public IPv4 is this machine's</td>
+</tr>
+<tr>
+<td><code>LOADOUT_BACKUP_DIR</code></td>
+<td>Where the nightly backups are; the <code>deploy/</code> unit sets <code>/var/backups/loadout</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>On a host that is not Hetzner, leave the <code>LOADOUT_HETZNER_</code> lines out: with a token set the page also shows that Hetzner server, and the log warns about it. Hetzner answers are kept for 5 minutes and a slow answer is given up after 5 seconds.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="rules-and-limits">Rules and limits</h2>
+</summary><div class="chapter-body">
+<ul>
+<li><p><strong>Text only.</strong> Packages hold UTF-8 text, so every change can be diffed and reviewed. The registry's pages draw Mermaid diagrams and uncompressed draw.io files, in your browser; nothing is sent anywhere else.</p></li>
+<li><p><strong>File paths:</strong> letters, digits, <code>.</code>, <code>_</code> and <code>-</code> only; at most 8 folders deep; no hidden files or folders; no two names that differ only in case (macOS and Windows would treat them as one file).</p></li>
+<li><p><strong>Sizes:</strong></p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>Files</th>
+<th>Per file</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>agent</td>
+<td>16</td>
+<td>512 KB</td>
+<td>1 MB</td>
+</tr>
+<tr>
+<td>skill, knowledge base</td>
+<td>5,000</td>
+<td>2 MB</td>
+<td>64 MB</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>An upload is at most 32 MB compressed.</p></li>
+<li><p><strong>Wiki pages:</strong> one page per project or team, at most 256 KB, as <code>.md</code>, <code>.markdown</code> or <code>.mdx</code>. The newest 200 revisions are kept; older ones are deleted. A save's note is one line of at most 200 characters. In an MDX page, components and <code>import</code> or <code>export</code> lines show as code; nothing in a page ever runs. Front matter at the top shows as code too. Images are not shown, as in packages. The wiki needs the sign-in of <code>loadout login</code>, so every revision names a person. Machine tokens are refused, and so are most sign-ins from before one login covered all teams; run <code>loadout login</code> again if the wiki refuses yours.</p></li>
+<li><p><strong>Courses:</strong> the Course box lists the first 50 lessons. A quiz has 2 to 8 answers and is at most 16 KB; a document shows at most 50 quizzes, and the rest stay as text.</p></li>
+<li><p><strong>Your edits are safe.</strong> loadout never overwrites a file it did not write, or one you edited since, without <code>--force</code>. <code>--merge</code> keeps your edits and adds the release's changes.</p></li>
+<li><p><strong>One namespace per token.</strong> A token belongs to one team or project. In two teams? Sign in to each.</p></li>
+<li><p><strong>Login tokens expire after 90 days.</strong> Run <code>loadout login</code> again. Machine tokens do not expire.</p></li>
+<li><p><strong>Admin actions</strong> (creating projects, making owners, deleting namespaces) are done on the website by an admin, or on the registry host. They are not available with a login token from the CLI.</p></li>
+<li><p><strong>Logs:</strong> <code>-v</code> shows debug output; every run is also logged to <code>~/.loadout/loadout.log</code>.</p></li>
+</ul>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="command-reference">Command reference</h2>
+</summary><div class="chapter-body">
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loadout login [--remote URL]</code></td>
+<td>Sign in in the browser; one token for every team you belong to on that registry</td>
+</tr>
+<tr>
+<td><code>loadout logout [--remote R] [--team T] [--all]</code></td>
+<td>Revoke that token and forget the registry; <code>--team</code> leaves one team on this machine only; <code>--all</code> signs you out everywhere</td>
+</tr>
+<tr>
+<td><code>loadout team join</code></td>
+<td>Join a team with an invite read from standard input</td>
+</tr>
+<tr>
+<td><code>loadout team list</code></td>
+<td>The teams you joined and their registries</td>
+</tr>
+<tr>
+<td><code>loadout team leave T</code></td>
+<td>Leave a team</td>
+</tr>
+<tr>
+<td><code>loadout list [--kind K] [--layer L] [--sort S] [--wide] [--remote R]</code></td>
+<td>Packages you can install, with kind and layer; <code>--kind agent|skill|kb</code>, <code>--layer</code> a namespace name, <code>--sort layer|name|kind|updated</code>, <code>--wide</code> for full descriptions</td>
+</tr>
+<tr>
+<td><code>loadout layers</code></td>
+<td>For each of your teams, the layers it reads, closest first</td>
+</tr>
+<tr>
+<td><code>loadout install TEAM/NAME[@V] | FOLDER | --all</code></td>
+<td>Install into your AI tools (<code>--scope</code>, <code>--target</code>, <code>--policy</code>, <code>--force</code>)</td>
+</tr>
+<tr>
+<td><code>loadout install TEAM/NAME[@V] --merge</code></td>
+<td>Take a new release and keep your edits, merged; conflicts are marked in the files</td>
+</tr>
+<tr>
+<td><code>loadout uninstall TEAM/NAME [--scope S] [--force]</code></td>
+<td>Remove a package's files</td>
+</tr>
+<tr>
+<td><code>loadout status [--files]</code></td>
+<td>Installed packages and whether their files are intact, the updates the last sync found, and a newer loadout</td>
+</tr>
+<tr>
+<td><code>loadout notices [--hook claude|copilot]</code></td>
+<td>Updates your edits hold back and a newer loadout, offline; <code>--hook</code> is the session-start hook of an AI tool</td>
+</tr>
+<tr>
+<td><code>loadout sync</code></td>
+<td>Apply updates according to each package's policy</td>
+</tr>
+<tr>
+<td><code>loadout policy TEAM/NAME auto|notify|pin</code></td>
+<td>Choose how updates arrive</td>
+</tr>
+<tr>
+<td><code>loadout diff TEAM/NAME [FROM [TO]]</code></td>
+<td>What changed between versions</td>
+</tr>
+<tr>
+<td><code>loadout rollback TEAM/NAME [VERSION]</code></td>
+<td>Go back to an older version and pin it</td>
+</tr>
+<tr>
+<td><code>loadout new agent|skill|kb TEAM/NAME [--dir D]</code></td>
+<td>Create a package folder</td>
+</tr>
+<tr>
+<td><code>loadout import agent FILE... --team T</code></td>
+<td>Turn existing agent files into packages (<code>--out</code>, <code>--version</code>, <code>--drop-unknown-tools</code>)</td>
+</tr>
+<tr>
+<td><code>loadout import skill DIR... --team T [--out D]</code></td>
+<td>Turn existing skill folders into packages</td>
+</tr>
+<tr>
+<td><code>loadout import kb DIR --team T --description TEXT</code></td>
+<td>Turn a folder of documents into a knowledge base (<code>--name</code>, <code>--out</code>)</td>
+</tr>
+<tr>
+<td><code>loadout publish [FOLDER] [--bump patch|minor|major] [--base V|latest]</code></td>
+<td>Publish a new version; refused when the folder is behind the latest release, unless <code>--base</code> says what it was made from</td>
+</tr>
+<tr>
+<td><code>loadout propose [FOLDER] --prompt TEXT...</code></td>
+<td>Upload a candidate for review (<code>--bump</code>, <code>--note</code>, <code>--prompts-file</code>, <code>--base</code>); replaces your open proposal of the folder</td>
+</tr>
+<tr>
+<td><code>loadout rebase [FOLDER] [--proposal ID] [--base V|latest]</code></td>
+<td>Merge the folder's changes onto the latest release, conflicts marked in the files</td>
+</tr>
+<tr>
+<td><code>loadout rebase [FOLDER] --resolved FILE</code></td>
+<td>Keep a file a rebase left deleted on one side and changed on the other</td>
+</tr>
+<tr>
+<td><code>loadout review list [--all] [--package P]</code></td>
+<td>Proposals of your team</td>
+</tr>
+<tr>
+<td><code>loadout review show ID</code></td>
+<td>A proposal's note, prompts, reviews and diff (teammates add prompts on the proposal's web page)</td>
+</tr>
+<tr>
+<td><code>loadout review TEAM/NAME [--from V] [--to V]</code></td>
+<td>Run two versions (installed and the newest proposal by default) in your own AI tool and attach the report to the proposal (<code>--safe</code>, <code>--no-context</code>, <code>--no-upload</code>, <code>--tool</code>, <code>--runs</code>, <code>--prompt</code>, <code>--model</code>, <code>--timeout</code>, <code>--out</code>)</td>
+</tr>
+<tr>
+<td><code>loadout review compare ID [--upload]</code></td>
+<td>The latest release against one proposal; attaches the report only with <code>--upload</code> (same run flags)</td>
+</tr>
+<tr>
+<td><code>loadout review report ID [N]</code></td>
+<td>Print a review attached to a proposal</td>
+</tr>
+<tr>
+<td><code>loadout review approve|reject|withdraw ID [--note T]</code></td>
+<td>Decide on a proposal, or take back your own</td>
+</tr>
+<tr>
+<td><code>loadout review approve ID --as-owner --note T</code></td>
+<td>Owners: release your own proposal without review, marked for everyone</td>
+</tr>
+<tr>
+<td><code>loadout review approve ID --over V</code></td>
+<td>Approve a proposal that is behind, over the latest release V, dropping its changes; recorded</td>
+</tr>
+<tr>
+<td><code>loadout member add|set|list|remove --namespace NS --email E [--role R]</code></td>
+<td>Manage who is in a team or project</td>
+</tr>
+<tr>
+<td><code>loadout member invite --namespace PROJECT --email E [--role R] [--team T=ROLE]...</code></td>
+<td>Add a person to a project and some of its teams in one step; prints what changed and a sign-in link, and mails it when the registry sends mail</td>
+</tr>
+<tr>
+<td><code>loadout namespace create NAME [--parent P] [--kind team|project]</code></td>
+<td>Create a team (or, on the host, a project)</td>
+</tr>
+<tr>
+<td><code>loadout namespace set NAME [--require-review on|off] [--wiki on|off] [--course TEAM/NAME|none] [--model TOOL:HINT=MODEL] [--effort TOOL:HINT=LEVEL]</code></td>
+<td>Require review for a namespace; turn its wiki on or off; choose the knowledge base its wiki shows as a course; choose which model and effort each AI tool runs per hint (an empty value inherits)</td>
+</tr>
+<tr>
+<td><code>loadout namespace tiers NAME</code></td>
+<td>Which model and effort each AI tool runs per hint, and where each value comes from</td>
+</tr>
+<tr>
+<td><code>loadout namespace list</code>, <code>namespace delete NAME</code></td>
+<td>List namespaces; delete an empty one (admins)</td>
+</tr>
+<tr>
+<td><code>loadout wiki show --team T [--revision N]</code></td>
+<td>Print the wiki page, or an older revision</td>
+</tr>
+<tr>
+<td><code>loadout wiki pull [FILE] --team T [--revision N] [--force]</code></td>
+<td>Write the wiki page to FILE (default <code>wiki.md</code>, or <code>wiki.mdx</code>) and remember its revision</td>
+</tr>
+<tr>
+<td><code>loadout wiki push FILE --team T [--note TEXT] [--base N]</code></td>
+<td>Save FILE as the next revision; refused if someone saved since your pull</td>
+</tr>
+<tr>
+<td><code>loadout wiki log --team T</code></td>
+<td>The wiki's revisions, newest first</td>
+</tr>
+<tr>
+<td><code>loadout token create --team T --read|--publish [--label L] [--invite --url U]</code></td>
+<td>Make a machine token or an invite</td>
+</tr>
+<tr>
+<td><code>loadout token list --team T</code>, <code>token revoke ID</code></td>
+<td>List and revoke tokens</td>
+</tr>
+<tr>
+<td><code>loadout remote add NAME URL --token-stdin</code>, <code>remote list</code>, <code>remote remove NAME</code></td>
+<td>Manage registries by hand (for CI)</td>
+</tr>
+<tr>
+<td><code>loadout serve [--addr A] [--data D]</code></td>
+<td>Run a registry</td>
+</tr>
+<tr>
+<td><code>loadout serve --check [--env-file F]</code></td>
+<td>Check the registry's configuration and exit, without serving; prints one line per part and never a secret, and exits 1 when a variable is wrong or misspelt (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout mail test --to ADDRESS</code></td>
+<td>Send one test mail with the registry's mail settings and say "sent", or the mail server's refusal (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout admin grant|revoke|list --email E</code></td>
+<td>Registry admins (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout user delete --email E</code></td>
+<td>Delete an account (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout user password --email E</code></td>
+<td>Set an account's password, creating it; the password comes from standard input, never a flag (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout setup --skills [--target T] [--force]</code></td>
+<td>Install loadout's own skills for your AI agent now (login does it for you); brings back ones you uninstalled</td>
+</tr>
+<tr>
+<td><code>loadout setup --host-skills [--target T] [--force]</code></td>
+<td>Install the two skills that set up a registry of your own; login and sync never add them, but keep installed ones up to date</td>
+</tr>
+<tr>
+<td><code>loadout setup --hooks [--target T]</code>, <code>setup --no-hooks</code></td>
+<td>Set up, or remove, the session hooks that say when your edits hold an update back or a newer loadout is out (login sets them up)</td>
+</tr>
+<tr>
+<td><code>loadout version</code></td>
+<td>Print the version, and whether a newer one is out (from what a registry last said)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every command takes <code>--help</code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="troubleshooting">Troubleshooting</h2>
+</summary><div class="chapter-body">
+<p><strong>"file(s) would be overwritten, use --force to overwrite"</strong> A file is in the way that loadout did not write, or that you edited. The message names it. Rename or move your file, or pass <code>--force</code> if you are sure it can go.</p>
+<p><strong>"Form expired" on the website</strong> The page was open too long or came from another tab. Go back, reload the page and try again.</p>
+<p><strong>"missing or invalid token"</strong> Your login token expired (after 90 days) or was revoked. Run <code>loadout login</code> again.</p>
+<p><strong>"you are no longer a member of payments; run loadout login again"</strong> A maintainer removed you from that team. <code>list</code> and <code>install --all</code> skip it and go on with your other teams; <code>loadout login</code> again updates the list of teams on this machine.</p>
+<p><strong>"this login token is for payments only"</strong> You signed in before one login covered all teams. Run <code>loadout login</code> once; it replaces the older per-team sign-ins of that registry.</p>
+<p><strong>A new team does not show up in <code>list</code></strong> Your token already works there; this machine just does not know the team yet. Run <code>loadout login</code> again.</p>
+<p><strong>An agent or skill does not show up</strong> Start a new session in Claude Code or Copilot; tools read agents and skills only at startup. Check <code>loadout status</code> to see where the files went. If the tool was skipped, it may have no folder yet: install with <code>--target claude</code> or <code>--target copilot</code>.</p>
+<p><strong>"no supported AI tool found"</strong> loadout found neither <code>~/.claude</code> nor <code>~/.copilot</code> (or <code>.claude</code> and <code>.github</code> in a repository). Start the tool once, or use <code>--target</code>.</p>
+<p><strong>"No Claude Code or Copilot found here ..., so loadout's own skills were not added"</strong> <code>loadout login</code> found neither <code>~/.claude</code> nor <code>~/.copilot</code>. Nothing is wrong with the sign-in. Install Claude Code or Copilot and run <code>loadout sync</code>, or run <code>loadout setup --skills --target claude</code> now.</p>
+<p><strong>"held back by your edits" in <code>loadout sync</code>, or exit code 2</strong> An update (or new model settings from your team) would overwrite a file you edited, so loadout kept your version. The sync output names the files and the choices: <code>loadout install TEAM/NAME --merge</code> to take the release and keep your edits, <code>loadout install TEAM/NAME --force</code> to take the release as it is, <code>loadout policy TEAM/NAME pin</code> to keep yours, <code>loadout diff TEAM/NAME</code> to look. See <a href="#when-your-edits-hold-an-update-back">When your edits hold an update back</a>.</p>
+<p><strong>"update available, you edited 1 file"</strong> A newer version is out and the install's policy is <code>notify</code>. Installing it would stop at your edit; the choices are the same as above.</p>
+<p><strong>"left ~/.claude/settings.json alone: ~/.claude/settings.json is a symbolic link"</strong> (or "is not valid JSON") loadout does not change a settings file it cannot change safely. Add the entry it printed under <code>hooks.SessionStart</code> yourself, in the file the link points to, or fix the JSON and run <code>loadout setup --hooks</code> again.</p>
+<p><strong>"Tip: loadout setup --hooks makes Claude Code and Copilot say this when a session starts"</strong> You signed in before loadout had session hooks. Run <code>loadout setup --hooks</code> to get them, or <code>loadout setup --no-hooks</code> to stop the tip.</p>
+<p><strong>"kept your own loadout-setup skill: a file you edited is in the way"</strong> A newer loadout ships new text for one of its skills, and you edited the installed one. Your edit stays. <code>loadout setup --skills --force</code> replaces it with the new text.</p>
+<p><strong>"loadout 0.5.0 is out (you have 0.4.0)"</strong> A registry you use runs a newer release. Update with the command in the line (from a clone: <code>git pull &amp;&amp; go install ./cmd/loadout</code> in your loadout folder), then <code>loadout version</code> says the new one. To keep the line out of scripts, set <code>LOADOUT_UPDATE_NOTICE=off</code>.</p>
+<p><strong>"registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail"</strong> That registry no longer supports your loadout. Update with the command in the line and run the command again. This line comes after every command until you do.</p>
+<p><strong>"--scope project needs a git repository"</strong> Run the command inside a git repository, or use <code>--scope user</code>.</p>
+<p><strong>A package shows as "shadowed"</strong> A closer layer (your team) ships a package with the same name, and its file wins. That is expected.</p>
+<p><strong>"lime has no wiki; an owner turns it on in Settings"</strong> The wiki of that project or team is off. Ask an owner to tick <strong>Show a wiki</strong> in Settings, or to run <code>loadout namespace set lime --wiki on</code>.</p>
+<p><strong>"the wiki of lime changed since revision 3: revision 4 by <a href="mailto:dana@example.com">dana@example.com</a> ... is the newest"</strong> Someone saved while you were editing. Your file is untouched. Run the <code>pull</code> the message names into another file, merge their change into yours, and push with the <code>--base</code> it names.</p>
+<p><strong>"wiki.md has changes that are not on the registry"</strong> <code>pull</code> would replace an edit of yours. Push it first, pull into another file, or pass <code>--force</code> to throw it away.</p>
+<p><strong>"lime/planner is an agent; a course is a knowledge base (kind: kb)"</strong> or <strong>"web/notes is not in lime or a project above it"</strong> A course must be a knowledge base of the team itself or of a project above it, so everyone who reads the wiki can read it. Choose another, or publish the lessons as a knowledge base in the team.</p>
+<p><strong>"This quiz could not be read: line 7: ..."</strong> on a page The <code>quiz</code> block breaks a rule, and the page shows it as text. Fix the line it names: answers start with <code>- [ ]</code> or <code>- [x]</code> at the beginning of the line, and each explanation is indented by two spaces under its answer.</p>
+<p><strong>"planner is based on 2.0.0, and 3.0.0 was released since; its changes are not in your folder"</strong> Someone released a newer version after your folder was made, and <code>propose</code> or <code>publish</code> would drop it. Run <code>loadout rebase planner</code>, resolve any conflicts, and try again. If your folder already has those changes (you copied them in by hand, or it is a fresh CI checkout), pass <code>--base 3.0.0</code> or <code>--base latest</code>. A CI job that publishes with <code>--bump</code> and never commits the version back looks behind from its second run on; give it <code>--base latest</code>.</p>
+<p><strong>"(the newest release below its version)"</strong> loadout guessed what your folder was made from, because no release or open proposal has its version. If the guess is wrong, give <code>--base VERSION</code>.</p>
+<p><strong>"proposal 3f2a9c01b7de is based on 2.0.0 and 3.0.0 was released since"</strong> You tried to approve a proposal that is behind. Ask the author to run <code>loadout rebase --proposal 3f2a9c01b7de</code> and propose again, or, if dropping 3.0.0's changes is what you want, approve with <code>--over 3.0.0</code>.</p>
+<p><strong>"1 file has conflict markers" after <code>loadout install --merge</code>, or "merged: resolve the conflicts in planner.md"</strong> You and the release changed the same lines. Open the file named, keep what should stay and delete the <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>|||||||</code>, <code>=======</code> and <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> lines. Your AI tool reads the file as it is until then. To start over with the release instead, run <code>loadout install TEAM/NAME --force</code>.</p>
+<p><strong>"lime/planner still has conflict markers from the last loadout install --merge"</strong> An earlier merge left markers you have not resolved yet, so loadout will not merge another release into them. Resolve them first, or discard your edits with the <code>install --force</code> the message gives.</p>
+<p><strong>"1 file still has conflict markers from loadout rebase"</strong> A rebase left <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> markers in the files named. Keep what should stay, delete the marker lines, and propose or publish again.</p>
+<p><strong>"deleted on one side and changed on the other when loadout rebase merged"</strong> One side deleted the file and the other changed it. Delete it, or keep it with the <code>loadout rebase ... --resolved FILE</code> command the message gives.</p>
+<p><strong>"already has an open proposal"</strong> A teammate's open proposal has your folder's version. Only its author replaces it, so raise the version (<code>--bump patch</code>) to propose your own.</p>
+<p>**"compressed draw.io file" In draw.io turn off File &gt; Properties &gt; Compressed, save, and publish again.</p>
+</div></details>
+</article>
+</main>
+</div>
+<script src="/docs/docs.js"></script>
+</body>
+</html>

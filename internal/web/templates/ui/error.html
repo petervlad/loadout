@@ -1,0 +1,7 @@
+{{define "content"}}{{with .Page}}
+<div class="panel empty" role="alert">
+<h2>{{.Heading}}</h2>
+<p>{{.Text}}</p>
+{{if .Back}}<a href="{{.Back}}">Go back</a>{{else}}<a href="/">Go to the home page</a>{{end}}
+</div>
+{{end}}{{end}}

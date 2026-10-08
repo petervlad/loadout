@@ -1,0 +1,53 @@
+{{define "head-extra"}}<form class="search" role="search" method="get" action="/t/{{.NS}}">
+{{template "icon-search"}}
+<label class="vh" for="q">Search packages</label>
+<input id="q" name="q" type="search" placeholder="Search packages" value="{{.Page.Query}}" autocomplete="off">
+{{with .Page.Kind}}<input type="hidden" name="kind" value="{{.}}">{{end}}{{with .Page.Layer}}<input type="hidden" name="layer" value="{{.}}">{{end}}{{with .Page.Sort}}<input type="hidden" name="sort" value="{{.}}">{{end}}
+</form>{{end}}
+{{define "content"}}{{with .Page}}
+{{if or .Kinds .Layers .Rows}}<div class="toolbar">
+{{with .Kinds}}<nav class="filters" aria-label="Show packages of one kind">{{range .}}<a href="{{.URL}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}} <span class="muted">{{.Count}}</span></a>{{end}}</nav>{{end}}
+{{with .Layers}}<nav class="filters" aria-label="Show packages of one layer">{{range .}}<a href="{{.URL}}"{{if .Current}} aria-current="true"{{end}}>{{.Label}} <span class="muted">{{.Count}}</span></a>{{end}}</nav>{{end}}
+<span class="grow"></span>
+<form class="sortform" method="get" action="/t/{{$.NS}}">
+{{with .Query}}<input type="hidden" name="q" value="{{.}}">{{end}}{{with .Kind}}<input type="hidden" name="kind" value="{{.}}">{{end}}{{with .Layer}}<input type="hidden" name="layer" value="{{.}}">{{end}}
+<label for="sort">Sort by</label>
+<select id="sort" name="sort" class="sel" data-autosubmit>{{$cur := .Sort}}{{range .Sorts}}<option value="{{.Value}}"{{if eq .Value $cur}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+<button type="submit" class="btn js-hide">Sort</button>
+</form>
+</div>{{end}}
+{{if .Rows}}
+<div class="panel">
+<table class="list fit pkgs">
+<thead><tr><th scope="col">Package</th><th scope="col">Kind</th><th scope="col">Version</th><th scope="col">Layer</th><th scope="col">Updated</th><th scope="col" class="opt">Releases</th></tr></thead>
+<tbody>{{range .Rows}}
+<tr>
+<td class="stack"><a class="name" href="/t/{{$.NS}}/p/{{.Team}}/{{.Name}}">{{.ID}}</a>{{if .Description}}<span class="desc" title="{{.Description}}">{{.Description}}</span>{{end}}</td>
+<td><span class="pill pill-kind">{{kind .Kind}}</span></td>
+<td class="num">{{.Version}}</td>
+<td><span class="pill pill-clip{{if .Own}} pill-own{{end}}" title="{{.Team}}">{{.Team}}</span></td>
+<td class="muted"><time datetime="{{stamp .Published}}" title="{{exact .Published}}">{{ago .Published}}</time></td>
+<td class="muted opt">{{plural .Releases "release"}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+</div>
+{{else if or .Query .Kind .Layer}}
+<div class="panel empty">
+<h2>{{if .Query}}No packages match “{{.Query}}”{{if .Kind}} among {{.KindName}}{{end}}{{else if .Kind}}No {{.KindName}} here{{else}}No packages in {{.Layer}}{{end}}</h2>
+<p>The search looks at package names, descriptions and kinds.</p>
+<a href="/t/{{$.NS}}">Show all {{plural .Total "package"}}</a>
+</div>
+{{else}}
+<div class="panel empty">
+<h2>No packages yet</h2>
+<p>A maintainer publishes one from a package folder with <code>loadout publish</code>, or proposes one for review with <code>loadout propose</code>. Packages of the layers above {{.Namespace}} show up here too.</p>
+</div>
+{{end}}
+<div class="panel cmdcard">
+{{template "icon-terminal"}}
+<div class="text"><strong>Get these on your machine</strong><span>loadout installs them into Claude Code and Copilot. It never runs them for you.</span></div>
+<code class="cmd" id="install">{{.Install}}</code>
+{{template "copy" "install"}}
+</div>
+{{end}}{{end}}

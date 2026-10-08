@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest something loadout could do
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        loadout never runs a model and never holds an AI key. A request that needs either cannot be accepted.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do and what is in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do today instead

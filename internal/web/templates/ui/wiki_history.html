@@ -1,0 +1,22 @@
+{{define "content"}}{{with .Page}}{{$v := .}}
+<div class="back"><a href="{{.Base}}">{{template "icon-back"}}Wiki</a></div>
+<section class="panel" aria-labelledby="history-h">
+<div class="panel-head"><h2 id="history-h" class="grow">History</h2>{{with .Rows}}<span class="meta">{{plural (len .) "revision"}}</span>{{end}}</div>
+{{if .Rows}}<table class="list wiki-history">
+<colgroup><col class="w110"><col class="w190"><col class="w140"><col><col class="w110"><col class="w110"></colgroup>
+<thead><tr><th scope="col">Revision</th><th scope="col">Who</th><th scope="col">When</th><th scope="col">Note</th><th scope="col">Size</th><th scope="col"><span class="vh">Changes</span></th></tr></thead>
+<tbody>{{range .Rows}}
+<tr>
+<td class="num name"><a href="{{$v.Base}}/r/{{.Seq}}">Revision {{.Seq}}</a></td>
+<td class="clip-cell">{{.Author}}</td>
+<td class="muted"><time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time></td>
+<td class="wide note-cell">{{if .Note}}{{.Note}}{{else}}<span class="muted">No note</span>{{end}}</td>
+<td class="muted num">{{size .Size}}</td>
+<td class="end">{{if .Changes}}<a href="{{$v.Base}}/r/{{.Seq}}/diff">Changes<span class="vh"> in revision {{.Seq}}</span></a>{{end}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+{{if .Full}}<p class="panel-foot">loadout keeps the newest {{.Kept}} revisions.</p>{{end}}
+{{else}}<p class="empty">Nobody has written the wiki yet.</p>{{end}}
+</section>
+{{end}}{{end}}

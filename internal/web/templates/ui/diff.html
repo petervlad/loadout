@@ -1,0 +1,10 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/t/{{$.NS}}/reviews/{{.ID}}">{{template "icon-back"}}{{.Package}} {{.To}}</a><span>/ What changed</span></div>
+<section class="panel" aria-labelledby="diff-h">
+{{if .Tabs}}<nav class="page-tabs diff-tabs" aria-label="Compare">{{range .Tabs}}<a href="?view={{.Key}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}</nav>{{end}}
+<div class="panel-head diff-head"><h2 id="diff-h">Changes from {{if .From}}{{.From}}{{else}}nothing (first version){{end}} to {{.Until}}</h2>
+{{if .Tabs}}<p>{{if eq .View "since"}}What was released after this proposal was made. The proposal does not have these changes.{{else if eq .View "effect"}}What everyone gets on their next sync if this proposal is approved now.{{else}}What the author changed in this proposal.{{end}}</p>{{end}}</div>
+{{if .Files}}<div class="diff wide">{{range .Files}}{{template "diff-file" .}}{{end}}</div>
+{{else}}<p class="empty">The files are the same in {{.From}} and {{.Until}}.</p>{{end}}
+</section>
+{{end}}{{end}}

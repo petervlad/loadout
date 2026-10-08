@@ -1,0 +1,34 @@
+{{define "content"}}{{with .Page}}
+<div class="page-head">
+<h1>loadout</h1>
+<p class="lead-sm">Share your team's AI agents, skills and knowledge bases. Publish once, and every teammate's Claude Code and Copilot has it, kept up to date.</p>
+</div>
+<figure class="flow" aria-labelledby="flow-h">
+<h2 class="vh" id="flow-h">How it works</h2>
+<ol class="flow-steps">
+<li class="flow-step"><h3>You publish</h3><p>An agent, a skill or a knowledge base, with <code>loadout publish</code>.</p></li>
+<li class="flow-step"><h3>The registry keeps it</h3>
+<div class="flow-layers"><span class="flow-layer">{{.Project}}<span>L0, everyone in the project</span></span><span class="flow-layer flow-team">{{.Team}}<span>L1, one team</span></span></div>
+<p>A team can require a second person's review first.</p></li>
+<li class="flow-step"><h3>Every teammate has it</h3>
+<div class="flow-tools"><span class="pill pill-kind">Claude Code</span><span class="pill pill-kind">GitHub Copilot</span></div>
+<p><code>loadout sync</code> brings new versions and never overwrites their own edits.</p></li>
+</ol>
+<figcaption class="flow-note">Nothing runs a model here. Your AI tool and its key stay on your machine.</figcaption>
+</figure>
+{{with .Skills}}<section class="home-sec" aria-labelledby="skills-h">
+<div class="home-sec-head"><h2 id="skills-h">Skills that come with loadout</h2><a href="/skills#skills-h">About them</a></div>
+<p class="lead-sm">They teach your AI tool to use loadout, so you can ask it to install, publish or propose for you.</p>
+<ul class="skill-cards" aria-labelledby="skills-h">{{range .}}
+{{template "skill-card" .}}{{end}}
+</ul>
+</section>{{end}}
+<section class="panel" aria-labelledby="start-h">
+<div class="cmdcard">
+{{template "icon-terminal"}}
+<div class="text"><strong id="start-h">Set up a machine</strong><span>Signs in once and installs everything from all your teams, and the loadout skills.</span></div>
+<code class="cmd" id="install">{{.Install}}</code>
+{{template "copy" "install"}}
+</div>
+</section>
+{{end}}{{end}}

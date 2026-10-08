@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "loadout notices --hook copilot 2>/dev/null || true",
+        "powershell": "if (Get-Command loadout -ErrorAction SilentlyContinue) { loadout notices --hook copilot 2>$null }; exit 0",
+        "timeoutSec": 5
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{{define "heading"}}Create your account{{end}}
+{{define "lead"}}<p class="lead">Your team's agents, on every machine.</p>{{end}}
+{{define "content"}}
+<div class="card">
+{{template "google" .}}
+{{if .EmailLogin}}<form method="post" action="/auth/signup">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="next" value="{{.Next}}">
+<div class="pair"><label for="email">Email</label>
+<input id="email" name="email" type="email" class="field-lg" autocomplete="email" required value="{{.Email}}"></div>
+<div class="pair"><label for="password">Password</label>
+<input id="password" name="password" type="password" class="field-lg" autocomplete="new-password" minlength="12" maxlength="128" required aria-describedby="pw-hint"></div>
+<p class="small" id="pw-hint">At least 12 characters. You get a code by email to confirm your address.</p>
+<button type="submit" class="btn btn-primary btn-block">Create account</button>
+</form>
+{{else}}<p>Signing up with email is not available on this registry.</p>{{end}}
+</div>
+<p class="auth-foot">Already have an account? <a href="/auth/login?next={{.Next}}{{if .Prefilled}}&amp;email={{.Email}}{{end}}">Sign in</a></p>
+{{end}}

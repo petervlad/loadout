@@ -1,0 +1,22 @@
+{{define "content"}}
+<div class="card">
+<dl class="facts tight">
+<dt>Email</dt><dd>{{.User.Email}}</dd>
+{{if .User.Name}}<dt>Name</dt><dd>{{.User.Name}}</dd>{{end}}
+{{if .User.IsAdmin}}<dt>Admin</dt><dd>Yes, of this whole registry</dd>{{end}}
+{{range .Memberships}}<dt>{{.Namespace}}</dt><dd>{{.Role}}</dd>{{end}}
+</dl>
+<p class="small">Sign in on your terminal with <code>loadout login --remote URL</code>.</p>
+<form method="post" action="/auth/logout">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<button type="submit" class="btn btn-block">Sign out</button>
+</form>
+<form method="post" action="/account">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="action" value="signout-everywhere">
+<button type="submit" class="secondary">Sign out everywhere</button>
+<p class="hint">Ends every browser session and every token from <code>loadout login</code>.</p>
+</form>
+</div>
+{{if not .Memberships}}<p class="auth-foot">You are not in any team yet. Ask a maintainer of your team to invite you.</p>{{end}}
+{{end}}

@@ -1,0 +1,11 @@
+bin/
+*.test
+coverage.out
+.DS_Store
+secrets.env
+*.env
+dist/
+.claude/worktrees/
+.scratch/
+CLAUDE.local.md
+.claude/settings.local.json

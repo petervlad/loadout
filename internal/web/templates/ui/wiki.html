@@ -1,0 +1,68 @@
+{{define "content"}}{{with .Page}}
+{{if .Rev.Seq}}{{if .Old}}<div class="panel version-note wiki-old" role="note"><p>You are looking at revision {{.Rev.Seq}}. The newest is <a href="{{.Base}}">revision {{.Newest}}</a>.</p>
+{{if .CanEdit}}<a class="btn" href="{{.Base}}/edit?from={{.Rev.Seq}}">Edit from this revision</a>{{end}}</div>
+{{end}}<section class="panel" aria-labelledby="wiki-h">
+<div class="panel-head file-bar wiki-bar">
+<div class="grow">
+<h2 id="wiki-h" class="vh">{{if .Old}}Revision {{.Rev.Seq}} of the wiki{{else}}The wiki of {{.Namespace}}{{end}}</h2>
+<p class="wiki-meta"><a href="{{.Base}}/r/{{.Rev.Seq}}"{{if .Old}} aria-current="page"{{end}}>Revision {{.Rev.Seq}}</a> · {{.Author}} · <time datetime="{{stamp .Rev.CreatedAt}}" title="{{exact .Rev.CreatedAt}}">{{ago .Rev.CreatedAt}}</time>{{if eq .Rev.Format "mdx"}} · MDX{{end}}</p>
+</div>
+{{if and .CanEdit (not .Old)}}<a class="btn btn-primary" href="{{.Base}}/edit">Edit</a>{{end}}
+{{if .Source}}<a class="btn" href="{{.Self}}">Show page</a>{{else}}<a class="btn" href="{{.Self}}?source=1">Show source</a>{{end}}
+<a class="btn" href="{{.Base}}/history">History</a>
+<a class="icon-btn" href="{{.Raw}}">{{template "icon-download"}}<span class="vh">Download {{.File}}</span></a>
+</div>
+{{with .Note}}<p class="file-note" role="note">{{.}}</p>{{end}}
+{{if .Source}}<pre class="markdown file-text">{{.Text}}</pre>{{else}}<div class="md doc-md wiki-md">{{.HTML}}</div>{{end}}
+</section>
+{{else}}<section class="panel" aria-labelledby="wiki-empty-h">
+<div class="empty">
+<h2 id="wiki-empty-h">No wiki page yet</h2>
+{{if .CanEdit}}<p>Write what everyone in {{.Namespace}} should know: how to set up, who to ask, where things live.</p>
+<a class="btn btn-primary" href="{{.Base}}/edit">Write the first version</a>
+{{else}}<p>Nobody has written it yet.</p>{{end}}
+</div>
+{{if .CanEdit}}<div class="cmdcard wiki-cmd">
+{{template "icon-terminal"}}
+<div class="text"><strong>Or write it in your editor</strong><span>Save a Markdown file and send it from the terminal.</span></div>
+<code class="cmd" id="wiki-push">{{.Command}}</code>
+{{template "copy" "wiki-push"}}
+</div>{{end}}
+</section>{{end}}
+{{with .Parent}}<p class="wiki-parent">{{.}}, the project above, <a href="/t/{{.}}/wiki">has a wiki too</a>.</p>{{end}}
+{{with .Course}}{{template "course" .}}{{end}}
+{{end}}{{end}}
+
+{{define "course"}}<section class="panel course" id="course" aria-labelledby="course-h">
+<div class="panel-head course-head">
+<div class="grow">
+<h2 id="course-h">Course</h2>
+{{if not .Missing}}<p class="course-meta"><a href="{{.PackageURL}}">{{.Name}} {{.Version}}</a> · {{plural .Total "lesson"}}{{with .From}} · From {{.}}{{end}}</p>{{end}}
+</div>
+</div>
+{{if .Missing}}<p class="course-missing" role="note">{{.Missing}}{{with .Settings}} <a href="{{.}}">Open Settings</a>{{end}}</p>
+{{else}}{{with .Description}}<p class="course-desc">{{.}}</p>{{end}}
+{{with .Gone}}<p class="course-gone" role="note">{{.}}</p>{{end}}
+{{with .Open}}<details class="course-all">
+<summary>All {{$.Total}} lessons</summary>
+{{template "lessons" $}}
+</details>
+<article class="course-lesson" aria-labelledby="lesson-h">
+<p class="lesson-of">Lesson {{.N}} of {{.Of}}</p>
+<h3 id="lesson-h">{{.Title}}</h3>
+{{with .Note}}<p class="file-note" role="note">{{.}}</p>{{end}}
+<div class="md doc-md lesson-md">{{.HTML}}</div>
+<nav class="lesson-nav" aria-label="Lessons">
+{{with .Prev}}<a class="file-step" href="{{.URL}}" rel="prev"><span class="file-step-label">Previous</span><span class="lesson-step-title">{{.N}}. {{.Title}}</span></a>{{end}}
+{{with .Next}}<a class="file-step file-next" href="{{.URL}}" rel="next"><span class="file-step-label">Next</span><span class="lesson-step-title">{{.N}}. {{.Title}}</span></a>{{end}}
+</nav>
+<p class="lesson-close"><a href="{{.Close}}">Close lesson</a></p>
+</article>
+{{else}}{{template "lessons" .}}{{end}}{{end}}
+</section>{{end}}
+
+{{define "lessons"}}<h3 id="lessons-h" class="vh">Lessons</h3>
+<ol class="lessons" role="list" aria-labelledby="lessons-h">{{range .Lessons}}
+<li><a href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}><span class="lesson-n" aria-hidden="true">{{.N}}</span><span class="lesson-title">{{.Title}}</span></a></li>{{end}}
+</ol>
+{{if .More}}<p class="course-more">{{plural .More "more lesson"}} not listed: a course box lists the first 50. Open the package to read them.</p>{{end}}{{end}}

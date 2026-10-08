@@ -1,0 +1,43 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errorlint
+    - bodyclose
+    - noctx
+    - sloglint
+    - modernize
+    - gosec
+    - revive
+    - gocritic
+    - nilerr
+    - errname
+    - usestdlibvars
+    - misspell
+    - unconvert
+    - unparam
+    - sqlclosecheck
+    - rowserrcheck
+    - thelper
+  settings:
+    sloglint:
+      kv-only: true
+    gosec:
+      excludes:
+        - G304 # reading files from user-given paths is the point of a package manager
+        - G301 # 0755 folders in the user's own tool directories are intended
+        - G306 # agent files are meant to be readable (0644)
+  exclusions:
+    presets:
+      - std-error-handling
+      - common-false-positives
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/petervlad/loadout

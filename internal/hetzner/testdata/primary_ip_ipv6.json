@@ -1,0 +1,17 @@
+{
+  "primary_ip": {
+    "id": 104851235,
+    "name": "primary_ip-104851235",
+    "ip": "2a01:4f8:1c1a:4b2f::/64",
+    "type": "ipv6",
+    "assignee_id": 167857226,
+    "assignee_type": "server",
+    "auto_delete": true,
+    "blocked": false,
+    "created": "2026-08-02T09:14:30Z",
+    "datacenter": {"id": 2, "name": "nbg1-dc3", "location": {"id": 2, "name": "nbg1", "country": "DE", "city": "Nuremberg"}},
+    "dns_ptr": [],
+    "labels": {},
+    "protection": {"delete": false}
+  }
+}

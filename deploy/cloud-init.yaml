@@ -1,0 +1,24 @@
+#cloud-config
+# User data for a cloud VM (Ubuntu 24.04 or another cloud-init image) that will
+# run the loadout registry. It does only what must happen before the first ssh
+# login: the admin user with your key, no root login, no ssh passwords.
+# Everything else (packages, firewall, Caddy, the loadout user) is
+# deploy/prepare.sh, which deploy.sh runs on the first deploy with
+# LOADOUT_PREPARE=1. A machine without cloud-init skips this file: create the
+# admin user by hand (see README.md) and deploy the same way.
+#
+# Replace the ssh key below, then paste this file as "Cloud config" (user
+# data) when creating the server.
+
+users:
+  - name: admin
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: true
+    # deploy.sh runs sudo non-interactively; the account has no password.
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY you@laptop
+
+disable_root: true
+ssh_pwauth: false

@@ -1,0 +1,35 @@
+{{define "heading"}}Sign in to loadout{{end}}
+{{define "lead"}}<p class="lead">Your team's agents, on every machine.</p>{{end}}
+{{define "content"}}
+{{if .Simple}}
+<div class="card">
+<form method="post" action="/auth/login">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="next" value="{{.Next}}">
+<div class="pair"><label for="email">Email</label>
+<input id="email" name="email" type="email" class="field-lg" autocomplete="username" required value="{{.Email}}"></div>
+<div class="pair"><label for="password">Password</label>
+<input id="password" name="password" type="password" class="field-lg" autocomplete="current-password" required></div>
+<button type="submit" class="btn btn-primary btn-block">Sign in</button>
+</form>
+</div>
+{{else if or .EmailLogin .Google}}
+<div class="card">
+{{if and .Prefilled .EmailLogin}}<p class="small">First time here? <a href="/auth/signup?next={{.Next}}&amp;email={{.Email}}">Create your account</a> with this address{{if .Google}}, or continue with Google{{end}}.</p>
+{{end}}{{template "google" .}}
+{{if .EmailLogin}}<form method="post" action="/auth/login">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="next" value="{{.Next}}">
+<div class="pair"><label for="email">Email</label>
+<input id="email" name="email" type="email" class="field-lg" autocomplete="username" required value="{{.Email}}"></div>
+<div class="pair"><label for="password">Password</label>
+<input id="password" name="password" type="password" class="field-lg" autocomplete="current-password" required></div>
+<button type="submit" class="btn btn-primary btn-block">Continue</button>
+<p class="small">You get a 6-digit code by email to finish signing in.</p>
+</form>{{end}}
+</div>
+{{if and .EmailLogin (not .Prefilled)}}<p class="auth-foot">New here? <a href="/auth/signup?next={{.Next}}">Create an account</a></p>{{end}}
+{{else}}
+<div class="card"><p>Signing in is not set up on this registry yet. Ask its admin.</p></div>
+{{end}}
+{{end}}

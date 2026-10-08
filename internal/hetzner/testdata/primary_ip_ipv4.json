@@ -1,0 +1,17 @@
+{
+  "primary_ip": {
+    "id": 104851234,
+    "name": "primary_ip-104851234",
+    "ip": "203.0.113.7",
+    "type": "ipv4",
+    "assignee_id": 167857226,
+    "assignee_type": "server",
+    "auto_delete": true,
+    "blocked": false,
+    "created": "2026-08-02T09:14:30Z",
+    "location": {"id": 2, "name": "nbg1", "description": "Nuremberg DC Park 1", "country": "DE", "city": "Nuremberg", "network_zone": "eu-central"},
+    "dns_ptr": [{"ip": "203.0.113.7", "dns_ptr": "static.87.232.224.46.clients.your-server.de"}],
+    "labels": {},
+    "protection": {"delete": false}
+  }
+}

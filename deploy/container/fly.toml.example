@@ -1,0 +1,60 @@
+# A loadout registry on Fly.io. Copy to fly.toml and edit; nothing here is a
+# secret (put those in `fly secrets set`, see README.md).
+#
+#   fly launch --no-deploy --copy-config --config fly.toml
+#   fly volumes create loadout_data --size 1 --region ams
+#   fly secrets import < secrets.txt     # NAME=VALUE lines you wrote in your editor
+#   fly deploy --ha=false
+#   fly certs add registry.example.com
+#
+# ONE machine, ONE volume: the database is SQLite and the rate limits are in
+# memory, so never scale this out (`fly scale count 1`). fly deploy adds a
+# spare machine by default; --ha=false stops that.
+
+app = "your-loadout-registry"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+  # Fly mounts volumes root-owned, so build the variant that runs as root.
+  build-target = "root-volume"
+
+[build.args]
+  # A release of loadout, without the v.
+  LOADOUT_VERSION = "0.2.0"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
+
+[env]
+  LOADOUT_PUBLIC_URL = "https://registry.example.com"
+  LOADOUT_SMTP_HOST = "smtp.example.com"
+  LOADOUT_MAIL_FROM = "loadout <login@example.com>"
+  # Fly's proxy sets Fly-Client-IP. Without the next two lines every client
+  # shares the proxy's address and its sign-in limits. Fill in the range Fly
+  # documents for its proxy (look it up in Fly's current documentation; it is
+  # not guessed here), then check with
+  #   fly ssh console -C "/usr/local/bin/loadout serve --check"
+  # LOADOUT_TRUSTED_PROXIES = "<the proxy range from Fly's documentation>"
+  # LOADOUT_CLIENT_IP_HEADER = "Fly-Client-IP"
+
+[mounts]
+  source = "loadout_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Never stop or add machines: one instance only.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/v1/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"

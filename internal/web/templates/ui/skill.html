@@ -1,0 +1,27 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/skills#skills-h">{{template "icon-back"}}Start here</a></div>
+<div class="page-head"><h1>{{.Title}}</h1>
+<p class="skill-name"><code>{{.Name}}</code> <span class="pill pill-kind">Built in</span></p>
+<p class="lead-sm">{{.Summary}}</p>
+{{if .Asks}}<div class="asks"><p class="asks-h">You can ask</p><ul>{{range .Asks}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+{{if .When}}<p class="skill-when">{{.When}}</p>{{end}}</div>
+<section class="panel" id="skill-md" tabindex="-1" aria-labelledby="skill-md-h">
+<div class="panel-head"><h2 id="skill-md-h"><code>SKILL.md</code></h2><span class="grow"></span><span class="meta">loadout {{.Version}}</span></div>
+<div class="md skill-md">{{.Body}}</div>
+</section>
+{{range .Files}}<section class="panel" id="{{.ID}}" tabindex="-1" aria-labelledby="{{.ID}}-h">
+<div class="panel-head"><h2 id="{{.ID}}-h"><code>{{.Path}}</code></h2></div>
+{{if .HTML}}<div class="md skill-md">{{.HTML}}</div>{{else}}<pre class="markdown">{{.Text}}</pre>{{end}}
+</section>{{end}}
+{{template "skills-install" .}}
+{{end}}{{end}}
+
+{{define "skills-install"}}<section class="panel" aria-labelledby="install-h">
+<div class="cmdcard">
+{{template "icon-terminal"}}
+<div class="text"><strong id="install-h"><code>loadout login</code> adds it for you</strong><span>With the other loadout skills, in Claude Code and Copilot. Run this to add them now, or to bring back one you removed.</span></div>
+<code class="cmd cmd-short" id="setup">{{.Install}}</code>
+{{template "copy" "setup"}}
+</div>
+<p class="panel-foot">The text of loadout {{.Version}}, the version this registry runs. <code>loadout sync</code> keeps yours in step.</p>
+</section>{{end}}

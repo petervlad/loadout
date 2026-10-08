@@ -1,0 +1,20 @@
+/* The diagram frame: a document of its own, sandboxed, that draws one
+   diagram. Colors follow the page's tokens in style.css. Mermaid follows
+   the theme; draw.io diagrams keep their author's colors on a light
+   canvas in both themes. */
+
+:root { color-scheme: light dark; --bg: #ffffff; --text: #1d1d1f; --bad: #b3261e; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #1c1c1e; --text: #f5f5f7; --bad: #ff6b61; }
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; --bg: #1c1c1e; --text: #f5f5f7; --bad: #ff6b61; }
+
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { padding: 12px; font: 0.875rem/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; }
+#out { overflow-x: auto; }
+.frame-mermaid #out svg { display: block; margin: 0 auto; height: auto; }
+.frame-drawio { padding: 0; }
+/* Last, so it wins over the theme rules of the same weight above. */
+:root.frame-drawio { color-scheme: light; --bg: #ffffff; --text: #1d1d1f; --bad: #b3261e; }
+#err { margin: 0; color: var(--bad); white-space: pre-wrap; overflow-wrap: anywhere; }

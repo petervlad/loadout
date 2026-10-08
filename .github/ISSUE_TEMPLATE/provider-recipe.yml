@@ -1,0 +1,32 @@
+name: Provider or email recipe
+description: Propose or fix a cloud provider or email provider recipe for the host skills
+labels: [recipe]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - Cloud provider (machine)
+        - Email provider (sign-in mail)
+        - Fix to an existing recipe
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How it was verified
+      description: Run end to end (say how, and on what date), or checked against the provider's documentation only. Link the documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Limits to know
+      description: Port limits, sandboxes, review steps, prices, anything that surprised you. No secrets.

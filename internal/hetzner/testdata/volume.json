@@ -1,0 +1,15 @@
+{
+  "volume": {
+    "id": 4711,
+    "name": "registry-data",
+    "size": 10,
+    "server": 167857226,
+    "status": "available",
+    "created": "2026-08-03T10:00:00Z",
+    "linux_device": "/dev/disk/by-id/scsi-0HC_Volume_4711",
+    "format": "ext4",
+    "location": {"id": 2, "name": "nbg1", "description": "Nuremberg DC Park 1", "country": "DE", "city": "Nuremberg", "network_zone": "eu-central"},
+    "protection": {"delete": false},
+    "labels": {}
+  }
+}

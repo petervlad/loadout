@@ -1,0 +1,44 @@
+{
+  "model": "opus",
+  "cleanupPeriodDays": 30.0,
+  "env": {
+    "GREETING": "caf\u00e9 <&>"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo hello"
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "loadout notices --hook claude 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "check.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": []
+  }
+}

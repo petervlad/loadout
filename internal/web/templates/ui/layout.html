@@ -1,0 +1,91 @@
+{{define "layout"}}<!doctype html>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="same-origin">
+<meta name="color-scheme" content="{{if .Theme}}{{.Theme}}{{else}}light dark{{end}}">
+<title>{{.Title}} · loadout</title>
+<link rel="stylesheet" href="{{static "style.css"}}">
+<script src="{{static "ui.js"}}"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app{{if .Bare}} bare{{end}}">
+{{if not .Bare}}<nav class="side" aria-label="Teams and projects">
+<a class="brand" href="/"{{if .HomeCurrent}} aria-current="page"{{end}}><span class="brand-name">{{template "icon-logo" 22}}loadout</span><span class="brand-motto">Sharing is caring</span></a>
+<div class="side-nav">
+{{if .SkillsNav}}<ul class="side-list side-builtin" aria-label="About loadout">
+<li><a class="side-item" href="/skills"{{if .SkillsCurrent}} aria-current="page"{{end}}>{{template "icon-start"}}Start here</a></li>
+</ul>{{end}}
+{{with .Projects}}<div class="side-label" id="nav-projects">{{if eq (len .) 1}}Project{{else}}Projects{{end}}</div>
+<ul class="side-list" aria-labelledby="nav-projects">{{range .}}{{$p := .}}
+<li class="side-group"><div class="side-row">
+<a class="side-item" href="/t/{{.Name}}"{{if .Current}} aria-current="page"{{end}}>{{template "icon-project"}}{{.Name}}<span class="level" title="Layer {{.Level}}">L{{.Level}}</span></a>
+{{if .Children}}<button type="button" class="side-toggle js-only" data-toggle="sub_{{.Name}}" aria-controls="sub_{{.Name}}" aria-expanded="{{.Open}}" aria-label="Teams in {{.Name}}">{{template "icon-chevron"}}</button>{{end}}
+</div>
+{{with .Children}}<ul class="side-list side-sub" id="sub_{{$p.Name}}" aria-label="Teams in {{$p.Name}}"{{if not $p.Open}} data-folded{{end}}>{{range .}}
+<li><a class="side-item" href="/t/{{.Name}}"{{if .Current}} aria-current="page"{{end}}>{{template "icon-team"}}{{.Name}}<span class="level" title="Layer {{.Level}}">L{{.Level}}</span></a></li>{{end}}
+</ul>{{end}}</li>{{end}}
+</ul>{{end}}
+{{with .Teams}}<div class="side-label" id="nav-teams">{{if $.Projects}}Other teams{{else}}Teams{{end}}</div>
+<ul class="side-list" aria-labelledby="nav-teams">{{range .}}
+<li><a class="side-item" href="/t/{{.Name}}"{{if .Current}} aria-current="page"{{end}}>{{template "icon-team"}}{{.Name}}<span class="level" title="Layer {{.Level}}">L{{.Level}}</span></a></li>{{end}}
+</ul>{{end}}
+{{with .CreateLabel}}<a class="side-item side-new" href="/new"{{if $.NewCurrent}} aria-current="page"{{end}}>{{template "icon-plus"}}{{.}}</a>{{end}}
+</div>
+<div class="side-fill"></div>
+<a class="side-item side-docs" href="{{.DocsURL}}">{{template "icon-docs"}}<span class="side-docs-label">Docs</span></a>
+<a class="side-item side-news" href="{{.WhatsNewURL}}">{{template "icon-news"}}<span class="side-news-label">What's new</span></a>
+{{if .SignIn}}<a class="side-item side-user" href="{{.SignIn}}">{{template "icon-user"}}<span>Sign in</span></a>
+{{else}}<a class="side-item side-user" href="/account"{{if .AccountCurrent}} aria-current="page"{{end}}>{{template "icon-user"}}<span>{{if .User.Name}}{{.User.Name}}{{else}}{{.User.Email}}{{end}}</span></a>{{end}}
+</nav>{{end}}
+<main class="main{{if .Wide}} main-wide{{end}}" id="main">
+{{with .Header}}<div class="head">
+<div class="head-title">
+<div class="crumbs">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}{{if $c.Link}}<a href="/t/{{$c.Name}}">{{$c.Name}}</a>{{else}}{{$c.Name}}{{end}}{{end}}</div>
+<h1 class="title">{{.Name}}</h1>
+{{if .Via}}<p class="via">You read {{.Name}} through <a href="/t/{{.Via}}">{{.Via}}</a>.</p>{{end}}
+</div>
+{{if or .Tabs .Wiki}}<nav class="tabs" aria-label="Team sections">
+<a href="/t/{{.Name}}"{{if eq .Tab "packages"}} aria-current="page"{{end}}>Packages</a>
+{{if .Tabs}}<a href="/t/{{.Name}}/reviews"{{if eq .Tab "reviews"}} aria-current="page"{{end}}>Reviews{{if .Reviews}}<span class="count">{{.Reviews}}<span class="vh"> open</span></span>{{end}}</a>
+{{end}}{{if .Wiki}}<a href="/t/{{.Name}}/wiki"{{if eq .Tab "wiki"}} aria-current="page"{{end}}>Wiki</a>
+{{end}}{{if .Tabs}}<a href="/t/{{.Name}}/settings"{{if eq .Tab "settings"}} aria-current="page"{{end}}>Settings</a>
+{{end}}</nav>{{end}}
+<div class="head-fill"></div>
+{{if .NewTeam}}<a class="btn" href="/new?parent={{.Name}}">{{template "icon-plus"}}New team</a>{{end}}
+{{block "head-extra" $}}{{end}}
+</div>{{end}}
+{{if .Notice}}<p class="notice" role="status">{{.Notice}}</p>{{end}}
+{{if .Error}}<p class="alert" role="alert" id="form-error">{{.Error}}</p>{{end}}
+{{template "content" .}}
+</main>
+</div>
+<div id="live" class="vh" aria-live="polite"></div>
+</body>
+</html>{{end}}
+
+{{define "icon-logo"}}<svg width="{{.}}" height="{{.}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>{{end}}
+{{define "icon-project"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/></svg>{{end}}
+{{define "icon-skill"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>{{end}}
+{{define "icon-team"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M15.5 14.8c2.6-.3 4.8 1.4 5.5 4.2"/></svg>{{end}}
+{{define "icon-user"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.2-4 4.3-6 8-6s6.8 2 8 6"/></svg>{{end}}
+{{define "icon-search"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>{{end}}
+{{define "icon-terminal"}}<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M7 10l3 2-3 2M12.5 14.5H17"/></svg>{{end}}
+{{define "icon-back"}}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>{{end}}
+{{define "icon-plus"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>{{end}}
+{{define "icon-chevron"}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>{{end}}
+{{define "icon-docs"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M8 8h8M8 12h6"/></svg>{{end}}
+{{define "icon-news"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9.5h4L19 4v16L7 14.5H3z"/><path d="M7 14.5l1.6 5.5h3.1l-1.3-4"/></svg>{{end}}
+{{define "icon-download"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>{{end}}
+{{define "icon-x"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>{{end}}
+{{define "icon-start"}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16.2 7.8l-2.1 6.3-6.3 2.1 2.1-6.3z"/></svg>{{end}}
+{{define "skill-card"}}<li class="skill-card">
+<h3><a href="/skills/{{.Name}}">{{template "icon-skill"}}{{.Title}}</a></h3>
+<p>{{.Summary}}</p>
+{{if .Asks}}<div class="asks"><p class="asks-h">You can ask</p><ul>{{range .Asks}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+<p class="skill-name"><code>{{.Name}}</code></p>
+</li>{{end}}
+{{define "copy"}}<button type="button" class="btn js-only" data-copy="{{.}}">Copy</button>{{end}}
+{{define "diff-file"}}<h3 class="file">{{.Name}}{{if .Change}} <span class="change">({{.Change}})</span>{{end}}</h3>{{range .Lines}}<div class="{{.Kind}}">{{if .Mark}}<span class="mark" aria-hidden="true">{{.Mark}}</span><span class="vh">{{if eq .Kind "add"}}added: {{else if eq .Kind "del"}}removed: {{end}}</span>{{end}}{{.Text}}</div>{{end}}{{end}}

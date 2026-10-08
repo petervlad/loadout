@@ -1,0 +1,48 @@
+{{define "content"}}{{with .Page}}{{$pv := .}}
+<div class="panel">
+<div class="panel-head pkg-head">
+<div class="grow">
+<h2>{{.ID}} <span class="muted num">{{.Version}}</span> <span class="pill pill-kind">{{kind .Kind}}</span></h2>
+{{if .Description}}<p>{{.Description}}</p>{{end}}
+</div>
+<a class="btn" href="{{.Base}}/download">{{template "icon-download"}}Download {{.Version}}<span class="vh"> of {{.ID}} as a zip</span></a>
+</div>
+<div class="copyrow pad-x"><code class="cmd" id="install">{{.Install}}</code>{{template "copy" "install"}}</div>
+</div>
+{{if ne .Version .Latest}}<p class="panel version-note" role="note">You are looking at {{.Version}}. The newest is <a href="{{.Path}}">{{.Latest}}</a>.</p>{{end}}
+<div class="panel">
+<table class="list releases">
+<colgroup><col class="w140"><col><col class="w160"><col class="w120"><col class="w60"></colgroup>
+<thead><tr><th scope="col">Version</th><th scope="col">Published</th><th scope="col">Digest</th><th scope="col">Size</th><th scope="col"><span class="vh">Download</span></th></tr></thead>
+<tbody>{{range .Releases}}{{$v := .Version.String}}
+<tr>
+<td class="num name"><a href="{{$pv.Path}}{{if ne $v $pv.Latest}}?version={{$v}}{{end}}"{{if eq $v $pv.Version}} aria-current="page"{{end}}>{{$v}}</a>{{if .SelfApproved}} <span class="pill pill-warn" title="Its author approved it as owner">Without review</span>{{end}}</td>
+<td class="muted"><time datetime="{{stamp .PublishedAt}}" title="{{exact .PublishedAt}}">{{ago .PublishedAt}}</time></td>
+<td><code>{{.Digest.Short}}</code></td>
+<td class="muted num opt-phone">{{size .Size}}</td>
+<td class="end"><a class="icon-btn" href="{{$pv.Path}}/{{$v}}/download">{{template "icon-download"}}<span class="vh">Download {{$v}} as a zip</span></a></td>
+</tr>{{end}}
+</tbody>
+</table>
+</div>
+{{if .Files}}<section class="panel" aria-labelledby="files-h">
+<div class="panel-head"><h2 id="files-h">{{if eq .Kind "kb"}}Documents{{else}}Files{{end}} in {{.Version}}</h2><span class="grow"></span><span class="muted">{{if eq .Kind "kb"}}{{plural (len .Files) "document"}}{{else}}{{plural (len .Files) "file"}}{{end}}</span></div>
+<table class="list files">
+<colgroup><col><col class="w120"><col class="w60"></colgroup>
+<thead><tr><th scope="col">{{if eq .Kind "kb"}}Document{{else}}File{{end}}</th><th scope="col">Size</th><th scope="col"><span class="vh">Download</span></th></tr></thead>
+<tbody>{{range .Files}}
+<tr>
+<td class="stack">{{if .Title}}<a class="name" href="{{$pv.Base}}/files/{{.Path}}">{{.Title}}</a><code class="desc">{{.Path}}</code>{{else}}<a class="name" href="{{$pv.Base}}/files/{{.Path}}"><code>{{.Path}}</code></a>{{end}}</td>
+<td class="muted num">{{size .Size}}</td>
+<td class="end"><a class="icon-btn" href="{{$pv.Base}}/raw/{{.Path}}">{{template "icon-download"}}<span class="vh">Download {{.Path}}</span></a></td>
+</tr>{{end}}
+</tbody>
+</table>
+</section>{{end}}
+<section class="panel" aria-labelledby="main-h">
+<div class="panel-head"><div class="grow"><h2 id="main-h">{{if .Generated}}Generated {{end}}{{.MainName}} in {{.Version}}</h2>{{if .Generated}}<p>loadout writes this index from the documents; tools read it to find the one a task needs.</p>{{end}}</div>
+{{if not .Generated}}<a class="btn" href="{{.Base}}/files/{{.MainName}}">Preview<span class="vh"> {{.MainName}}</span></a>
+<a class="btn" href="{{.Base}}/raw/{{.MainName}}">{{template "icon-download"}}Download<span class="vh"> {{.MainName}}</span></a>{{end}}</div>
+<pre class="markdown">{{.Main}}</pre>
+</section>
+{{end}}{{end}}

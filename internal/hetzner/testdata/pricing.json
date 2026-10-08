@@ -1,0 +1,31 @@
+{
+  "pricing": {
+    "currency": "EUR",
+    "vat_rate": "19.000000",
+    "image": {"price_per_gb_month": {"net": "0.0119000000", "gross": "0.0141610000000000"}},
+    "floating_ip": {"price_monthly": {"net": "3.0000000000", "gross": "3.5700000000000000"}},
+    "floating_ips": [],
+    "primary_ips": [
+      {"type": "ipv4", "prices": [
+        {"location": "fsn1", "price_hourly": {"net": "0.0008000000", "gross": "0.0009520000000000"}, "price_monthly": {"net": "0.5000000000", "gross": "0.5950000000000000"}},
+        {"location": "nbg1", "price_hourly": {"net": "0.0008000000", "gross": "0.0009520000000000"}, "price_monthly": {"net": "0.5000000000", "gross": "0.5950000000000000"}}
+      ]},
+      {"type": "ipv6", "prices": [
+        {"location": "fsn1", "price_hourly": {"net": "0.0000000000", "gross": "0.0000000000000000"}, "price_monthly": {"net": "0.0000000000", "gross": "0.0000000000000000"}},
+        {"location": "nbg1", "price_hourly": {"net": "0.0000000000", "gross": "0.0000000000000000"}, "price_monthly": {"net": "0.0000000000", "gross": "0.0000000000000000"}}
+      ]}
+    ],
+    "server_backup": {"percentage": "20.000000"},
+    "server_types": [
+      {"id": 116, "name": "cx23", "prices": [
+        {"location": "fsn1", "price_hourly": {"net": "0.0056000000", "gross": "0.0066640000000000"}, "price_monthly": {"net": "3.4900000000", "gross": "4.1531000000000000"}, "included_traffic": 21990232555520, "price_per_tb_traffic": {"net": "1.0000000000", "gross": "1.1900000000000000"}},
+        {"location": "nbg1", "price_hourly": {"net": "0.0056000000", "gross": "0.0066640000000000"}, "price_monthly": {"net": "3.4900000000", "gross": "4.1531000000000000"}, "included_traffic": 21990232555520, "price_per_tb_traffic": {"net": "1.0000000000", "gross": "1.1900000000000000"}}
+      ]},
+      {"id": 22, "name": "cpx21", "prices": [
+        {"location": "nbg1", "price_hourly": {"net": "0.0136000000", "gross": "0.0161840000000000"}, "price_monthly": {"net": "8.4900000000", "gross": "10.1031000000000000"}, "included_traffic": 21990232555520, "price_per_tb_traffic": {"net": "1.0000000000", "gross": "1.1900000000000000"}}
+      ]}
+    ],
+    "load_balancer_types": [],
+    "volume": {"price_per_gb_month": {"net": "0.0440000000", "gross": "0.0523600000000000"}}
+  }
+}

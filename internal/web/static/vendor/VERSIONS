@@ -1,0 +1,4 @@
+# Written by scripts/vendor.sh; do not edit. One line per file:
+# library version file sha256-of-the-uncompressed-file license source
+mermaid 12.0.0 mermaid-12.0.0/mermaid.min.js 28fca7ae6ebc7ed7bb63bde63136a74bfef14f296a57e403657eeb8b32836073 MIT https://registry.npmjs.org/mermaid/-/mermaid-12.0.0.tgz
+drawio 31.5.3 drawio-31.5.3/viewer-static.min.js 41f8360963bb485db74517ae7ca8ca01e563b587607a82238f901750b14e26d0 Apache-2.0 https://cdn.jsdelivr.net/gh/jgraph/drawio@v31.5.3/src/main/webapp/js/viewer-static.min.js

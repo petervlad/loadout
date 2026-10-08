@@ -1,0 +1,23 @@
+{{define "content"}}{{with .Page}}
+<div class="page-head"><h1>{{if .CanProject}}New project or team{{else}}New team{{end}}</h1></div>
+<form class="panel form" method="post" action="/new">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+{{if .CanProject}}<fieldset class="choice">
+<legend>What to create</legend>
+<label class="check"><input type="radio" name="kind" value="project"{{if eq .Kind "project"}} checked{{end}}><span><strong>Project</strong><span class="hint">Shared packages for several teams. Its owners create the teams in it.</span></span></label>
+<label class="check"><input type="radio" name="kind" value="team"{{if eq .Kind "team"}} checked{{end}}><span><strong>Team</strong><span class="hint">One team's packages. It also reads everything its project publishes.</span></span></label>
+</fieldset>{{else}}<input type="hidden" name="kind" value="team">{{end}}
+<div class="fieldrow">
+<label for="new-name">Name</label>
+<input id="new-name" name="name" class="field" required maxlength="64" pattern="[a-z0-9]+(-[a-z0-9]+)*" autocomplete="off" spellcheck="false" placeholder="payments" value="{{.Name}}"{{if eq $.Field "new-name"}} aria-invalid="true" aria-describedby="form-error new-name-hint" autofocus{{else}} aria-describedby="new-name-hint"{{end}}>
+<p class="hint" id="new-name-hint">Lowercase letters, digits and dashes. It starts every package id, like <code>payments/planner</code>, and cannot be changed later.</p>
+</div>
+<div class="fieldrow parent-row">
+<label for="new-parent">Project</label>
+<select id="new-parent" name="parent" class="sel" aria-describedby="new-parent-hint">{{if .CanProject}}<option value="">Choose a project</option>{{end}}{{$p := .Parent}}{{range .Parents}}<option value="{{.}}"{{if eq . $p}} selected{{end}}>{{.}}</option>{{end}}</select>
+<p class="hint" id="new-parent-hint">Every team belongs to a project.</p>
+</div>
+<div class="buttons"><button type="submit" class="btn btn-primary btn-lg">Create</button></div>
+<p class="hint">Next you add the people. You can publish to it right away with <code>loadout login</code>.</p>
+</form>
+{{end}}{{end}}

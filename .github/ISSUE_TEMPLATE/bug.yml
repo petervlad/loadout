@@ -1,0 +1,41 @@
+name: Bug report
+description: Something does not work as the docs say
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove tokens, invites, emails and passwords from anything you paste.
+        A security problem is not a bug: use the Security tab instead (see SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `loadout version`, and the registry's version if it matters.
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: Operating system, architecture, and the AI tool (Claude Code or Copilot).
+  - type: textarea
+    id: steps
+    attributes:
+      label: What you ran
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: The output, or `loadout -v` output with secrets removed.
+    validations:
+      required: true

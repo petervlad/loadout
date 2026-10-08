@@ -1,0 +1,29 @@
+{{define "head-extra"}}<nav class="tabs" aria-label="Which proposals">
+<a href="/t/{{.NS}}/reviews"{{if not .Page.All}} aria-current="page"{{end}}>Open</a>
+<a href="/t/{{.NS}}/reviews?status=all"{{if .Page.All}} aria-current="page"{{end}}>All</a>
+</nav>{{end}}
+{{define "content"}}{{with .Page}}
+<p class="lead-sm">Review before release is <strong>{{if .Review}}on{{else}}off{{end}}</strong> for {{$.NS}}: {{if .Review}}every version goes through a proposal and a teammate's approval.{{else}}maintainers may also publish directly.{{end}}{{if .CanReview}} <a href="/t/{{$.NS}}/settings#review-h">Change in Settings</a>{{end}}</p>
+{{if .Rows}}
+<div class="panel">
+<table class="list fit">
+<thead><tr><th scope="col">Proposal</th><th scope="col">Version</th><th scope="col">Proposed by</th><th scope="col">Reports</th><th scope="col">Status</th></tr></thead>
+<tbody>{{range .Rows}}
+<tr>
+<td class="stack"><a class="name" href="/t/{{$.NS}}/reviews/{{.ID}}">{{.Package}}</a>{{if .Note}}<span class="desc" title="{{.Note}}">{{.Note}}</span>{{end}}</td>
+<td class="num">{{if .From}}{{.From}} → {{end}}{{.To}}{{if .Behind}}<span class="pill pill-warn behind-pill">Behind {{.Behind}}</span>{{end}}</td>
+<td class="stack clip"><span title="{{.Author}}">{{.Author}}</span><span class="desc"><time datetime="{{stamp .Created}}" title="{{exact .Created}}">{{ago .Created}}</time></span></td>
+<td class="muted">{{if .Reports}}{{plural .Reports "report"}}{{else}}None yet{{end}}</td>
+<td><span class="pill pill-{{.Status.Tone}}">{{.Status.Label}}</span></td>
+</tr>{{end}}
+</tbody>
+</table>
+</div>
+{{else}}
+<div class="panel empty">
+<h2>{{if .All}}No proposals yet{{else}}Nothing waiting for review{{end}}</h2>
+<p>A proposal is a new version of a package that a teammate approves before everyone gets it. Propose one from a package folder with <code>loadout propose</code>.</p>
+{{if not .All}}<a href="/t/{{$.NS}}/reviews?status=all">Show closed proposals</a>{{end}}
+</div>
+{{end}}
+{{end}}{{end}}

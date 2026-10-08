@@ -1,0 +1,215 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/t/{{$.NS}}">{{template "icon-back"}}{{$.NS}}</a><span>/ <a href="/t/{{$.NS}}/reviews">Reviews</a></span></div>
+<div class="prop-head">
+<div class="grow">
+<div class="prop-title">
+<h1>{{.Package}}</h1>
+<span class="arrow">{{if .From}}{{.From}} → {{end}}{{.To}}</span>
+<span class="pill pill-{{.Status.Tone}}">{{.Status.Label}}</span>
+{{with .Behind}}<span class="pill pill-warn">Behind {{.Latest}}</span>{{end}}
+</div>
+<p class="byline">Proposed by <strong>{{.Author}}</strong> <time datetime="{{stamp .Created}}" title="{{exact .Created}}">{{ago .Created}}</time>{{if .Note}} · <span class="note">“{{.Note}}”</span>{{end}}{{with .Replaces}} · Replaces <a class="mono" href="{{.Path}}">{{.ID}}</a>{{if .Reports}}; its reports compare the older content{{end}}{{end}}</p>
+{{with .ReplacedBy}}<p class="replaced-note" role="note">Replaced by <a class="mono" href="{{.Path}}">{{.ID}}</a>{{if .Onto}} after a rebase onto {{.Onto}}{{end}}. Reviews and approval happen there.</p>{{end}}
+{{with .Behind}}{{template "behind" .}}{{end}}
+</div>
+{{if .Open}}<div class="act-col"><div class="actions">
+{{if .Decision.CanReject}}
+<details class="menu">
+<summary class="btn btn-lg btn-danger">Reject…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/reviews/{{.ID}}/reject">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<label for="reject-note">Why? The author sees this.</label>
+<textarea id="reject-note" name="note" class="field" maxlength="4096"></textarea>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/reviews/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Reject proposal</button></div>
+</form>
+</details>
+{{end}}
+{{if and .Decision.CanApprove .Decision.Over}}
+<details class="menu">
+<summary class="btn btn-lg btn-primary" aria-describedby="why">Approve over {{.Decision.Over}}…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/reviews/{{.ID}}/approve">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="over" value="{{.Decision.Over}}">
+{{template "over-warn" .Behind}}
+<label for="over-note">Note (optional)</label>
+<textarea id="over-note" name="note" class="field" maxlength="4096" aria-describedby="over-note-hint"></textarea>
+<p id="over-note-hint">Teammates see it in the activity, with the release you approved over.</p>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/reviews/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Approve over {{.Decision.Over}}</button></div>
+</form>
+</details>
+{{else if .Decision.CanApprove}}
+<form method="post" action="/t/{{$.NS}}/reviews/{{.ID}}/approve">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<button type="submit" class="btn btn-lg btn-primary">Approve and release</button>
+</form>
+{{else if .Decision.CanWithdraw}}
+<details class="menu">
+<summary class="btn btn-lg">Withdraw…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/reviews/{{.ID}}/withdraw">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<label for="withdraw-note">Note (optional)</label>
+<textarea id="withdraw-note" name="note" class="field" maxlength="4096"></textarea>
+<p>Withdrawing closes the proposal. You can propose again later.</p>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/reviews/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Withdraw proposal</button></div>
+</form>
+</details>
+{{if .Decision.AsOwner}}
+<details class="menu">
+<summary class="btn btn-lg btn-primary" aria-describedby="why">Approve as owner…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/reviews/{{.ID}}/approve">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="as_owner" value="on">
+{{with .Decision.Over}}<input type="hidden" name="over" value="{{.}}">{{end}}
+<p class="warn">This releases {{.To}} to everyone without a second person's review. The activity will say so.{{if .Decision.Uncompared}} No comparison is attached.{{end}}</p>
+{{if .Decision.Over}}{{template "over-warn" .Behind}}{{end}}
+<label for="owner-note">Why? Teammates see this.</label>
+<textarea id="owner-note" name="note" class="field" maxlength="4096" required></textarea>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/reviews/{{.ID}}">Cancel</a><button type="submit" class="btn btn-primary">Approve without review{{with .Decision.Over}} over {{.}}{{end}}</button></div>
+</form>
+</details>
+{{else}}
+<button type="button" class="btn btn-lg btn-primary" disabled aria-describedby="why">Approve and release</button>
+{{end}}
+{{else if .Decision.CanReject}}
+<button type="button" class="btn btn-lg btn-primary" disabled aria-describedby="why">Approve and release</button>
+{{else}}
+<button type="button" class="btn btn-lg" disabled aria-describedby="why">Reject…</button>
+<button type="button" class="btn btn-lg btn-primary" disabled aria-describedby="why">Approve and release</button>
+{{end}}
+</div>
+{{if .Decision.Why}}<p class="act-why" id="why">{{.Decision.Why}}</p>{{end}}
+</div>{{end}}
+</div>
+
+<div class="prop-body">
+<div class="prop-main">
+<section class="panel compare" aria-label="Side by side answers">
+{{with .Report}}
+<form class="compare-bar" method="get" action="/t/{{$.NS}}/reviews/{{$.Page.ID}}">
+<input type="hidden" name="report" value="{{.Seq}}">
+{{if .Full}}<input type="hidden" name="full" value="1">{{end}}
+<label for="prompt">Prompt</label>
+<select id="prompt" name="prompt" class="sel" data-autosubmit>
+{{$cur := .Prompt}}{{$n := len .Prompts}}{{range $i, $p := .Prompts}}<option value="{{add $i 1}}"{{if eq (add $i 1) $cur}} selected{{end}}>{{add $i 1}} of {{$n}} · {{$p}}</option>{{end}}
+</select>
+{{if gt .Runs 1}}<label for="run" class="vh">Run</label>
+<select id="run" name="run" class="sel" data-autosubmit>
+{{$run := .Run}}{{$runs := .Runs}}{{range $i := seq .Runs}}<option value="{{$i}}"{{if eq $i $run}} selected{{end}}>Run {{$i}} of {{$runs}}</option>{{end}}
+</select>{{end}}
+<button type="submit" class="btn js-hide">Show</button>
+<span class="grow"></span>
+<span class="meta">Run by {{.By}} in {{.Tool}} · {{.Model}} · {{plural .Runs "run"}} each{{if .Mode}} · {{.Mode}}{{end}}</span>
+</form>
+{{if .Notes}}<div class="report-notes" role="note">{{range .Notes}}<p>{{.}}</p>{{end}}</div>{{end}}
+{{if .Context}}<details class="report-context">
+<summary>{{template "icon-chevron"}}Beside each side: {{plural (len .Context) "team package"}}</summary>
+<ul>{{range .Context}}<li><span class="mono">{{.ID}}</span> {{.Version}} <span class="pill pill-kind">{{.Kind}}</span></li>{{end}}</ul>
+</details>{{else if .Mode}}<p class="report-context">No team packages beside it.</p>{{end}}
+{{if .Long}}<p class="prompt-text">{{.Text}}</p>{{end}}
+<div class="sides{{if not .Current}} one{{end}}" id="answers" tabindex="-1">
+{{with .Current}}<div class="side-col">
+<div class="col-head"><h2>{{$.Page.Report.CurLabel}} · {{$.Page.Report.CurVer}}</h2><span class="grow"></span><span class="stats">{{.Stats}}</span></div>
+{{if .Err}}<div class="answer failed">This run failed: {{.Err}}</div>{{else}}<div class="answer md">{{.HTML}}</div>{{if .Left}}<p class="answer-more">{{plural .Left "more word"}}</p>{{end}}{{end}}
+</div>{{end}}
+<div class="side-col">
+<div class="col-head cand"><h2>{{.CandLabel}} · {{.CandVer}}</h2><span class="grow"></span><span class="stats">{{.Candidate.Stats}}</span></div>
+{{if .Candidate.Err}}<div class="answer failed">This run failed: {{.Candidate.Err}}</div>{{else}}<div class="answer md">{{.Candidate.HTML}}</div>{{if .Candidate.Left}}<p class="answer-more">{{plural .Candidate.Left "more word"}}</p>{{end}}{{end}}
+</div>
+</div>
+{{if .AnyCut}}<div class="answer-bar">
+{{if .Full}}<a class="btn" href="{{.Query false}}#answers">Show the first {{.Preview}} words</a>
+{{else}}<p>Long answers show their first {{.Preview}} words.</p>
+<a class="btn" href="{{.Query true}}#answers">Show whole answers</a>{{end}}
+</div>{{end}}
+{{else}}{{if .Markdown}}
+<div class="compare-bar"><h2 class="mono">Comparison report</h2><span class="grow"></span><span class="meta">Attached as text only, so it is shown as sent.</span></div>
+<pre class="markdown">{{.Markdown}}</pre>
+{{else}}
+<div class="empty">
+<h2>No comparison yet</h2>
+<p>Run both versions in your own AI tool and attach the result; the answers to the prompts below then show here side by side.</p>
+</div>
+{{end}}{{end}}
+</section>
+{{template "prompts" $}}
+</div>
+
+<aside class="aside">
+<section class="panel" aria-labelledby="changes-h">
+<div class="panel-head"><h2 id="changes-h">What changed</h2><span class="grow"></span><a href="/t/{{$.NS}}/reviews/{{.ID}}/diff">Full diff</a></div>
+{{if .Diff}}<div class="diff">{{range .Diff}}{{template "diff-file" .}}{{end}}{{if .DiffMore}}<div class="hunk">…</div>{{end}}</div>
+{{else}}<p class="panel-pad">The {{.What}} itself is unchanged{{if .From}} from {{.From}}{{end}}; see the full diff for the rest.</p>{{end}}
+</section>
+{{if .Open}}<section class="panel panel-pad" aria-labelledby="try-h">
+<h2 id="try-h">Try it yourself</h2>
+<p>Compares the version you have installed with this proposal in your own AI tool, on your subscription, and attaches the report here. The tool runs with its full access; add <code>--safe</code> to limit it.</p>
+<div class="copyrow"><code class="cmd" id="review-cmd">{{.Review}}</code>{{template "copy" "review-cmd"}}</div>
+</section>{{end}}
+<section class="panel panel-pad" aria-labelledby="activity-h">
+<h2 id="activity-h">Activity</h2>
+<ul class="events">{{range .Activity}}
+<li><span class="dot dot-{{.Tone}}"></span><span><strong>{{.Who}}</strong> {{if .Href}}<a href="{{.Href}}">{{.What}}</a>{{else}}{{.What}}{{end}}{{if .Where}} {{.Where}}{{end}}{{if .Quote}} <span class="quote">{{.Quote}}</span>{{end}} · <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time></span></li>{{end}}
+</ul>
+</section>
+</aside>
+</div>
+{{end}}{{end}}
+{{define "prompts"}}{{$ns := .NS}}{{$csrf := .CSRF}}{{$id := .Page.ID}}{{with .Page.Prompts}}
+<section class="panel prompts-panel" id="prompts" aria-labelledby="prompts-h" tabindex="-1">
+<div class="panel-head"><h2 id="prompts-h">Prompts</h2><span class="grow"></span><span class="meta">{{if .Open}}{{len .List}} of {{.Max}}{{else}}{{plural (len .List) "prompt"}}{{end}}</span></div>
+{{if .Notice}}<p class="notice prompt-notice" role="status">{{.Notice}}</p>{{end}}
+<p class="prompts-intro">{{if .Open}}Every comparison asks each version these prompts. Add what you want to see answered; only the person who added a prompt can change it.{{else}}The prompts as they were when the proposal closed. They no longer change.{{end}}</p>
+<ol class="prompt-list">{{$last := .Last}}{{range .List}}
+<li id="prompt-{{.Seq}}">
+<p class="prompt-body">{{.Text}}</p>
+<div class="prompt-meta">
+<span>Added by <strong>{{.By}}</strong> <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>{{if .Edited}} · edited{{end}}</span>
+{{if .NotRun}}<span class="pill">Not in this report</span>{{end}}
+{{if .Mine}}<span class="grow"></span>
+<details class="prompt-edit">
+<summary class="btn">Edit</summary>
+<form method="post" action="/t/{{$ns}}/reviews/{{$id}}/prompts/{{.Seq}}">
+<input type="hidden" name="csrf" value="{{$csrf}}">
+<label for="edit-{{.Seq}}" class="vh">Your prompt</label>
+<textarea id="edit-{{.Seq}}" name="text" class="field" maxlength="4096" rows="4" required>{{.Text}}</textarea>
+<div class="row"><a class="btn" href="/t/{{$ns}}/reviews/{{$id}}#prompt-{{.Seq}}">Cancel</a><button type="submit" class="btn btn-primary">Save</button></div>
+</form>
+</details>
+{{if $last}}<button type="button" class="btn" disabled aria-describedby="last-{{.Seq}}">Remove…</button>
+{{else}}<details class="menu">
+<summary class="btn btn-danger">Remove…</summary>
+<form class="pop" method="post" action="/t/{{$ns}}/reviews/{{$id}}/prompts/{{.Seq}}/remove">
+<input type="hidden" name="csrf" value="{{$csrf}}">
+<p>Later comparisons will not ask this prompt. The activity keeps a line saying you removed it.</p>
+<div class="row"><a class="btn" href="/t/{{$ns}}/reviews/{{$id}}#prompt-{{.Seq}}">Cancel</a><button type="submit" class="btn btn-danger">Remove prompt</button></div>
+</form>
+</details>{{end}}{{end}}
+</div>
+{{if and .Mine $last}}<p class="prompt-hint" id="last-{{.Seq}}">A proposal keeps at least one prompt, so you can edit this one but not remove it.</p>{{end}}
+</li>{{end}}
+</ol>
+{{if .CanAdd}}<form class="prompt-add" method="post" action="/t/{{$ns}}/reviews/{{$id}}/prompts">
+<input type="hidden" name="csrf" value="{{$csrf}}">
+<label for="new-prompt">Add a prompt</label>
+<textarea id="new-prompt" name="text" class="field" maxlength="4096" rows="3" required aria-describedby="new-prompt-hint"></textarea>
+<div class="row"><p id="new-prompt-hint">Plain text, up to 4 KB. Your teammates see who added it.</p><button type="submit" class="btn btn-primary">Add prompt</button></div>
+</form>
+{{else if .Full}}<p class="prompt-hint pad-x">This proposal has {{.Max}} prompts, the most it can have. Remove one of yours to add another.</p>{{end}}
+</section>
+{{end}}{{end}}
+{{define "behind"}}<section class="behind-note" role="note" aria-labelledby="behind-h">
+<h2 id="behind-h">{{if .Blocked}}{{.Latest}} was released after this proposal{{else if .One}}A newer release came out after this proposal{{else}}{{.Count}} newer releases came out after this proposal{{end}}</h2>
+<p>{{range .Releases}}{{.Sep}}<strong>{{.Version}}</strong>{{if .By}} by {{.By}}{{end}}, <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>{{end}}{{if .MoreReleases}}; and {{.MoreReleases}} more{{end}}.</p>
+{{if .Blocked}}<p>A proposal cannot be approved as a version that is already released. {{if .Author}}Bring it up to date with <code>loadout rebase --proposal {{.ID}}</code>, which raises its version, then propose it again.{{else}}The author can bring it up to date and propose it again.{{end}}</p>
+{{else if not .Changed}}<p>{{if .Base}}It was made from {{.Base}}{{else}}It was made before the first release{{end}}. {{if .One}}{{.Latest}}{{else}}The releases since{{end}} changed only the version, so approving loses nothing.</p>
+{{else}}<p>{{if .Base}}It was made from {{.Base}}{{else}}It was made before the first release{{end}}, so approving releases {{.To}} without {{if .One}}{{.Latest}}’s changes{{else}}their changes{{end}} to {{plural .Changed "file"}}: {{range .Files}}{{.Sep}}<span class="mono">{{.Name}}</span>{{end}}{{if .MoreFiles}} and {{.MoreFiles}} more{{end}}.
+{{if eq .Changed 1}}{{if .Overlap}}This proposal changes it too.{{else}}This proposal does not change it.{{end}}{{else if .Overlap}}{{.Overlap}} of them {{if eq .Overlap 1}}is{{else}}are{{end}} also changed here.{{else}}This proposal changes none of them.{{end}}</p>
+{{if .Author}}<div class="behind-cmd">
+<p id="rebase-h"><strong>Bring it up to date on your machine</strong>, in your package folder:</p>
+<div class="copyrow"><code class="cmd" id="rebase-cmd">loadout rebase --proposal {{.ID}}</code>{{template "copy" "rebase-cmd"}}</div>
+<p>Resolve any conflicts it marks, then run <code>loadout propose</code>: it replaces this proposal and keeps its prompts.</p>
+</div>{{else}}<p>The author can bring it up to date.</p>{{end}}{{end}}
+<p class="behind-links"><a href="{{.Diff}}?view=since">{{if .One}}What {{.Latest}} changed{{else}}What changed since {{or .Base "the first release"}}{{end}}</a>{{if not .Blocked}}<a href="{{.Diff}}?view=effect">What approving does</a>{{end}}</p>
+</section>{{end}}
+{{define "over-warn"}}<p class="warn">{{.Latest}} came out after this proposal was made{{if .Base}} from {{.Base}}{{end}}. Approving releases {{.To}} without {{if .One}}{{.Latest}}’s changes{{else}}the changes of {{.Count}} newer releases{{end}}{{if .Changed}} to {{plural .Changed "file"}}{{end}}, and everyone gets it on their next sync.</p>
+<p class="pop-link"><a href="{{.Diff}}?view=effect">What approving does</a></p>{{end}}

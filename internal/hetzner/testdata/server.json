@@ -1,0 +1,53 @@
+{
+  "server": {
+    "id": 167857226,
+    "name": "loadout-registry",
+    "status": "running",
+    "created": "2026-08-02T09:14:31Z",
+    "public_net": {
+      "ipv4": {"id": 104851234, "ip": "203.0.113.7", "blocked": false, "dns_ptr": "static.87.232.224.46.clients.your-server.de"},
+      "ipv6": {"id": 104851235, "ip": "2a01:4f8:1c1a:4b2f::/64", "blocked": false, "dns_ptr": []},
+      "floating_ips": [],
+      "firewalls": []
+    },
+    "private_net": [],
+    "server_type": {
+      "id": 116,
+      "name": "cx23",
+      "description": "CX23",
+      "cores": 2,
+      "memory": 4.0,
+      "disk": 40,
+      "deprecated": false,
+      "prices": [],
+      "storage_type": "local",
+      "cpu_type": "shared",
+      "architecture": "x86",
+      "category": "cost_optimized"
+    },
+    "location": {
+      "id": 2,
+      "name": "nbg1",
+      "description": "Nuremberg DC Park 1",
+      "country": "DE",
+      "city": "Nuremberg",
+      "latitude": 49.452102,
+      "longitude": 11.076665,
+      "network_zone": "eu-central"
+    },
+    "image": {"id": 161547269, "type": "system", "status": "available", "name": "ubuntu-24.04", "description": "Ubuntu 24.04", "os_flavor": "ubuntu", "os_version": "24.04", "architecture": "x86"},
+    "iso": null,
+    "rescue_enabled": false,
+    "locked": false,
+    "backup_window": null,
+    "outgoing_traffic": 1843289600,
+    "ingoing_traffic": 9234432000,
+    "included_traffic": 21990232555520,
+    "protection": {"delete": false, "rebuild": false},
+    "labels": {},
+    "volumes": [],
+    "load_balancers": [],
+    "primary_disk_size": 40,
+    "placement_group": null
+  }
+}

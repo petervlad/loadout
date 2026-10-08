@@ -1,0 +1,35 @@
+[Unit]
+Description=Back up the loadout registry
+Documentation=https://github.com/petervlad/loadout
+# Runs next to the live server: sqlite3 .backup gives a consistent copy of a WAL database.
+
+[Service]
+Type=oneshot
+User=loadout
+Group=loadout
+Environment=LOADOUT_DATA=/var/lib/loadout
+Environment=LOADOUT_BACKUP_DIR=/var/backups/loadout
+Environment=LOADOUT_BACKUP_KEEP_DAYS=14
+ExecStart=/usr/local/lib/loadout/loadout-backup.sh
+Nice=10
+IOSchedulingClass=idle
+UMask=0077
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+# Read-write: a SQLite reader of a WAL database writes to its -shm file.
+ReadWritePaths=/var/lib/loadout /var/backups/loadout
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service

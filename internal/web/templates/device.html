@@ -1,0 +1,35 @@
+{{define "wide"}} wide{{end}}
+{{define "icon"}}<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="14" rx="2.5"/><path d="M6.5 9l3 2.5-3 2.5M12 14h5.5M8 21h8"/></svg>{{end}}
+{{define "heading"}}{{if and .UserCode .Choices}}Sign in the loadout CLI?{{else}}Sign in on your terminal{{end}}{{end}}
+{{define "lead"}}<p class="lead">{{if and .UserCode .Choices}}Check that this code matches the one in your terminal.{{else}}Enter the code that loadout login shows in your terminal.{{end}}</p>{{end}}
+{{define "content"}}
+{{if and .UserCode .Choices}}
+<form class="card" method="post" action="/auth/device">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="code" value="{{.UserCode}}">
+<div class="usercode">{{.UserCode}}</div>
+<dl class="facts tight">
+<dt>Account</dt><dd>{{.User.Email}}</dd>
+{{if eq .Namespace "*"}}<dt>Teams</dt><dd><input type="hidden" name="namespace" value="*">Every team you belong to, with your role in each:
+<ul class="plain">{{range .Choices}}<li>{{.Namespace}} ({{.Role}})</li>{{end}}</ul></dd>
+{{else if .Namespace}}<dt>Team</dt><dd><input type="hidden" name="namespace" value="{{.Namespace}}">{{.Namespace}}</dd>
+{{range .Choices}}<dt>Access</dt><dd>{{if eq (print .Role) "member"}}Install and propose, as member{{else}}Install, publish and approve, as {{.Role}}{{end}}</dd>{{end}}
+{{else}}<dt><label for="namespace">Team</label></dt><dd><select id="namespace" name="namespace" class="sel" required>
+{{range .Choices}}<option value="{{.Namespace}}">{{.Namespace}} ({{.Role}})</option>{{end}}
+</select></dd>{{end}}
+</dl>
+<div class="buttons">
+<button type="submit" name="action" value="deny" class="btn btn-block">Cancel</button>
+<button type="submit" name="action" value="approve" class="btn btn-primary btn-block">Approve</button>
+</div>
+</form>
+<p class="small">Didn't run loadout login just now? Cancel. Nobody gets in without this approval.</p>
+{{else if not .UserCode}}
+<form class="card" method="get" action="/auth/device">
+<div class="pair"><label for="code">Code shown in your terminal</label>
+<input id="code" name="code" class="field-lg" autocomplete="off" autocapitalize="characters" placeholder="ABCD-EFGH" maxlength="9" required autofocus></div>
+<button type="submit" class="btn btn-primary btn-block">Continue</button>
+<p class="small">Signed in as {{.User.Email}}.</p>
+</form>
+{{end}}
+{{end}}

@@ -1,0 +1,9 @@
+{{define "lead"}}<p class="lead">Confirm to finish signing in on this browser.</p>{{end}}
+{{define "content"}}
+<form class="card" method="post" action="/auth/verify">
+<input type="hidden" name="csrf" value="{{.CSRF}}">
+<input type="hidden" name="next" value="{{.Next}}">
+<input type="hidden" name="token" value="{{.Token}}">
+<button type="submit" class="btn btn-primary btn-block">Continue</button>
+</form>
+{{end}}

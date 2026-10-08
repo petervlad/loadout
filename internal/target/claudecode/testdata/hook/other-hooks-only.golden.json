@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [],
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "loadout notices --hook claude 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+# Optional static site on the registry host, installed by deploy.sh into
+# /etc/caddy/loadout.d/ only when asked for (see deploy/README.md).
+(site_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		-Server
+	}
+}
+
+# Static pages on their own domain: deploy.sh installs this file into
+# /etc/caddy/loadout.d/ and the pages into /var/www/loadout-site when
+# LOADOUT_SITE_DIR and LOADOUT_SITE_DOMAIN are set. The domain reaches Caddy
+# through the same systemd drop-in as LOADOUT_DOMAIN.
+{$LOADOUT_SITE_DOMAIN} {
+	encode zstd gzip
+
+	import site_headers
+
+	root * /var/www/loadout-site
+	file_server {
+		hide .*
+	}
+
+	handle_errors {
+		import site_headers
+		respond "{err.status_code} {err.status_text}"
+	}
+
+	log {
+		output file /var/log/caddy/loadout-site-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+}
