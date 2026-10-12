@@ -188,3 +188,76 @@ func TestInheritedMembers(t *testing.T) {
 		})
 	}
 }
+
+// TestMemberTeams checks the teams line: other teams of the same project
+// only, never the page's own team, and only those the viewer may open.
+func TestMemberTeams(t *testing.T) {
+	f := newFixture(t)
+	actors := f.team(t)
+	ctx, op := t.Context(), account.Operator()
+	// api and ops sit beside web in acme; far sits under another project.
+	for _, ns := range []struct {
+		name, parent string
+		kind         registry.NamespaceKind
+	}{{"api", "acme", registry.KindTeam}, {"ops", "acme", registry.KindTeam}, {"far", "lime", registry.KindTeam}} {
+		if _, err := f.reg.CreateNamespace(ctx, ns.name, ns.parent, ns.kind); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, m := range []struct{ email, ns string }{
+		{"member@example.com", "api"},
+		{"member@example.com", "ops"},
+		{"member@example.com", "far"},
+		{"maintainer@example.com", "api"},
+	} {
+		if _, _, err := f.svc.AddMember(ctx, op, m.ns, m.email, account.RoleMember); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	teams := func(t *testing.T, actor account.Actor, email string) []string {
+		t.Helper()
+		got, err := f.svc.MemberDetails(ctx, actor, "web")
+		if err != nil {
+			t.Fatalf("MemberDetails() error: %v", err)
+		}
+		for _, d := range got {
+			if d.Membership.Email == email {
+				return d.Teams
+			}
+		}
+		t.Fatalf("MemberDetails() has no %s", email)
+		return nil
+	}
+	tests := []struct {
+		name  string
+		actor account.Actor
+		email string
+		want  []string
+	}{
+		{"same project only, own team excluded", actors["member"], "member@example.com", []string{"api", "ops"}},
+		{"a team the viewer may not open is left out", actors["maintainer"], "member@example.com", []string{"api"}},
+		{"nobody else is in two teams", actors["member"], "other@example.com", nil},
+		{"an admin sees every team of the project", actors["admin"], "member@example.com", []string{"api", "ops"}},
+		{"a viewer in no sibling team sees none", actors["other"], "member@example.com", nil},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if diff := cmp.Diff(tc.want, teams(t, tc.actor, tc.email)); diff != "" {
+				t.Errorf("Teams mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+
+	// The project owners listed through the project get the line too.
+	if _, _, err := f.svc.AddMember(ctx, op, "api", "owner@example.com", account.RoleMember); err != nil {
+		t.Fatal(err)
+	}
+	got, err := f.svc.InheritedMembers(ctx, actors["admin"], "web")
+	if err != nil || len(got) != 1 {
+		t.Fatalf("InheritedMembers() = %v, %v; want the owner", got, err)
+	}
+	if diff := cmp.Diff([]string{"api"}, got[0].Teams); diff != "" {
+		t.Errorf("owner Teams mismatch (-want +got):\n%s", diff)
+	}
+}

@@ -89,4 +89,4 @@ What the values look like per tool, and Copilot's caveats: [references/models.md
 
 ## The website
 
-The registry's website does the same for people who prefer it: **Settings** (members: add, change, remove; machine tokens; and for owners the review and wiki switches and the wiki's course), **Invite someone** in a project's Settings, **Choose models** for the model settings, and **New** to create a team (owners) or project (admins). Creating projects, making owners and deleting namespaces are admin actions on the website or the registry host, not from a login token.
+The registry's website does the same for people who prefer it: **Settings** (members: add, change, remove, listed owners first, then maintainers, then members, with a search box for name, email or team and a "Teams:" line under each person; machine tokens; and for owners the review and wiki switches and the wiki's course), **Invite someone** in a project's Settings, **Choose models** for the model settings, and **New** to create a team (owners) or project (admins). Creating projects, making owners and deleting namespaces are admin actions on the website or the registry host, not from a login token.

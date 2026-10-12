@@ -51,8 +51,14 @@
 </form>
 </details>{{end}}
 
-<section class="panel members" aria-labelledby="members-h">
-<div class="panel-head"><h2 id="members-h">Members</h2></div>
+{{$q := .Query}}<section class="panel members" aria-labelledby="members-h">
+<div class="panel-head"><h2 id="members-h">Members</h2>
+{{if and .CanList (or .Members .Inherited)}}<span class="grow"></span>
+<form class="search" role="search" method="get" action="/t/{{$.NS}}/settings">
+{{template "icon-search"}}
+<label class="vh" for="member-q">Search people</label>
+<input id="member-q" name="q" type="search" placeholder="Search people or teams" value="{{.Query}}" autocomplete="off" data-filter>
+</form>{{end}}</div>
 {{if and .Roles (not .Invite) (not .Invited)}}<form method="post" action="/t/{{$.NS}}/members">
 <input type="hidden" name="csrf" value="{{$.CSRF}}">
 <div class="addform">
@@ -71,19 +77,21 @@
 <p>{{if .Inherited}}Owners of the project above already manage it; they are listed below.{{end}}{{if .Roles}}{{if .Inherited}} {{end}}Add people here to give them a role in {{.Namespace}}.{{end}}</p>
 </div>
 {{else}}
-<table class="list">
+<table class="list" data-filterable>
 <colgroup><col><col class="w130"><col class="w190"><col class="w120"><col class="w60"></colgroup>
 <thead><tr><th scope="col">Member</th><th scope="col">Signs in with</th><th scope="col">Role</th><th scope="col">Joined</th><th scope="col"><span class="vh">Remove</span></th></tr></thead>
 <tbody>{{range $i, $m := .Members}}
-<tr>
+<tr data-find="{{.Find}}"{{if .Hidden}} hidden{{end}}>
 <td class="wide"><div class="who"><span class="av av{{hue .Email}}" aria-hidden="true">{{initials (or .Name .Email)}}</span><span>
 <span class="name">{{or .Name .Email}}{{if .You}} <span class="muted">(you)</span>{{end}}</span>
 {{if .Pending}}<span class="pending">Added, has not signed in yet</span>{{else if .Name}}<span class="email">{{.Email}}</span>{{end}}
+{{with .Teams}}<span class="teams">Teams: {{join . ", "}}</span>{{end}}
 </span></div></td>
 <td class="{{if .Pending}}muted{{else}}secondary{{end}}">{{.SignIn}}</td>
 <td>{{if .Roles}}<form class="inline" method="post" action="/t/{{$.NS}}/members/role" data-dirty>
 <input type="hidden" name="csrf" value="{{$.CSRF}}">
 <input type="hidden" name="email" value="{{.Email}}">
+<input type="hidden" name="q" value="{{$q}}" data-keep-q>
 <label for="role-{{$i}}" class="vh">Role of {{.Email}}</label>
 <select id="role-{{$i}}" name="role" class="sel">{{$r := .Role}}{{range .Roles}}<option value="{{.}}"{{if eq . $r}} selected{{end}}>{{role .}}</option>{{end}}</select>
 <button type="submit" class="btn" data-save>Save</button>
@@ -94,13 +102,15 @@
 <form class="pop" method="post" action="/t/{{$.NS}}/members/remove">
 <input type="hidden" name="csrf" value="{{$.CSRF}}">
 <input type="hidden" name="email" value="{{.Email}}">
+<input type="hidden" name="q" value="{{$q}}" data-keep-q>
 <p class="secondary">Remove {{.Email}} from {{$.NS}}? The tokens loadout login gave them stop working. You can add them again later.</p>
-<div class="row"><a class="btn" href="/t/{{$.NS}}/settings">Cancel</a><button type="submit" class="btn btn-danger">Remove</button></div>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/settings{{if $q}}?q={{$q}}{{end}}" data-keep-q>Cancel</a><button type="submit" class="btn btn-danger">Remove</button></div>
 </form>
 </details>{{end}}</td>
 </tr>{{end}}
 </tbody>
 </table>
+<p class="hint filter-none"{{if anyShown .Members}} hidden{{end}}>No member matches.</p>
 {{end}}
 {{else}}
 <div class="empty">
@@ -117,19 +127,21 @@
 <span class="grow"></span>
 {{range .Projects}}{{if .CanOpen}}<a class="btn" href="/t/{{.Name}}/settings">{{if .Manage}}Manage in {{.Name}}{{else}}View in {{.Name}}{{end}}</a>{{end}}{{end}}
 </div>
-<table class="list">
+<table class="list" data-filterable>
 <colgroup><col><col class="w130"><col class="w190"><col class="w120"><col class="w60"></colgroup>
 <tbody>{{range .Inherited}}
-<tr>
+<tr data-find="{{.Find}}"{{if .Hidden}} hidden{{end}}>
 <td class="wide"><div class="who"><span class="av av{{hue .Email}}" aria-hidden="true">{{initials (or .Name .Email)}}</span><span>
 <span class="name">{{or .Name .Email}}{{if .You}} <span class="muted">(you)</span>{{end}}</span>
 {{if .Pending}}<span class="pending">Added, has not signed in yet</span>{{else if .Name}}<span class="email">{{.Email}}</span>{{end}}
+{{with .Teams}}<span class="teams">Teams: {{join . ", "}}</span>{{end}}
 </span></div></td>
 <td class="{{if .Pending}}muted{{else}}secondary{{end}}">{{.SignIn}}</td>
 <td colspan="3">{{role .Role}}, from {{.From}}</td>
 </tr>{{end}}
 </tbody>
 </table>
+<p class="hint filter-none"{{if anyShown .Inherited}} hidden{{end}}>No owner matches.</p>
 </section>
 {{end}}
 

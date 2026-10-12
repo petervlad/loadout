@@ -3,12 +3,17 @@ package web_test
 import (
 	"encoding/json"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/petervlad/loadout/internal/builtin"
 
@@ -1073,4 +1078,139 @@ func TestSignOutEverywhereAsksFirst(t *testing.T) {
 	wantIn(t, p, "account", `<summary class="btn btn-danger">Sign out everywhere…</summary>`,
 		`<input type="hidden" name="action" value="signout-everywhere">`, `<a class="btn" href="/account">Cancel</a>`,
 		`<button type="submit" class="btn">Sign out</button>`)
+}
+
+// memberRows reads the rows of a settings page's member lists: the text
+// each is found by and whether the search hid it.
+func memberRows(p page) (names []string, hidden map[string]bool) {
+	hidden = map[string]bool{}
+	for _, m := range regexp.MustCompile(`<tr data-find="([^"]*)"( hidden)?>`).FindAllStringSubmatch(p.body, -1) {
+		name := strings.Fields(m[1])[0]
+		names = append(names, name)
+		hidden[name] = m[2] != ""
+	}
+	return names, hidden
+}
+
+func memberSearchSite(t *testing.T) *uiSite {
+	t.Helper()
+	s := newUISite(t)
+	ctx, op := t.Context(), account.Operator()
+	for _, m := range []struct {
+		email, ns string
+		role      account.Role
+	}{
+		{"olga@example.com", "acme", account.RoleOwner},
+		{"adam@example.com", "acme", account.RoleOwner},
+		{"pat@example.com", "acme", account.RoleMaintainer},
+		{"zed@example.com", "acme", account.RoleMember},
+		{"carl@example.com", "lime", account.RoleMaintainer},
+		{"bob@example.com", "koala", account.RoleMember},
+		{"olga@example.com", "koala", account.RoleMember},
+	} {
+		if _, _, err := s.accounts.AddMember(ctx, op, m.ns, m.email, m.role); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Bea has a name, which sorts before her email; her name sorts by
+	// case-folded letters.
+	u, err := s.store.UserByEmail(ctx, "bob@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.store.LinkGoogle(ctx, u.ID, "g-bob", "Bob "+xss); err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+func TestMemberOrder(t *testing.T) {
+	s := memberSearchSite(t)
+	olga := s.as("olga@example.com")
+
+	// Owners, maintainers, members; each by name or email, ignoring case.
+	names, _ := memberRows(olga.get("/t/acme/settings"))
+	if diff := cmp.Diff([]string{"adam@example.com", "olga@example.com", "pat@example.com", "zed@example.com"}, names); diff != "" {
+		t.Errorf("project rows mismatch (-want +got):\n%s", diff)
+	}
+	// Maintainers, then members, then the project's owners in their own
+	// list. A row's find text starts with the person's name or email.
+	names, _ = memberRows(olga.get("/t/lime/settings"))
+	want := []string{"alice@example.com", "carl@example.com", "bob", "dan@example.com", "adam@example.com", "olga@example.com"}
+	if diff := cmp.Diff(want, names); diff != "" {
+		t.Errorf("team rows mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMemberSearch(t *testing.T) {
+	s := memberSearchSite(t)
+	olga := s.as("olga@example.com")
+
+	p := olga.get("/t/lime/settings")
+	wantIn(t, p, "teams line", "Teams: koala", `name="q"`, "Search people or teams")
+	wantOut(t, p, "teams line", "Teams: lime", "Teams: acme", xss)
+	if _, hidden := memberRows(p); slices.Contains(slices.Collect(maps.Values(hidden)), true) {
+		t.Errorf("no search: hidden rows %v, want none", hidden)
+	}
+	wantIn(t, p, "no search", `filter-none" hidden>No member matches.`, `filter-none" hidden>No owner matches.`)
+
+	// A team name finds the people in it, in both lists.
+	p = olga.get("/t/lime/settings?q=%20Koala%20")
+	wantIn(t, p, "search by team", `value="Koala"`, `name="q" value="Koala" data-keep-q`)
+	_, hidden := memberRows(p)
+	if hidden["bob"] || hidden["olga@example.com"] || !hidden["alice@example.com"] || !hidden["dan@example.com"] || !hidden["adam@example.com"] {
+		t.Errorf("q=koala hidden = %v, want only bob and olga shown", hidden)
+	}
+	wantIn(t, p, "search by team", `filter-none" hidden>No member matches.`, `filter-none" hidden>No owner matches.`)
+
+	// Names and emails are found too. Nothing matches: both lines show.
+	_, hidden = memberRows(olga.get("/t/lime/settings?q=CARL@"))
+	if hidden["carl@example.com"] || !hidden["bob"] {
+		t.Errorf("q=CARL@ hidden = %v, want only carl shown", hidden)
+	}
+	p = olga.get("/t/lime/settings?q=nobody")
+	wantIn(t, p, "no match", `<p class="hint filter-none">No member matches.</p>`, `<p class="hint filter-none">No owner matches.</p>`)
+
+	// What is typed is escaped, in the box and in the rows.
+	p = olga.get("/t/lime/settings?q=" + url.QueryEscape(xss))
+	wantIn(t, p, "escaped query", `value="&lt;script&gt;alert(1)&lt;/script&gt;"`)
+	wantOut(t, p, "escaped query", xss)
+	wantOut(t, olga.get("/t/lime/settings"), "escaped name", xss)
+	wantIn(t, olga.get("/t/lime/settings"), "escaped name", "bob &lt;script&gt;alert(1)&lt;/script&gt;")
+}
+
+func TestMemberSearchKeptAndDropped(t *testing.T) {
+	s := memberSearchSite(t)
+	olga := s.as("olga@example.com")
+
+	for _, tc := range []struct{ name, path string }{
+		{"role", "/t/lime/members/role"},
+		{"remove", "/t/lime/members/remove"},
+	} {
+		p := olga.post(tc.path, url.Values{"email": {"dan@example.com"}, "role": {"member"}, "q": {"  koala "}})
+		if p.status != http.StatusSeeOther {
+			t.Fatalf("%s = %d\n%s", tc.name, p.status, p.body)
+		}
+		u, err := url.Parse(p.location)
+		if err != nil || u.Query().Get("q") != "koala" || u.Query().Get("email") != "dan@example.com" {
+			t.Errorf("%s redirects to %q, want q=koala and the email kept", tc.name, p.location)
+		}
+		// The notice still shows with the search in the address.
+		wantIn(t, olga.get(p.location), tc.name+" notice", "dan@example.com")
+	}
+	p := olga.post("/t/lime/members/role", url.Values{"email": {"bob@example.com"}, "role": {"member"}})
+	if u, _ := url.Parse(p.location); u.Query().Has("q") {
+		t.Errorf("role change without a search redirects to %q, want no q", p.location)
+	}
+
+	// The remove popover's Cancel link keeps the search too.
+	wantIn(t, olga.get("/t/lime/settings?q=Koala"), "cancel", `href="/t/lime/settings?q=Koala" data-keep-q>Cancel`)
+
+	p = olga.post("/t/lime/members", url.Values{"email": {"new@example.com"}, "role": {"member"}, "q": {"koala"}})
+	if p.status != http.StatusSeeOther {
+		t.Fatalf("add = %d\n%s", p.status, p.body)
+	}
+	if u, _ := url.Parse(p.location); u.Query().Has("q") {
+		t.Errorf("add redirects to %q, want the search cleared", p.location)
+	}
 }

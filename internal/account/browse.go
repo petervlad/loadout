@@ -163,6 +163,9 @@ type MemberDetail struct {
 	Google   bool
 	Password bool
 	Verified bool
+	// Teams are the other teams of the same project the person belongs
+	// to, sorted, limited to those the viewer may open.
+	Teams []string
 }
 
 // MemberDetails lists a namespace's members like Members, with each
@@ -172,9 +175,16 @@ func (s *Service) MemberDetails(ctx context.Context, actor Actor, namespace stri
 	if err != nil {
 		return nil, err
 	}
+	tf, err := s.newTeamFinder(ctx, actor, namespace)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]MemberDetail, 0, len(ms))
 	for _, m := range ms {
 		d, err := s.memberDetail(ctx, m)
+		if err == nil {
+			d.Teams, err = tf.teams(ctx, m.UserID)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("members of %s: %w", namespace, err)
 		}
@@ -201,6 +211,10 @@ func (s *Service) InheritedMembers(ctx context.Context, actor Actor, namespace s
 	if err != nil {
 		return nil, fmt.Errorf("members of %s: %w", namespace, err)
 	}
+	tf, err := s.newTeamFinder(ctx, actor, namespace)
+	if err != nil {
+		return nil, err
+	}
 	var out []MemberDetail
 	seen := map[string]bool{}
 	for _, l := range chain[1:] {
@@ -214,6 +228,9 @@ func (s *Service) InheritedMembers(ctx context.Context, actor Actor, namespace s
 			}
 			seen[m.UserID] = true
 			d, err := s.memberDetail(ctx, m)
+			if err == nil {
+				d.Teams, err = tf.teams(ctx, m.UserID)
+			}
 			if err != nil {
 				return nil, fmt.Errorf("members of %s: %w", l.Namespace, err)
 			}
@@ -221,6 +238,75 @@ func (s *Service) InheritedMembers(ctx context.Context, actor Actor, namespace s
 		}
 	}
 	return out, nil
+}
+
+// teamFinder finds the teams a person belongs to in the project of one
+// namespace, for the member lists. It remembers each namespace it looked
+// at, since the people on one list share most of their teams.
+type teamFinder struct {
+	s     *Service
+	actor Actor
+	ns    string
+	root  string
+	shown map[string]bool // namespace -> listed for this viewer
+}
+
+func (s *Service) newTeamFinder(ctx context.Context, actor Actor, namespace string) (*teamFinder, error) {
+	chain, err := registry.Chain(ctx, s.roles.namespaces, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("members of %s: %w", namespace, err)
+	}
+	return &teamFinder{s: s, actor: actor, ns: namespace, root: chain[len(chain)-1].Namespace, shown: map[string]bool{}}, nil
+}
+
+// teams lists the teams userID belongs to besides f.ns, under the same
+// top project, that the viewer may open.
+func (f *teamFinder) teams(ctx context.Context, userID string) ([]string, error) {
+	ms, err := f.s.store.UserMemberships(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, m := range ms {
+		if m.Namespace == f.ns {
+			continue
+		}
+		show, ok := f.shown[m.Namespace]
+		if !ok {
+			if show, err = f.show(ctx, m.Namespace); err != nil {
+				return nil, err
+			}
+			f.shown[m.Namespace] = show
+		}
+		if show {
+			out = append(out, m.Namespace)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
+// show reports whether namespace is a team under f.root that the viewer
+// may open.
+func (f *teamFinder) show(ctx context.Context, namespace string) (bool, error) {
+	chain, err := registry.Chain(ctx, f.s.roles.namespaces, namespace)
+	if errors.Is(err, registry.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if chain[0].Kind != registry.KindTeam || chain[len(chain)-1].Namespace != f.root {
+		return false, nil
+	}
+	a, err := f.s.access(ctx, f.actor, namespace)
+	if errors.Is(err, registry.ErrForbidden) || errors.Is(err, registry.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return a.CanListMembers(), nil
 }
 
 // memberDetail adds the person's name and sign-in methods to m.

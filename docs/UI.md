@@ -400,3 +400,7 @@ The "loadout docs" logo goes back to the registry page that opened the docs. Eve
 
 - Checked in headless Chrome with the docs served under the live CSP: from a team's wiki through the sidebar, from Start here's install link, after a contents link, both switch links, the same tab without `?from` and a reload, and at 390 px through the phone menu in dark.
 - Links in wiki and package Markdown to the docs are left as written: rendering them has no request, and the kept page covers the same tab.
+
+## Member search and teams line (October 2026)
+
+The Members panel head holds one search box for both lists on a settings page. The server sends every row and hides the ones `?q=` does not match, so the page works without JavaScript, and `ui.js` filters as you type and can show hidden rows again. Under a person's name a muted "Teams: a, b" line lists their other teams in the same project. On a phone the head wraps and the box takes the full width.

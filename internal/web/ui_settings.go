@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cmp"
 	"errors"
 	"net/http"
 	"net/url"
@@ -27,6 +28,9 @@ type settingsView struct {
 	// computed, not stored; Projects are those projects, closest first.
 	Inherited []memberRow
 	Projects  []projectLink
+	// Query is the member search; rows it does not match are Hidden, so
+	// the script can show them again as the search changes.
+	Query string
 	// Tokens is nil when the viewer may not manage machine tokens.
 	Tokens    []registry.Token
 	CanTokens bool
@@ -67,6 +71,37 @@ type memberRow struct {
 	CanRemove bool
 	// From is the project above that gives an inherited role.
 	From string
+	// Teams are the other teams of the project the person is in.
+	Teams []string
+	// Find is the lowercase text the member search looks in; Hidden is
+	// true when the search does not match it.
+	Find   string
+	Hidden bool
+}
+
+// finish fills in the search text of m and hides it unless it matches q.
+func (m *memberRow) finish(q string) {
+	m.Find = strings.ToLower(strings.Join(append([]string{m.Name, m.Email}, m.Teams...), " "))
+	m.Hidden = q != "" && !strings.Contains(m.Find, strings.ToLower(q))
+}
+
+// sortMembers puts the highest roles first, then sorts by name.
+func sortMembers(ms []memberRow) {
+	rank := func(r account.Role) int {
+		switch r {
+		case account.RoleOwner:
+			return 0
+		case account.RoleMaintainer:
+			return 1
+		}
+		return 2
+	}
+	slices.SortStableFunc(ms, func(a, b memberRow) int {
+		if c := rank(a.Role) - rank(b.Role); c != 0 {
+			return c
+		}
+		return strings.Compare(strings.ToLower(cmp.Or(a.Name, a.Email)), strings.ToLower(cmp.Or(b.Name, b.Email)))
+	})
 }
 
 // projectLink is a project above whose owners are listed on a team's page.
@@ -116,6 +151,7 @@ func (h *handler) renderSettings(w http.ResponseWriter, r *http.Request, t team,
 	v.CanWiki = a.CanSetWiki() && h.ui.Wiki != nil
 	v.CanTiers = a.CanSetTiers()
 	v.CanList = a.CanListMembers()
+	v.Query = strings.TrimSpace(r.URL.Query().Get("q"))
 	if v.CanWiki {
 		form, err := h.courseForm(r, t, v.Course)
 		if err != nil {
@@ -151,13 +187,16 @@ func (h *handler) renderSettings(w http.ResponseWriter, r *http.Request, t team,
 				SignIn:  signIn(m),
 				Pending: !m.Verified,
 				Joined:  m.Membership.CreatedAt,
+				Teams:   m.Teams,
 			}
+			row.finish(v.Query)
 			if a.CanAssign(m.Membership.Role) {
 				row.Roles = v.Roles
 				row.CanRemove = !row.You
 			}
 			v.Members = append(v.Members, row)
 		}
+		sortMembers(v.Members)
 		if err := h.inheritedMembers(r, t, &v); err != nil {
 			h.fail(w, r, err)
 			return
@@ -190,7 +229,7 @@ func (h *handler) inheritedMembers(r *http.Request, t team, v *settingsView) err
 		return err
 	}
 	for _, m := range ms {
-		v.Inherited = append(v.Inherited, memberRow{
+		row := memberRow{
 			Email:   m.Membership.Email,
 			Name:    m.Name,
 			You:     m.Membership.UserID == t.user.ID,
@@ -198,7 +237,10 @@ func (h *handler) inheritedMembers(r *http.Request, t team, v *settingsView) err
 			SignIn:  signIn(m),
 			Pending: !m.Verified,
 			From:    m.Membership.Namespace,
-		})
+			Teams:   m.Teams,
+		}
+		row.finish(v.Query)
+		v.Inherited = append(v.Inherited, row)
 		if slices.ContainsFunc(v.Projects, func(p projectLink) bool { return p.Name == m.Membership.Namespace }) {
 			continue
 		}
@@ -287,13 +329,23 @@ func (h *handler) addMember(w http.ResponseWriter, r *http.Request, t team) {
 	back(w, r, "/t/"+t.ns()+"/settings", "added", url.Values{"email": {email}})
 }
 
+// keepSearch is the query a member change comes back with: the person
+// for the notice and the member search the form carried.
+func keepSearch(r *http.Request, email string) url.Values {
+	v := url.Values{"email": {email}}
+	if q := strings.TrimSpace(r.PostForm.Get("q")); q != "" {
+		v.Set("q", q)
+	}
+	return v
+}
+
 func (h *handler) setMemberRole(w http.ResponseWriter, r *http.Request, t team) {
 	email := r.PostForm.Get("email")
 	if _, err := h.ui.Teams.SetMember(r.Context(), t.actor(), t.ns(), email, account.Role(r.PostForm.Get("role"))); err != nil {
 		h.refused(w, r, t, err, "/t/"+t.ns()+"/settings")
 		return
 	}
-	back(w, r, "/t/"+t.ns()+"/settings", "role", url.Values{"email": {email}})
+	back(w, r, "/t/"+t.ns()+"/settings", "role", keepSearch(r, email))
 }
 
 func (h *handler) removeMember(w http.ResponseWriter, r *http.Request, t team) {
@@ -302,7 +354,7 @@ func (h *handler) removeMember(w http.ResponseWriter, r *http.Request, t team) {
 		h.refused(w, r, t, err, "/t/"+t.ns()+"/settings")
 		return
 	}
-	back(w, r, "/t/"+t.ns()+"/settings", "removed", url.Values{"email": {email}})
+	back(w, r, "/t/"+t.ns()+"/settings", "removed", keepSearch(r, email))
 }
 
 // createToken shows the settings page with the new secret instead of

@@ -5,6 +5,19 @@ fixed. The [user guide](../) explains how to use each one.
 
 ## October 2026
 
+### 12 October 2026
+<!-- through 9a4ea7f -->
+
+- Feature: The members list on a project or team's **Settings** page is sorted: owners
+  first, then maintainers, then members, each by name.
+- Feature: A search box in the **Members** panel finds people by name, email or team
+  name, and filters **Through the project** at the same time. It filters as you type;
+  without JavaScript, press Enter and the page reloads with the matches.
+- Feature: Under each person's name a muted "Teams: a, b" line lists their other teams
+  in the same project, only those you may open.
+- Feature: Changing a role or removing someone keeps your search. Adding someone clears
+  it, so the new person shows.
+
 ### 5 October 2026
 <!-- through 71fac77 -->
 

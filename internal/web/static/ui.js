@@ -2,7 +2,7 @@
 // script: it only adds Copy buttons, hides Save buttons until something
 // changed, submits view pickers on change, folds the sidebar's projects,
 // puts diagram frames on preview pages, opens the wiki section a link
-// names and closes popovers with Escape.
+// names, filters member lists as you type and closes popovers with Escape.
 "use strict";
 
 document.documentElement.classList.add("js");
@@ -177,6 +177,41 @@ document.addEventListener("DOMContentLoaded", function () {
     sections.forEach(function (s) { s.addEventListener("toggle", label); });
     label();
     sections[0].parentNode.insertBefore(all, sections[0]);
+  }
+
+  // A member search filters the lists on the page as you type. The page
+  // sends every row and hides those its search did not match, so a wider
+  // search can show them again. Each list's "no match" line follows it.
+  document.querySelectorAll("input[data-filter]").forEach(function (input) {
+    var tables = document.querySelectorAll("table[data-filterable]");
+    input.addEventListener("input", function () {
+      var q = input.value.trim().toLowerCase();
+      tables.forEach(function (table) {
+        var shown = 0;
+        table.querySelectorAll("tr[data-find]").forEach(function (tr) {
+          tr.hidden = q !== "" && tr.dataset.find.indexOf(q) < 0;
+          if (!tr.hidden) { shown++; }
+        });
+        var none = table.nextElementSibling;
+        if (none && none.classList.contains("filter-none")) { none.hidden = shown > 0; }
+      });
+    });
+  });
+
+  // A role change, a removal and the remove popover's Cancel keep the
+  // search as typed, even when it was never submitted.
+  var search = document.querySelector("input[data-filter]");
+  if (search) {
+    var typed = function () { return search.value.trim(); };
+    document.addEventListener("submit", function (e) {
+      e.target.querySelectorAll("input[data-keep-q]").forEach(function (f) { f.value = typed(); });
+    });
+    document.querySelectorAll("a[data-keep-q]").forEach(function (a) {
+      a.addEventListener("click", function () {
+        var base = a.getAttribute("href").split("?")[0];
+        a.setAttribute("href", typed() === "" ? base : base + "?q=" + encodeURIComponent(typed()));
+      });
+    });
   }
 
   // Escape closes an open popover form and returns focus to its button.

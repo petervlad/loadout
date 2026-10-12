@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"html/template"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -32,6 +33,11 @@ func uiFuncs(now func() time.Time) template.FuncMap {
 		"kind":     kindName,
 		"size":     size,
 		"add":      func(a, b int) int { return a + b },
+		"join":     strings.Join,
+		// anyShown reports whether the member search leaves a row shown.
+		"anyShown": func(ms []memberRow) bool {
+			return slices.ContainsFunc(ms, func(m memberRow) bool { return !m.Hidden })
+		},
 		// segments splits a file path at its slashes, so a title can
 		// break there on a narrow screen.
 		"segments": func(p string) []string { return strings.Split(p, "/") },
