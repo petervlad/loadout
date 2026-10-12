@@ -290,11 +290,11 @@ func (f *teamFinder) teams(ctx context.Context, userID string) ([]string, error)
 // may open.
 func (f *teamFinder) show(ctx context.Context, namespace string) (bool, error) {
 	chain, err := registry.Chain(ctx, f.s.roles.namespaces, namespace)
-	if errors.Is(err, registry.ErrNotFound) {
-		return false, nil
-	}
 	if err != nil {
-		return false, err
+		// A broken chain (a missing parent, a cycle) on another team must
+		// not take the whole member list down: that team is left out.
+		f.s.log.WarnContext(ctx, "member teams: skipped a namespace", "namespace", namespace, "err", err)
+		return false, nil
 	}
 	if chain[0].Kind != registry.KindTeam || chain[len(chain)-1].Namespace != f.root {
 		return false, nil

@@ -184,8 +184,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // search can show them again. Each list's "no match" line follows it.
   document.querySelectorAll("input[data-filter]").forEach(function (input) {
     var tables = document.querySelectorAll("table[data-filterable]");
+    var told;
     input.addEventListener("input", function () {
       var q = input.value.trim().toLowerCase();
+      var total = 0;
       tables.forEach(function (table) {
         var shown = 0;
         table.querySelectorAll("tr[data-find]").forEach(function (tr) {
@@ -194,7 +196,13 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         var none = table.nextElementSibling;
         if (none && none.classList.contains("filter-none")) { none.hidden = shown > 0; }
+        total += shown;
       });
+      // Screen readers hear the count once typing pauses.
+      window.clearTimeout(told);
+      told = window.setTimeout(function () {
+        say(total === 0 ? "No one matches." : total === 1 ? "1 person shown." : total + " people shown.");
+      }, 600);
     });
   });
 

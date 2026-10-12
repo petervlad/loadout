@@ -85,7 +85,8 @@ func (m *memberRow) finish(q string) {
 	m.Hidden = q != "" && !strings.Contains(m.Find, strings.ToLower(q))
 }
 
-// sortMembers puts the highest roles first, then sorts by name.
+// sortMembers puts the highest roles first, then sorts by name, then
+// by email.
 func sortMembers(ms []memberRow) {
 	rank := func(r account.Role) int {
 		switch r {
@@ -100,7 +101,10 @@ func sortMembers(ms []memberRow) {
 		if c := rank(a.Role) - rank(b.Role); c != 0 {
 			return c
 		}
-		return strings.Compare(strings.ToLower(cmp.Or(a.Name, a.Email)), strings.ToLower(cmp.Or(b.Name, b.Email)))
+		if c := strings.Compare(strings.ToLower(cmp.Or(a.Name, a.Email)), strings.ToLower(cmp.Or(b.Name, b.Email))); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Email, b.Email)
 	})
 }
 
