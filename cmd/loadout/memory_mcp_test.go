@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -25,7 +26,23 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	// A test that offers memory to Claude Code runs the claude on the PATH.
+	// Without this a developer's own claude would add servers to their real
+	// config (CLAUDE_CONFIG_DIR wins over the test home).
+	_ = os.Unsetenv("CLAUDE_CONFIG_DIR")
+	stubDir := ""
+	if runtime.GOOS != "windows" {
+		if dir, err := os.MkdirTemp("", "loadout-claude-"); err == nil {
+			stubDir = dir
+			if os.WriteFile(filepath.Join(dir, "claude"), []byte("#!/bin/sh\nexit 0\n"), 0o755) == nil { //nolint:gosec // a test program that must run
+				_ = os.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+			}
+		}
+	}
 	code := m.Run()
+	if stubDir != "" {
+		_ = os.RemoveAll(stubDir)
+	}
 	if binDir != "" {
 		_ = os.RemoveAll(binDir)
 	}
