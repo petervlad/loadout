@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -93,7 +95,7 @@ func newReviewListCmd(d Deps, at *reviewTarget) *cobra.Command {
 	var all bool
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List open proposals of your team",
+		Short: "List open proposals and requests to delete a package of your team",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			var ns string
@@ -116,8 +118,12 @@ func newReviewListCmd(d Deps, at *reviewTarget) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			dels, err := listedDeletions(cmd, c, pkg, all)
+			if err != nil {
+				return err
+			}
 			out := cmd.OutOrStdout()
-			if len(props) == 0 {
+			if len(props) == 0 && len(dels) == 0 {
 				if all {
 					fmt.Fprintf(out, "no proposals on %s\n", r.Name)
 				} else {
@@ -125,17 +131,36 @@ func newReviewListCmd(d Deps, at *reviewTarget) *cobra.Command {
 				}
 				return nil
 			}
-			w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tPACKAGE\tVERSION\tSTATUS\tAUTHOR\tPROPOSED\tPROMPTS\tREVIEWS")
-			for _, p := range props {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d\n", p.ID, p.Package, p.Version, statusText(p), actor(p.Author), p.CreatedAt.Local().Format("2006-01-02 15:04"), len(p.Prompts), len(p.Reviews))
-			}
-			return w.Flush()
+			return writeReviewList(out, props, dels)
 		},
 	}
 	cmd.Flags().StringVar(&pkg, "package", "", "only proposals of TEAM/NAME")
 	cmd.Flags().BoolVar(&all, "all", false, "include approved, rejected and withdrawn proposals")
 	return cmd
+}
+
+// writeReviewList prints proposals and requests to delete a package in one
+// table, newest first. A request shows "delete" where a proposal shows its
+// version, and no prompts or reviews.
+func writeReviewList(out io.Writer, props []api.Proposal, dels []api.Deletion) error {
+	type row struct {
+		at   time.Time
+		cols string
+	}
+	var rows []row
+	for _, p := range props {
+		rows = append(rows, row{p.CreatedAt, fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%d\t%d", p.ID, p.Package, p.Version, statusText(p), actor(p.Author), p.CreatedAt.Local().Format("2006-01-02 15:04"), len(p.Prompts), len(p.Reviews))})
+	}
+	for _, d := range dels {
+		rows = append(rows, row{d.CreatedAt, fmt.Sprintf("%s\t%s\tdelete\t%s\t%s\t%s\t-\t-", d.ID, d.Package, deletionStatusText(d), actor(d.Author), d.CreatedAt.Local().Format("2006-01-02 15:04"))})
+	}
+	slices.SortStableFunc(rows, func(a, b row) int { return b.at.Compare(a.at) })
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "ID\tPACKAGE\tVERSION\tSTATUS\tAUTHOR\tPROPOSED\tPROMPTS\tREVIEWS")
+	for _, r := range rows {
+		fmt.Fprintln(w, r.cols)
+	}
+	return w.Flush()
 }
 
 // statusText is a proposal's status in a listing, marking one its author
@@ -175,9 +200,12 @@ func releasesOf(cmd *cobra.Command, c *client.Client, id pack.ID) ([]api.Release
 func newReviewShowCmd(d Deps, at *reviewTarget) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show ID",
-		Short: "Show a proposal: note, prompts, reviews and what its author changed",
+		Short: "Show a proposal (note, prompts, reviews, what changed) or a request to delete a package (del-... ids)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if isDeletionID(args[0]) {
+				return showDeletion(cmd, d, at, args[0])
+			}
 			c, _, err := at.connect(d, "")
 			if err != nil {
 				return err
@@ -264,6 +292,9 @@ func newReviewReportCmd(d Deps, at *reviewTarget) *cobra.Command {
 		Short: "Print a review attached to a proposal (default: the latest)",
 		Args:  cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if isDeletionID(args[0]) {
+				return notAProposal("report", args[0])
+			}
 			c, _, err := at.connect(d, "")
 			if err != nil {
 				return err
@@ -313,6 +344,9 @@ refuse anything that would need your approval.`,
   loadout review compare 3f2a9c01b7de --prompt "Plan PROJ-99" --model haiku --safe`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if isDeletionID(args[0]) {
+				return notAProposal("compare", args[0])
+			}
 			c, r, err := at.connect(d, "")
 			if err != nil {
 				return err
@@ -348,7 +382,7 @@ func newReviewApproveCmd(d Deps, at *reviewTarget) *cobra.Command {
 	var req api.DecisionRequest
 	cmd := &cobra.Command{
 		Use:   "approve ID",
-		Short: "Approve a proposal: it becomes a release everyone gets through sync",
+		Short: "Approve a proposal: it becomes a release everyone gets through sync (or a request to delete a package)",
 		Long: `Approve a teammate's proposal. It needs a publish token, and not the
 author's: nobody approves their own change. The version must still be higher
 than the latest release; if someone published in between, the author
@@ -361,12 +395,20 @@ second person's review, and the proposal and the release say so.
 A proposal made from an older release than the latest is behind: approving
 it releases the author's files without the newer release's changes. The
 registry refuses that unless you name the latest release with --over, which
-is recorded; otherwise the author brings the proposal up to date.`,
+is recorded; otherwise the author brings the proposal up to date.
+
+An id that starts with del- is a request to delete a package (see loadout
+propose delete): approving it deletes the package, after the registry saves
+a copy of its database. The same rules apply, and --as-owner needs a note.`,
 		Example: `  loadout review approve 3f9a1c2b7d10 --note "looks good"
   loadout review approve 3f9a1c2b7d10 --as-owner --note "hotfix, nobody else is around"
-  loadout review approve 3f9a1c2b7d10 --over 2.1.0 --note "redoes the 2.1.0 hotfix"`,
+  loadout review approve 3f9a1c2b7d10 --over 2.1.0 --note "redoes the 2.1.0 hotfix"
+  loadout review approve del-3f9a1c2b7d4e --note "agreed, lime/planner replaces it"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if isDeletionID(args[0]) {
+				return approveDeletion(cmd, d, at, args[0], req)
+			}
 			c, r, err := at.connect(d, "")
 			if err != nil {
 				return err
@@ -415,6 +457,9 @@ func newReviewCloseCmd(d Deps, at *reviewTarget, verb, short string) *cobra.Comm
 		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if isDeletionID(args[0]) {
+				return closeDeletion(cmd, d, at, verb, args[0], note)
+			}
 			c, _, err := at.connect(d, "")
 			if err != nil {
 				return err

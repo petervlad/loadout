@@ -94,7 +94,7 @@ func TestHonestyCheckCatchesMistakes(t *testing.T) {
 	if flags := proseFlags(text); !slices.Contains(flags, "made-up") || anyCommandHas(root, "made-up") {
 		t.Errorf("prose flags = %q", flags)
 	}
-	good := "```sh\nloadout review lime/planner --safe --from 1.2.0\necho \"$T\" | loadout remote add r https://x --token-stdin\nloadout member list --namespace lime --remote office\nloadout team join < invite.txt\nloadout propose planner \\\n  --note \"a -- b\" \\\n  --prompt x\n```\n"
+	good := "```sh\nloadout review lime/planner --safe --from 1.2.0\necho \"$T\" | loadout remote add r https://x --token-stdin\nloadout member list --namespace lime --remote office\nloadout team join < invite.txt\nloadout propose ./planner \\\n  --note \"a -- b\" \\\n  --prompt x\nloadout propose delete lime/planner --reason \"unused\"\nloadout review approve del-3f9a1c2b7d4e --as-owner --note why\n```\n"
 	for _, line := range commandLines(good) {
 		if err := checkCommand(root, line); err != nil {
 			t.Errorf("%q: %v", line, err)

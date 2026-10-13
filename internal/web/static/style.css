@@ -414,6 +414,11 @@ table.list.fit { table-layout: auto; }
 .actions { display: flex; gap: 10px; flex-shrink: 0; align-items: flex-start; }
 .act-col { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; max-width: 360px; }
 .act-why { font-size: 0.8125rem; line-height: 1.45; color: var(--text-2); text-align: right; }
+/* Text under a panel head (the request pages): the reason is the person's own words, so it keeps its line breaks and breaks long words. */
+.panel-text { padding: 0 20px 16px; display: flex; flex-direction: column; gap: 10px; font-size: 0.875rem; line-height: 1.5; }
+.panel-head + .panel-text { margin-top: -6px; }
+.reason { white-space: pre-wrap; overflow-wrap: anywhere; }
+.reason.quote { padding-left: 12px; border-left: 3px solid var(--line); color: var(--text-2); }
 .prop-body { display: flex; gap: 20px; align-items: flex-start; }
 .prop-main { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .compare { min-width: 0; display: flex; flex-direction: column; }
@@ -614,6 +619,17 @@ details.report-context[open] > summary svg { transform: rotate(90deg); }
 .choice label.check { align-items: flex-start; }
 .choice label.check > span { display: flex; flex-direction: column; gap: 2px; }
 .form .buttons > * { flex: 0 0 auto; }
+.form .buttons { flex-wrap: wrap; }
+/* Delete: the panel that holds the destructive action. --bad-text is
+   defined for light, dark and the forced dark theme. */
+.danger-zone { border-color: var(--bad-text); }
+.danger-zone .btn-danger { border-color: var(--bad-text); font-weight: 600; }
+/* The button that deletes is tinted with the alert pair (contrast
+   checked in both themes); the link that opens the page stays an outline. */
+.form.danger-zone .btn-danger { background: var(--bad-bg); color: var(--bad-strong); }
+.form.danger-zone .btn-danger:hover { filter: brightness(0.96); }
+.consequences { margin: 8px 0 0; padding-left: 1.25em; }
+.consequences li + li { margin-top: 4px; }
 .form:has(input[name="kind"][value="project"]:checked) .parent-row { display: none; }
 .head .btn svg { margin-right: 4px; vertical-align: -3px; }
 

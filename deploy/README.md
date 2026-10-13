@@ -196,6 +196,8 @@ journalctl -u loadout-backup -n 20            # last result
 
 The backups live on the same disk. Copy them off the machine (your provider's snapshots or backups, or `rsync` from your own machine).
 
+The server also saves a `before-delete-*.db` copy of the database here before a package is deleted on the web (an admin deleting at once, or a maintainer or owner approving a deletion request); the backup job prunes them after the same 14 days. The requests and who decided them stay in the `deletions` table of the database. To undo such a delete, stop the service, copy that file over `/var/lib/loadout/registry.db`, remove `registry.db-wal` and `registry.db-shm`, `chown loadout:loadout` the file and start the service.
+
 Restore:
 
 ```sh

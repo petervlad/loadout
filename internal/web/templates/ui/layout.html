@@ -89,3 +89,12 @@
 </li>{{end}}
 {{define "copy"}}<button type="button" class="btn js-only" data-copy="{{.}}">Copy</button>{{end}}
 {{define "diff-file"}}<h3 class="file">{{.Name}}{{if .Change}} <span class="change">({{.Change}})</span>{{end}}</h3>{{range .Lines}}<div class="{{.Kind}}">{{if .Mark}}<span class="mark" aria-hidden="true">{{.Mark}}</span><span class="vh">{{if eq .Kind "add"}}added: {{else if eq .Kind "del"}}removed: {{end}}</span>{{end}}{{.Text}}</div>{{end}}{{end}}
+
+{{define "footprint"}}<dl class="facts">
+<dt>Releases</dt><dd>{{if .Releases}}{{len .Releases}} ({{range $i, $v := .Releases}}{{if $i}}, {{end}}<span class="num">{{$v}}</span>{{end}}){{else}}None{{end}}</dd>
+<dt>Proposals</dt><dd>{{.Proposals}}{{if .Open}} ({{len .Open}} open: {{range $i, $p := .Open}}{{if $i}}, {{end}}<a href="{{$p.Path}}"><code>{{$p.ID}}</code></a>{{end}}){{end}}</dd>
+<dt>Reviews</dt><dd>{{.Reviews}}</dd>
+<dt>Prompts</dt><dd>{{.Prompts}}</dd>
+<dt>Course for</dt><dd>{{if .Courses}}{{range $i, $c := .Courses}}{{if $i}}, {{end}}{{$c}}{{end}}{{else}}Nobody{{end}}</dd>
+{{if .Requests}}<dt>Deletion requests</dt><dd>{{range $i, $q := .Requests}}{{if $i}}, {{end}}{{if $q.Path}}<a href="{{$q.Path}}"><code>{{$q.ID}}</code></a>{{else}}<code>{{$q.ID}}</code>{{end}}{{end}} (closed as gone when it is deleted)</dd>{{end}}
+</dl>{{end}}

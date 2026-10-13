@@ -47,6 +47,9 @@ var (
 	ErrCodeLocked = errors.New("too many wrong codes were entered for this account; wait up to 24 hours, or use the link in the email")
 	// ErrNoSession means the session is missing, expired or revoked.
 	ErrNoSession = errors.New("not signed in")
+	// ErrBackupFailed means the copy of the database that comes before a
+	// delete on the web could not be taken, so nothing was deleted.
+	ErrBackupFailed = registry.ErrBackupFailed
 	// ErrEmailDisabled means no mailer is configured, so email sign-up and
 	// sign-in are off.
 	ErrEmailDisabled = errors.New("email sign-in is not enabled on this registry")

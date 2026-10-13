@@ -32,6 +32,8 @@ func classify(err error) (status int, code string) {
 		return http.StatusConflict, api.CodeProposalClosed
 	case errors.Is(err, registry.ErrVersionConflict):
 		return http.StatusConflict, api.CodeVersionConflict
+	case errors.Is(err, registry.ErrExists):
+		return http.StatusConflict, api.CodeExists
 	case errors.Is(err, registry.ErrBehind):
 		return http.StatusConflict, api.CodeBehind
 	case errors.Is(err, registry.ErrStale):

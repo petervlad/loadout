@@ -18,11 +18,11 @@ export PATH=/opt/homebrew/bin:$PATH
 export LOADOUT_PREVIEW_DIR=<scratch>/loadout-preview
 
 scripts/preview/seed.sh        # builds this checkout and seeds: project acme, teams lime and koala, agents, a proposal with a report, users
-scripts/preview/serve.sh       # registry on 127.0.0.1:7431, signed-in proxies on 7441-7447
+scripts/preview/serve.sh       # registry on 127.0.0.1:7431, signed-in proxies on 7441-7450
 scripts/preview/skills.sh      # adds lime/release-notes-skill, the KB lime/runbooks and a skill proposal
 ```
 
-Open pages through the proxy ports (7441 is alice, a maintainer, light; 7442 alice dark; 7443 bogdan, a member; 7444 signed out). The proposal id is in `$LOADOUT_PREVIEW_DIR/proposal-id`.
+Open pages through the proxy ports (7441 is alice, a maintainer, light; 7442 alice dark; 7443 bogdan, a member; 7444 signed out; 7448 ada, an admin; 7450 olga, owner of acme, after course.sh). The proposal id is in `$LOADOUT_PREVIEW_DIR/proposal-id`.
 
 ## Screenshots
 

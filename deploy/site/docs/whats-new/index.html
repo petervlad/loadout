@@ -304,6 +304,9 @@ td code { white-space: nowrap; }
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout install --adopt</code> moves aside the files and links an older setup left in the way, then installs. A link is moved, never the folder it points to.</li>
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout user add --email E --password-file F</code> adds an account on a simple-login registry, with <code>--admin</code> for an admin. An account that exists keeps its password.</li>
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The built-in setup skill walks through a messy machine, including agents that show twice in VS Code and the <code>chat.agentFilesLocations</code> setting that fixes it.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout package delete TEAM/NAME</code> on the registry host lists what a package holds and, with <code>--yes</code>, deletes it with its releases and proposals. People who have it installed keep their files and <code>loadout sync</code> tells them it was removed from the registry.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Admins delete a package from its page on the web. The registry saves a copy of its database first, and every delete leaves a record with the reason.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> Anyone who reads a package can ask to delete it, on its page or with <code>loadout propose delete TEAM/NAME --reason "why"</code>. A maintainer or owner who did not ask approves it on the request's page or with <code>loadout review approve del-ID</code>.</li>
 </ul>
 <h3 id="12-october-2026"><time datetime="2026-10-12">12 October 2026</time></h3>
 <ul>

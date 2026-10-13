@@ -301,12 +301,25 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 		svc := registry.NewService(store, store, store, time.Now, log, registry.WithMemberships(roles), registry.WithOwnerHints(roles))
 		props := registry.NewProposalService(store, store, time.Now, log, registry.WithAccess(svc), registry.WithOwners(roles))
 		wikis := registry.NewWikiService(store, store, time.Now, log)
+		// The host's own deletes (`loadout package delete`) leave a record
+		// like every other delete, and need no copy: the deploy skill backs
+		// up by hand.
+		hostDeletions := registry.NewDeletionService(store, store, time.Now, log)
 		// The admin commands on the host need no mail or device flow; the
 		// public URL goes into the sign-in link of member invite.
-		admin := account.NewService(store, svc, roles, device.New(time.Now), account.Options{PublicURL: login.PublicURL, Wiki: wikis, Now: time.Now, Log: log})
+		admin := account.NewService(store, svc, roles, device.New(time.Now), account.Options{PublicURL: login.PublicURL, Wiki: wikis, Deletions: hostDeletions, Now: time.Now, Log: log})
 		newHandler := func() (http.Handler, error) {
-			opts := []server.Option{server.WithProposals(props), server.WithCLI(advertised(build), server.MinimumCLI())}
-			more, err := loginOptions(log, login, statsSetup{Stats: stats, DataDir: dataDir, Build: build}, testMailer, store, svc, props, wikis, roles, closers)
+			// Approving a deletion saves a copy of the database first, so
+			// it needs the backup folder; without one approvals are refused
+			// with a sentence that says so.
+			snaps := webSnapshots(log, stats.BackupDir, store)
+			dopts := []registry.DeletionOption{registry.WithDeletionAccess(svc), registry.WithDeletionOwners(roles)}
+			if snaps != nil {
+				dopts = append(dopts, registry.WithDeletionSnapshots(snaps))
+			}
+			dels := registry.NewDeletionService(store, store, time.Now, log, dopts...)
+			opts := []server.Option{server.WithProposals(props), server.WithDeletions(dels), server.WithCLI(advertised(build), server.MinimumCLI())}
+			more, err := loginOptions(log, login, statsSetup{Stats: stats, DataDir: dataDir, Build: build}, testMailer, store, svc, props, dels, snaps, wikis, roles, closers)
 			if err != nil {
 				return nil, err
 			}

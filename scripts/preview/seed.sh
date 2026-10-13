@@ -28,6 +28,8 @@ $L member add --namespace lime --email bogdan@acme.example --role member --data 
 $L member add --namespace lime --email carla@acme.example --role maintainer --data "$DATA"
 $L member add --namespace lime --email dan@acme.example --role member --data "$DATA"
 $L member add --namespace koala --email alice@acme.example --role member --data "$DATA"
+# An admin, for the delete page (olga, an owner of acme, comes with course.sh).
+$L admin grant --email ada@acme.example --data "$DATA"
 
 LIME=$($L token create --team lime --publish --label seed-lime --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
 ACME=$($L token create --team acme --publish --label seed-acme --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
@@ -204,7 +206,8 @@ UPDATE releases SET published_at = '$(date -u -v-21d +%Y-%m-%dT%H:%M:%S.00000000
 UPDATE releases SET published_at = '$(date -u -v-40d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE team = 'acme';
 INSERT INTO sessions (hash, user_id, created_at, expires_at) VALUES
   (X'$(printf 'alice-session' | shasum -a 256 | cut -d' ' -f1)', '$(id alice@acme.example)', '$NOW', '$LATER'),
-  (X'$(printf 'bogdan-session' | shasum -a 256 | cut -d' ' -f1)', '$(id bogdan@acme.example)', '$NOW', '$LATER');
+  (X'$(printf 'bogdan-session' | shasum -a 256 | cut -d' ' -f1)', '$(id bogdan@acme.example)', '$NOW', '$LATER'),
+  (X'$(printf 'ada-session' | shasum -a 256 | cut -d' ' -f1)', '$(id ada@acme.example)', '$NOW', '$LATER');
 EOF
 echo "proposal $ID"
 echo "$ID" >"$S/proposal-id"

@@ -10,7 +10,8 @@ User=loadout
 Group=loadout
 Environment=HOME=/var/lib/loadout
 Environment=LOADOUT_LOG=info
-# Where loadout-backup.sh writes; the admins' server page lists it (read only).
+# Where loadout-backup.sh writes; the admins' server page lists it, and the
+# server writes a before-delete-*.db copy here before it deletes a package.
 Environment=LOADOUT_BACKUP_DIR=/var/backups/loadout
 # Login settings and secrets (LOADOUT_PUBLIC_URL, LOADOUT_SMTP_*, ...), if
 # deploy.sh installed them. systemd reads the file as root before dropping
@@ -30,7 +31,7 @@ UMask=0077
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/loadout
+ReadWritePaths=/var/lib/loadout /var/backups/loadout
 PrivateTmp=yes
 PrivateDevices=yes
 PrivateUsers=yes

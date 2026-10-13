@@ -13,7 +13,8 @@
 //	GET  /v1/tiers                                TiersResponse (the view's model table)
 //
 // With WithProposals it also serves the proposal routes listed in
-// proposals.go; auth.go lists the routes of `loadout login` and `logout`,
+// proposals.go, and with WithDeletions the routes for requests to delete a
+// package listed in deletions.go; auth.go lists the routes of `loadout login` and `logout`,
 // manage.go those for managing namespaces, members and machine tokens,
 // wiki.go those of a namespace's wiki page.
 //
@@ -63,6 +64,7 @@ const latest = "latest"
 type server struct {
 	reg         Registry
 	props       Proposals
+	dels        Deletions
 	device      Device
 	deviceLimit Limiter
 	pages       http.Handler
@@ -94,6 +96,9 @@ func New(reg Registry, log *slog.Logger, version string, opts ...Option) http.Ha
 	mux.Handle("GET /v1/tiers", s.authed(s.tiers))
 	if s.props != nil {
 		s.routeProposals(mux)
+	}
+	if s.dels != nil {
+		s.routeDeletions(mux)
 	}
 	s.routeAuth(mux)
 	if s.manage != nil {

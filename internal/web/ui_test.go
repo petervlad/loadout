@@ -40,6 +40,12 @@ type uiSite struct {
 	store    *accounttest.MemStore
 	mem      *registrytest.MemStore
 	proposal string
+	// snaps records the copies taken before a delete.
+	snaps *accounttest.Snapshots
+	// dels reviews requests to delete a package.
+	dels *registry.DeletionService
+	// people are the browsers signed in so far, by email (see user).
+	people map[string]*browser
 }
 
 const xss = "<script>alert(1)</script>"
@@ -67,8 +73,11 @@ func newUISiteDocs(t *testing.T, change func(*web.UI), docsURL string) *uiSite {
 	reg := registry.NewService(regMem, regMem, regMem, time.Now, log, registry.WithMemberships(roles))
 	props := registry.NewProposalService(regMem, regMem, time.Now, log, registry.WithOwners(roles))
 	mails := &mailtest.Recorder{}
+	snaps := &accounttest.Snapshots{}
+	dels := registry.NewDeletionService(regMem, regMem, time.Now, log,
+		registry.WithDeletionAccess(reg), registry.WithDeletionOwners(roles), registry.WithDeletionSnapshots(snaps))
 	accounts := account.NewService(store, reg, roles, device.New(time.Now), account.Options{
-		PublicURL: "http://localhost", Mailer: mails, Wiki: registry.NewWikiService(regMem, regMem, time.Now, log), Now: time.Now, Log: log,
+		PublicURL: "http://localhost", Mailer: mails, Wiki: registry.NewWikiService(regMem, regMem, time.Now, log), Snapshots: snaps, Deletions: dels, Now: time.Now, Log: log,
 	})
 	for _, ns := range []struct {
 		name, parent string
@@ -91,7 +100,7 @@ func newUISiteDocs(t *testing.T, change func(*web.UI), docsURL string) *uiSite {
 			t.Fatal(err)
 		}
 	}
-	ui := &web.UI{Registry: reg, Proposals: props, Places: roles, Teams: accounts, Tools: []web.ModelTool{claudecode.New(), copilot.New()}, Now: time.Now, Wiki: accounts}
+	ui := &web.UI{Registry: reg, Proposals: props, Places: roles, Teams: accounts, Tools: []web.ModelTool{claudecode.New(), copilot.New()}, Now: time.Now, Wiki: accounts, Deletes: accounts, Requests: dels}
 	if change != nil {
 		change(ui)
 	}
@@ -104,7 +113,7 @@ func newUISiteDocs(t *testing.T, change func(*web.UI), docsURL string) *uiSite {
 	}
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	s := &uiSite{site: &site{t: t, srv: srv, accounts: accounts, reg: reg, mails: mails}, props: props, roles: roles, store: store, mem: regMem}
+	s := &uiSite{site: &site{t: t, srv: srv, accounts: accounts, reg: reg, mails: mails}, props: props, roles: roles, store: store, mem: regMem, snaps: snaps, dels: dels}
 
 	s.publish("lime", "planner", "2.3.0", "Plans work "+xss, "Keep plans short.\n")
 	s.publish("acme", "python-standards", "4.1.0", "House rules for Python", "Follow the rules.\n")
@@ -181,6 +190,21 @@ func (s *uiSite) principal(email string) registry.Principal {
 }
 
 // as signs a new browser in as email (signing up with a password first).
+// user is as, once per person: signing up twice with one address does not
+// work, and a test often needs the same person on several pages.
+func (s *uiSite) user(email string) *browser {
+	s.t.Helper()
+	if b, ok := s.people[email]; ok {
+		return b
+	}
+	if s.people == nil {
+		s.people = map[string]*browser{}
+	}
+	b := s.as(email)
+	s.people[email] = b
+	return b
+}
+
 func (s *uiSite) as(email string) *browser {
 	s.t.Helper()
 	b := s.browser()

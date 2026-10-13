@@ -85,7 +85,7 @@ loadout publish planner --bump patch     # 1.4.0 -> 1.4.1; also minor, major
 When review is required, or for a second pair of eyes, propose instead. Any member may propose, also to the project above their team:
 
 ```sh
-loadout propose planner --bump minor \
+loadout propose ./planner --bump minor \
   --note "Cites the ticket in every step" \
   --prompt "Plan PROJ-1234" \
   --prompt "Plan a database migration"
@@ -96,6 +96,8 @@ Give 1 to 20 prompts the author tested with, or put them in a file separated by 
 Proposing from a folder whose open proposal the person made (same version, or rebased) replaces that proposal in one step; its prompts come along, so `--prompt` is optional then.
 
 ## When a newer release came out
+
+To get a whole package deleted, ask for it instead of deleting: `loadout propose delete lime/planner --reason "why"`. A maintainer or owner who is not you approves it, and until then nothing changes. You can take it back with `loadout review withdraw del-ID`. Ask the person before sending it, since the whole team sees it. (A package folder that is itself named `delete` is proposed as `./delete`.)
 
 `publish` and `propose` refuse a folder made from an older release than the latest, before uploading anything: "planner is based on 2.0.0, and 3.0.0 by Dana was released since; its changes are not in your folder". Publishing it as it is would drop that release's changes for everyone. Do not reach for `--base` to get past it. Bring the changes in instead, after the person committed the folder:
 

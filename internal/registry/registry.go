@@ -76,6 +76,17 @@ type Store interface {
 	// Changes returns up to limit releases of a team with Seq greater than
 	// since, lowest Seq first.
 	Changes(ctx context.Context, team string, since int64, limit int) ([]Release, error)
+	// PackageFootprint returns what DeletePackage would remove, or
+	// ErrNotFound when the package has no release and no proposal. It sits
+	// on Store, not ProposalStore, because the subject is the package; both
+	// implementations keep proposals in the same database.
+	PackageFootprint(ctx context.Context, id pack.ID) (PackageFootprint, error)
+	// DeletePackage removes every release and proposal of id, the
+	// proposals' reviews and prompts, and clears id as any namespace's
+	// course, and closes its open deletion requests as gone at at, in one
+	// transaction, and returns what it removed. It returns ErrNotFound when
+	// the package has no release and no proposal.
+	DeletePackage(ctx context.Context, id pack.ID, at time.Time) (PackageFootprint, error)
 }
 
 // TokenScope is what a token allows.

@@ -1,0 +1,28 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Back}}">{{template "icon-back"}}{{.ID}}</a></div>
+<section class="panel" aria-labelledby="ask-h">
+<div class="panel-head"><div class="grow"><h2 id="ask-h">Ask to delete {{.ID}}?</h2><p>Nothing is deleted yet. This is what a maintainer or owner of {{.Team}} would remove if they approve.</p></div></div>
+{{template "footprint" .Facts}}
+<div class="panel-note">
+<ul class="consequences">
+<li>A maintainer or owner of {{.Team}} who is not you approves or rejects the request. You can withdraw it until they do.</li>
+<li>If approved, every release, proposal, review and prompt of {{.ID}} is removed, and the name is free to publish again.</li>
+<li>People who installed it keep their files. Their next <code>loadout sync</code> says it was removed from the registry and how to uninstall it.</li>
+<li>{{.Readers}}</li>
+</ul>
+</div>
+</section>
+{{if .Existing}}<section class="panel" aria-labelledby="open-h" role="note">
+<div class="panel-head"><div class="grow"><h2 id="open-h">Someone already asked</h2></div></div>
+<div class="panel-text"><p>{{.ExistingBy}} asked to delete {{.ID}} <time datetime="{{stamp .ExistingAt}}" title="{{exact .ExistingAt}}">{{ago .ExistingAt}}</time>.{{if .Existing.Path}} <a href="{{.Existing.Path}}">See the request</a>.{{else}} A maintainer or owner of {{.Team}} decides.{{end}}</p></div>
+</section>
+{{else}}<form class="panel form" method="post" action="{{.Back}}/delete-request">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<div class="fieldrow">
+<label for="ask-reason">Why should it be deleted?</label>
+<textarea id="ask-reason" name="reason" class="field" rows="4" maxlength="4096" required{{if eq $.Field "ask-reason"}} aria-invalid="true" aria-describedby="form-error ask-hint" autofocus{{else}} aria-describedby="ask-hint"{{end}}>{{.Reason}}</textarea>
+<p class="hint" id="ask-hint">The person who decides reads it, and the registry keeps it with your name.</p>
+</div>
+<div class="buttons"><a class="btn btn-lg" href="{{.Back}}">Cancel<span class="vh"> and keep {{.ID}}</span></a><button type="submit" class="btn btn-lg btn-primary">Ask to delete<span class="vh"> {{.ID}}</span></button></div>
+</form>{{end}}
+{{end}}{{end}}

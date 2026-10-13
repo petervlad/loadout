@@ -22,11 +22,16 @@ type fakeRegistry struct {
 	models   tier.Table
 	tierErr  error
 	fetched  *[]string
+	// latestErr makes Latest fail for a package, by id.
+	latestErr map[string]error
 }
 
 func (r fakeRegistry) Tiers(context.Context) (tier.Table, error) { return r.models, r.tierErr }
 
 func (r fakeRegistry) Latest(_ context.Context, id pack.ID) (semver.Version, error) {
+	if err := r.latestErr[id.String()]; err != nil {
+		return semver.Version{}, err
+	}
 	v, ok := r.latest[id.String()]
 	if !ok {
 		return semver.Version{}, errors.New("not found")

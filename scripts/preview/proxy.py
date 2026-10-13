@@ -4,7 +4,8 @@ import http.server, os, socketserver, threading, urllib.request, sys
 
 UP = "http://127.0.0.1:" + os.environ.get("LOADOUT_PREVIEW_PORT", "7431")
 PORTS = {7441: "loadout_session=alice-session", 7442: "loadout_session=alice-session; loadout_theme=dark",
-         7443: "loadout_session=bogdan-session", 7444: "", 7445: "loadout_challenge=abc.YWxpY2VAYWNtZS5leGFtcGxl", 7446: "loadout_theme=dark", 7447: "loadout_session=bogdan-session; loadout_theme=dark"}
+         7443: "loadout_session=bogdan-session", 7444: "", 7445: "loadout_challenge=abc.YWxpY2VAYWNtZS5leGFtcGxl", 7446: "loadout_theme=dark", 7447: "loadout_session=bogdan-session; loadout_theme=dark",
+         7448: "loadout_session=ada-session", 7449: "loadout_session=ada-session; loadout_theme=dark", 7450: "loadout_session=olga-session"}
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *a, **k): return None

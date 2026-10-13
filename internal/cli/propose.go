@@ -38,7 +38,10 @@ Reviewers see it with: loadout review list
 A folder made from an older release than the latest is refused: bring the
 newer changes in with loadout rebase first, or say the folder already has
 them with --base. Proposing a folder whose open proposal you made replaces
-that proposal in one step, and its prompts come along.`,
+that proposal in one step, and its prompts come along.
+
+To ask to delete a whole package instead, see loadout propose delete --help.
+A folder that is itself named delete is proposed as ./delete.`,
 		Example: `  loadout propose ./planner --bump minor --note "cites tickets" \
     --prompt "Plan PROJ-1234" --prompt "Plan a DB migration"
   loadout propose ./planner --prompts-file prompts.md`,
@@ -126,6 +129,7 @@ that proposal in one step, and its prompts come along.`,
 	f.StringArrayVar(&prompts, "prompt", nil, "a prompt you tested with (repeatable)")
 	f.StringVar(&promptsFile, "prompts-file", "", "file of prompts separated by lines containing only ---")
 	f.StringVar(&base, "base", "", "the release the folder was made from, or latest (default: worked out; see loadout rebase --help)")
+	cmd.AddCommand(newProposeDeleteCmd(d))
 	return cmd
 }
 

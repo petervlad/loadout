@@ -234,7 +234,7 @@ func (h *handler) packagesPage(w http.ResponseWriter, r *http.Request, t team) {
 			v.Layers = append(v.Layers, kindFilter{Label: l, Count: layerCounts[l], URL: one.url(t.ns()), Current: l == lq.Layer})
 		}
 	}
-	h.renderTeam(w, r, http.StatusOK, "packages.html", "packages", t, uiView{Wide: true, Page: v})
+	h.renderTeam(w, r, http.StatusOK, "packages.html", "packages", t, uiView{Wide: true, Notice: packagesNotice(r.URL.Query()), Page: v})
 }
 
 // matches reports whether a release's id, description or kind contains
@@ -282,6 +282,16 @@ type packageView struct {
 	// Files are the other files of a skill or knowledge base.
 	Files   []fileRow
 	Install string
+	// CanDelete shows the Delete section: the viewer governs the package's
+	// namespace and this registry deletes on the web. DeletePath is its page.
+	CanDelete  bool
+	DeletePath string
+	// CanAsk shows "Ask to delete": this registry reviews deletions and the
+	// viewer reads the package. AskPath is its page. Open is the request
+	// already open for the package, if any.
+	CanAsk  bool
+	AskPath string
+	Open    *requestNote
 }
 
 // fileRow is one file of a package. Title is a knowledge base document's
@@ -352,7 +362,21 @@ func (h *handler) packagePage(w http.ResponseWriter, r *http.Request, t team) {
 	if !rl.latest() {
 		v.Install += "@" + v.Version
 	}
-	h.renderTeam(w, r, http.StatusOK, "package.html", "packages", t, uiView{Title: id.String(), Page: v})
+	if v.CanDelete = h.canDelete(t, id); v.CanDelete {
+		v.DeletePath = v.Path + "/delete"
+	}
+	if h.ui.Requests != nil {
+		v.CanAsk, v.AskPath = true, v.Path+"/delete-request"
+		if v.Open, err = h.openRequest(r, t, id); err != nil {
+			h.fail(w, r, err)
+			return
+		}
+	}
+	h.renderTeam(w, r, http.StatusOK, "package.html", "packages", t, uiView{
+		Title:  id.String(),
+		Notice: packageNotice(r.URL.Query().Get("done"), id),
+		Page:   v,
+	})
 }
 
 // kindPlural names a kind in the filter: "Agents", "KBs".

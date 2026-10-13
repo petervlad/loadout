@@ -1,0 +1,93 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="/t/{{$.NS}}/reviews">{{template "icon-back"}}Reviews</a></div>
+<div class="prop-head">
+<div class="grow">
+<div class="prop-title">
+<h2>Request to delete {{.Package}}</h2>
+<span class="pill pill-{{.Status.Tone}}">{{.Status.Label}}</span>
+</div>
+<p class="byline">Asked by <strong>{{.Author}}</strong> <time datetime="{{stamp .Created}}" title="{{exact .Created}}">{{ago .Created}}</time></p>
+{{if .Newer}}<p class="replaced-note" role="note"><strong>{{.Newer}}</strong> came out after this was asked, so the request is about an older release than the one that is there now.</p>{{end}}
+</div>
+{{if .Open}}<div class="act-col"><div class="actions">
+{{if .Decision.CanReject}}
+<details class="menu">
+<summary class="btn btn-lg">Reject…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/deletions/{{.ID}}/reject">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<p>Rejecting closes the request and the package stays.</p>
+<label for="reject-note">Why? The author sees this.</label>
+<textarea id="reject-note" name="note" class="field" maxlength="4096"></textarea>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/deletions/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Reject request</button></div>
+</form>
+</details>
+{{end}}
+{{if .Decision.CanApprove}}
+<details class="menu">
+<summary class="btn btn-lg btn-danger" aria-describedby="why">Approve and delete…<span class="vh"> {{.Package}}</span></summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/deletions/{{.ID}}/approve">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<p class="warn">This deletes {{$.Page.Package}} for good: every release, proposal, review and prompt. People who installed it keep their files. A copy of the database is saved first.</p>
+<label for="approve-note">Note (optional). The author sees this.</label>
+<textarea id="approve-note" name="note" class="field" maxlength="4096"></textarea>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/deletions/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Approve and delete</button></div>
+</form>
+</details>
+{{else if .Decision.CanWithdraw}}
+<details class="menu">
+<summary class="btn btn-lg">Withdraw…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/deletions/{{.ID}}/withdraw">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<label for="withdraw-note">Note (optional)</label>
+<textarea id="withdraw-note" name="note" class="field" maxlength="4096"></textarea>
+<p>Withdrawing closes the request. You can ask again later.</p>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/deletions/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Withdraw request</button></div>
+</form>
+</details>
+{{if .Decision.AsOwner}}
+<details class="menu">
+<summary class="btn btn-lg btn-danger" aria-describedby="why">Approve as owner…</summary>
+<form class="pop" method="post" action="/t/{{$.NS}}/deletions/{{.ID}}/approve">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="as_owner" value="on">
+<p class="warn">This deletes {{$.Page.Package}} for good without a second person's review. The record will say so.</p>
+<label for="owner-note">Why? Teammates see this.</label>
+<textarea id="owner-note" name="note" class="field" maxlength="4096" required></textarea>
+<div class="row"><a class="btn" href="/t/{{$.NS}}/deletions/{{.ID}}">Cancel</a><button type="submit" class="btn btn-danger">Delete without review</button></div>
+</form>
+</details>
+{{end}}
+{{else if .Decision.CanReject}}
+<button type="button" class="btn btn-lg btn-danger" disabled aria-describedby="why">Approve and delete…<span class="vh"> {{.Package}}</span></button>
+{{else}}
+<button type="button" class="btn btn-lg" disabled aria-describedby="why">Reject…</button>
+<button type="button" class="btn btn-lg btn-danger" disabled aria-describedby="why">Approve and delete…<span class="vh"> {{.Package}}</span></button>
+{{end}}
+</div>
+{{if .Decision.Why}}<p class="act-why" id="why">{{.Decision.Why}}</p>{{end}}
+</div>{{end}}
+</div>
+
+{{with .Outcome}}<section class="panel outcome" aria-labelledby="outcome-h">
+<div class="panel-head"><div class="grow"><h2 id="outcome-h">{{.Heading}}</h2></div></div>
+<div class="panel-text">
+<p>{{.Lead}}{{if .By}} by <strong>{{.By}}</strong>{{end}} <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>{{if .Tail}}, {{.Tail}}{{end}}.</p>
+{{if .Note}}<p class="reason quote"><span class="vh">Their note: </span>{{.Note}}</p>{{end}}
+</div>
+</section>{{end}}
+<section class="panel" aria-labelledby="reason-h">
+<div class="panel-head"><div class="grow"><h2 id="reason-h">Reason</h2></div></div>
+<div class="panel-text"><p class="reason">{{.Reason}}</p></div>
+</section>
+{{with .Facts}}<section class="panel" aria-labelledby="facts-h">
+<div class="panel-head"><div class="grow"><h2 id="facts-h">{{$.Page.Package}}</h2><p>{{$.Page.FactsAt}}</p></div>{{if $.Page.PackagePath}}<a class="btn" href="{{$.Page.PackagePath}}">Open the package<span class="vh"> {{$.Page.Package}}</span></a>{{end}}</div>
+{{template "footprint" .}}
+{{if $.Page.Open}}<div class="panel-note">
+<ul class="consequences">
+<li>People who installed it keep their files. Their next <code>loadout sync</code> says it was removed from the registry and how to uninstall it.</li>
+<li>{{$.Page.Readers}}</li>
+<li>loadout saves a copy of the database first. Restoring it also undoes everything changed after.</li>
+</ul>
+</div>{{end}}
+</section>{{end}}
+{{end}}{{end}}

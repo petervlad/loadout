@@ -35,6 +35,12 @@ type fixture struct {
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
+	return newFixtureWith(t, nil)
+}
+
+// newFixtureWith is newFixture with a hook that adjusts the service options.
+func newFixtureWith(t *testing.T, adjust func(*account.Options)) *fixture {
+	t.Helper()
 	c := &clock{t: time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)}
 	log := slog.New(slog.DiscardHandler)
 	regMem := registrytest.NewMemStore()
@@ -42,12 +48,17 @@ func newFixture(t *testing.T) *fixture {
 	roles := account.NewRoles(store, regMem)
 	reg := registry.NewService(regMem, regMem, regMem, c.now, log, registry.WithMemberships(roles))
 	mails := &mailtest.Recorder{}
-	svc := account.NewService(store, reg, roles, device.New(c.now), account.Options{
+	opts := account.Options{
 		PublicURL: "https://registry.example.com",
 		Mailer:    mails,
+		Deletions: registry.NewDeletionService(regMem, regMem, c.now, log),
 		Now:       c.now,
 		Log:       log,
-	})
+	}
+	if adjust != nil {
+		adjust(&opts)
+	}
+	svc := account.NewService(store, reg, roles, device.New(c.now), opts)
 	if _, err := reg.CreateNamespace(t.Context(), "lime", "", registry.KindTeam); err != nil {
 		t.Fatal(err)
 	}

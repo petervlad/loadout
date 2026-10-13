@@ -180,6 +180,7 @@ func NewRoot(d Deps) *cobra.Command {
 		newMemberCmd(d),
 		newUserCmd(d),
 		newMailCmd(d),
+		newPackageCmd(d),
 		newAdminCmd(d),
 		newLoginCmd(d),
 		newLogoutCmd(d),

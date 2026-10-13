@@ -108,3 +108,35 @@ func toAPIProposals(props []registry.Proposal, standings []registry.Standing, pr
 	}
 	return out
 }
+
+// toAPIDeletion converts a deletion request to its wire form.
+func toAPIDeletion(d registry.Deletion, pr registry.Principal) api.Deletion {
+	out := api.Deletion{
+		ID:           d.ID,
+		Package:      d.Package.String(),
+		Reason:       d.Reason,
+		Newest:       d.Newest.String(),
+		Author:       toAPIActor(d.Author),
+		Status:       string(d.Status),
+		CreatedAt:    d.CreatedAt,
+		DecisionNote: d.DecisionNote,
+		SelfApproved: d.SelfApproved,
+		Yours:        d.By(pr),
+	}
+	if !d.DecidedAt.IsZero() {
+		at := d.DecidedAt
+		out.DecidedAt = &at
+		if d.DecidedBy != (registry.Actor{}) {
+			by := toAPIActor(d.DecidedBy)
+			out.DecidedBy = &by
+		}
+	}
+	if d.Status == registry.DeletionApproved {
+		rm := &api.Removed{Releases: make([]string, 0, len(d.Removed.Releases)), Proposals: d.Removed.Proposals, Reviews: d.Removed.Reviews, Prompts: d.Removed.Prompts}
+		for _, v := range d.Removed.Releases {
+			rm.Releases = append(rm.Releases, v.String())
+		}
+		out.Removed = rm
+	}
+	return out
+}

@@ -415,19 +415,19 @@ td code { white-space: nowrap; }
 <tbody>
 <tr>
 <td>member</td>
-<td>install, sync, propose new versions, edit the wiki</td>
+<td>install, sync, propose new versions, ask to delete a package, edit the wiki</td>
 </tr>
 <tr>
 <td>maintainer (of a team)</td>
-<td>everything a member can, plus publish, approve or reject proposals (not their own), add and remove members, make machine tokens</td>
+<td>everything a member can, plus publish, approve or reject proposals and requests to delete a package (not their own), add and remove members, make machine tokens</td>
 </tr>
 <tr>
 <td>owner (of a project)</td>
-<td>everything a maintainer can, as owner of the project and of every team below it; create teams in the project; add maintainers; turn review and the wiki on or off and choose its course; approve their own proposals as owner, with a note, which everyone can see</td>
+<td>everything a maintainer can, as owner of the project and of every team below it; create teams in the project; add maintainers; turn review and the wiki on or off and choose its course; approve their own proposals and deletion requests as owner, with a note, which everyone can see</td>
 </tr>
 <tr>
 <td>admin (whole registry)</td>
-<td>everything: create projects, make owners, delete empty namespaces</td>
+<td>everything: create projects, make owners, delete empty namespaces, delete a package at once</td>
 </tr>
 </tbody>
 </table>
@@ -656,6 +656,8 @@ loadout notices       # updates your edits hold back, one line each (nothing if 
 <pre class="sh"><code>loadout policy payments/planner auto
 loadout install payments/runbooks --policy auto</code></pre>
 <p>A file you edited is never overwritten by <code>sync</code>. When your project changes which model its agents run, <code>sync</code> treats it like a new version of the agents it changes: <code>auto</code> applies it, <code>notify</code> reports "model settings changed", <code>pin</code> leaves the file alone.</p>
+<h3 id="when-a-package-is-removed-from-the-registry">When a package is removed from the registry</h3>
+<p>If the person who runs the registry deletes a package, <code>sync</code> shows <strong>removed from the registry</strong> for it, prints the command to remove it from your machine (<code>loadout uninstall TEAM/NAME --scope user</code>), and still exits 0: nothing failed. <code>sync</code> never removes your files itself, because you may have edited them. The package stays in <code>status</code> until you uninstall it. Older versions of loadout show a failed check ("404") for it on every <code>sync</code> until you update loadout or uninstall the package.</p>
 <h3 id="when-your-edits-hold-an-update-back">When your edits hold an update back</h3>
 <p>If you edit an installed agent, skill or knowledge base, loadout keeps your version: an update never overwrites your edit. <code>sync</code> says so and gives you the choices:</p>
 <pre class="text"><code>$ loadout sync
@@ -918,6 +920,18 @@ loadout review withdraw 3f2a9c01b7de         # the author takes it back</code></
 <p><code>--over</code> must name the latest release exactly; if another release came out while you were reading, the approval is refused and names it. On the website the button reads <strong>Approve over 3.0.0…</strong> and asks first. A proposal whose version was already released cannot be approved at all; the author brings it up to date with <code>loadout rebase --proposal ID</code>, which raises its version, and proposes again. A proposal replaced after a rebase reads "Replaced" and links to the new one.</p>
 <p>On a proposal's page on the website, anyone on the team can add the prompts they care about under <strong>Prompts</strong>; the next <code>loadout review</code> asks them too. You can edit or remove only the prompts you added, and a proposal keeps at least one. The page's <strong>Try it yourself</strong> box has the command to copy, and each report says where its two sides came from (installed, release or proposal), whether the tool ran with full access or in safe mode, and which team packages sat beside it.</p>
 <p>On the website the same is <strong>Approve as owner…</strong> on your own proposal. Publishing directly stays refused when review is required, for owners too: propose, then approve as owner.</p>
+<h3 id="ask-to-delete-a-package">Ask to delete a package</h3>
+<p>Anyone who reads a package may ask to delete it, from the package page (<strong>Ask to delete…</strong>) or with the CLI. A reason is required: the registry keeps it with your name.</p>
+<pre class="sh"><code>loadout propose delete lime/lime-app-dev --reason &quot;Replaced by lime/planner; nobody installs it any more&quot;</code></pre>
+<p>Nothing is deleted yet. The request appears with the proposals under <strong>Reviews</strong> (and in <code>loadout review list</code>, as a <code>delete</code> row with an id that starts with <code>del-</code>). A package has one open request at a time, and you can withdraw yours (<code>loadout review withdraw del-3f9a1c2b7d4e</code>, or <strong>Withdraw…</strong> on its page) until someone decides.</p>
+<p>A maintainer or owner of the package's team (or project) who is not you decides, on the request's page or with the CLI:</p>
+<pre class="sh"><code>loadout review show del-3f9a1c2b7d4e                       # the reason, who asked, what would go
+loadout review approve del-3f9a1c2b7d4e                    # deletes the package
+loadout review reject del-3f9a1c2b7d4e --note &quot;The demo still installs it&quot;</code></pre>
+<p>The page lists what approving removes (releases, proposals with the open ones linked, reviews, prompts, any wiki course) and says who may have the package installed: loadout does not record installs, so it names the namespace, and for a project's package its teams. Before it deletes, loadout saves a copy of the database in the backup folder, and if the copy fails nothing is deleted. (A registry without a backup folder shows no request pages: the CLI can still ask, and approving is refused with a sentence that names the folder.) If a release came out after the request was made, it cannot be approved: it was asked about something else, so withdraw it and ask again. A request still open when the package is deleted another way (an admin deleting it at once, or the person who runs the registry) closes as <strong>deleted another way</strong>.</p>
+<p>If you own the project, you may approve your own request with a note, as with a proposal. It is deleted at once, and the request, the pages and <code>review list --all</code> say <strong>Deleted without review</strong>:</p>
+<pre class="sh"><code>loadout review approve del-3f9a1c2b7d4e --as-owner --note &quot;The team moved to acme/python-standards&quot;</code></pre>
+<p>After a decision the request stays as the record: who asked and why, who decided and when, and what went (releases, proposals, reviews and prompts). The CLI refuses <code>review compare</code> and <code>review report</code> for it, since there is nothing to compare. A registry or CLI older than requests to delete a package cannot ask for or approve one: update loadout first.</p>
 <p><code>loadout review payments/planner</code> compares the version you have installed (else the latest release) with the newest open proposal (else the latest release), on the proposal's prompts. Pick other versions with <code>--from</code> and <code>--to</code>: a version such as <code>1.2.0</code>, <code>latest</code>, or a proposal id. Each version runs in its own throwaway folder next to the team's other packages (the latest release of each, as <code>install --all</code> gets them), so an agent can use the team's skills and knowledge bases; <code>--no-context</code> leaves them out.</p>
 <pre class="text"><code>$ loadout review payments/planner
 reviewing payments/planner
@@ -1058,6 +1072,25 @@ loadout publish ./planner --remote registry --bump patch --base latest</code></p
 loadout token create --team payments --read --invite --url http://10.0.4.12:7420</code></pre>
 <p>Without accounts, teammates join with invites. For the website and <code>loadout login</code>, run it behind HTTPS with a public address; the repository's <code>deploy/</code> folder has a ready setup for any Debian or Ubuntu host you can ssh to (cloud VM, VPS or a home server) and for a container: copy <code>deploy/loadout.env.example</code>, fill it in, check it with <code>loadout serve --check --env-file FILE</code>, and deploy with <code>deploy/deploy.sh</code> (from a checkout, or <code>LOADOUT_VERSION=X.Y.Z</code> to install a checked release). If a proxy that is not on the registry's machine sits in front (a container platform, a tunnel, a load balancer), tell the registry which addresses it connects from and which header carries the client's address, so the sign-in limits count each person and not the proxy: <code>LOADOUT_TRUSTED_PROXIES=203.0.113.0/24</code> and <code>LOADOUT_CLIENT_IP_HEADER=Fly-Client-IP</code> (use the header your platform documents, one address per request; <code>X-Forwarded-For</code> is refused, and so is a range that covers every address). Without them loadout trusts only a proxy on the same machine. <code>loadout serve --check</code> shows what is set. Commands with <code>--data</code> run on the registry host as the operator, who alone makes the first admin: <code>loadout admin grant --email you@example.com</code>. (In simple login mode a new registry makes <code>admin@loadout.local</code> itself on its first start; see "Roles".)</p>
 <p><strong>Let your own AI agent set it up.</strong> <code>loadout setup --host-skills</code> installs two skills, and the first, <code>loadout-host-provision</code>, takes you from nothing to a running registry: ask your agent to "set up a loadout registry on Hetzner" (or AWS Lightsail, DigitalOcean, Fly.io, any VPS with ssh, or a home server). It checks that your cloud's command line tool is logged in, shows what it will create and what that costs, and asks before it spends money, changes DNS or deletes anything. It creates the machine with your public key, opens ports 22, 80 and 443, waits until your name points at the machine (Let's Encrypt limits failed attempts), installs loadout from a checked release with systemd and Caddy, turns on off-host backups and proves them with a restore into a scratch folder, then writes down what it made and how to tear it down. The second skill, <code>loadout-host-setup</code>, then chooses the login mode with you (email codes, email codes plus Google, simple login, or tokens only), has you fill in the settings file in your own editor (it checks it with <code>loadout serve --check</code>, which prints one line per part and never a secret), walks the sender-domain DNS records (SPF, DKIM, DMARC) for Amazon SES, Resend, Postmark or any SMTP provider, proves the mail with <code>loadout mail test</code> and the headers of the message that arrives, makes the first admin (<code>loadout admin grant</code>, and <code>loadout user password</code> for simple login), and creates the first project and team. There is one file per provider in the skill, with the provider's mail-port limits (DigitalOcean blocks 25, 465 and 587, so sign-in mail there needs port 2525 or 2587). The agent runs on your computer with your own logins: it never asks you to paste a secret (cloud tokens stay in the provider tool's store; you type passwords yourself), never reads your settings file, and loadout calls no cloud and runs no model for it.</p>
+<h3 id="delete-a-package-at-once-admins">Delete a package at once (admins)</h3>
+<p>Deleting a package at once is for registry admins. Owners, maintainers and members ask for the deletion instead (see Ask to delete a package under Review), and a second person approves it; an owner may approve their own with a note. A login token cannot delete a package. The page needs the registry to keep a backup folder (<code>LOADOUT_BACKUP_DIR</code>, which the <code>deploy/</code> setup sets); without one neither the requests nor this page are there, and the host command below still works.</p>
+<ol type="1">
+<li>Open the package and scroll to <strong>Delete package</strong>, then choose <strong>Delete package…</strong>.</li>
+<li>The next page lists what goes: every release, every proposal (the open ones linked), the reviews and prompts, any wiki that shows it as its course, and any open request to delete it (it closes as deleted another way). It says who may have it installed: loadout does not record installs, so it names the namespace, and for a project's package its teams.</li>
+<li>Say why, type the whole id, for example <code>lime/lime-app-dev</code>, and choose <strong>Delete package</strong>. A wrong name or a missing reason deletes nothing. If a release or proposal appeared since you opened the page, the page shows the new list and asks again.</li>
+</ol>
+<p>Before it deletes, loadout saves a copy of the database in the backup folder as <code>before-delete-TEAM-NAME-&lt;time&gt;.db</code>. If the copy fails, nothing is deleted. The nightly backup job removes these copies after 14 days. You land on the packages page with what was removed, and the registry keeps a record of the delete, with your name and your reason, as a request that reads <strong>Deleted without review</strong> under Reviews. People who have the package installed keep their files and see "removed from the registry" on their next <code>sync</code>, as below.</p>
+<p>It cannot be undone, except by restoring that copy, which also undoes everything changed since. The person who runs the registry restores it on the host:</p>
+<pre class="sh"><code>sudo systemctl stop loadout
+sudo cp /var/backups/loadout/before-delete-lime-lime-app-dev-20261006T101500Z.db /var/lib/loadout/registry.db
+sudo rm -f /var/lib/loadout/registry.db-wal /var/lib/loadout/registry.db-shm
+sudo chown loadout:loadout /var/lib/loadout/registry.db
+sudo systemctl start loadout</code></pre>
+<h3 id="delete-a-package-on-the-host">Delete a package (on the host)</h3>
+<p>The person who runs the registry can also delete a package on the host with <code>--data</code>, without the web page and without the automatic copy, because it cannot be undone except by restoring a backup. Back up the database first. Without <code>--yes</code> the command lists what would go and deletes nothing:</p>
+<pre class="sh"><code>loadout package delete lime/lime-app-dev --data /var/lib/loadout
+loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason &quot;Replaced by lime/planner&quot;</code></pre>
+<p>It removes every release, every proposal with its reviews and prompts (open proposals too, listed by id in the dry run), and clears the package as the course of any wiki. Tokens, members and wiki pages are not touched. The delete is recorded like the others, with the author "operator" and your <code>--reason</code> (default "Deleted on the registry host."). People who have it installed keep their files and see "removed from the registry" on their next <code>sync</code> (see <a href="#when-a-package-is-removed-from-the-registry">When a package is removed from the registry</a>). The name is free again afterwards: publish it again only above the version that was deleted, or machines that kept the old version report "up to date" for a lower number.</p>
 <h3 id="the-server-page-admins">The server page (admins)</h3>
 <p>Admins open <strong>Account</strong>, then <strong>Server details</strong> (<code>/account/server</code>). Its numbers cover the whole registry, every project included, so nobody else sees the page, not even a project's owners (they get "Nothing here"). It shows:</p>
 <ul>
@@ -1099,7 +1132,7 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 </tr>
 <tr>
 <td><code>LOADOUT_BACKUP_DIR</code></td>
-<td>Where the nightly backups are; the <code>deploy/</code> unit sets <code>/var/backups/loadout</code></td>
+<td>Where the nightly backups are, and where the registry saves a copy of its database before a package is deleted on the web; the <code>deploy/</code> unit sets <code>/var/backups/loadout</code>. Unset: packages cannot be deleted or asked about on the web</td>
 </tr>
 </tbody>
 </table>
@@ -1254,6 +1287,10 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 <td>Upload a candidate for review (<code>--bump</code>, <code>--note</code>, <code>--prompts-file</code>, <code>--base</code>); replaces your open proposal of the folder</td>
 </tr>
 <tr>
+<td><code>loadout propose delete TEAM/NAME --reason TEXT</code></td>
+<td>Ask to delete a whole package; a maintainer or owner who is not you approves it (a folder named <code>delete</code> is proposed as <code>./delete</code>)</td>
+</tr>
+<tr>
 <td><code>loadout rebase [FOLDER] [--proposal ID] [--base V|latest]</code></td>
 <td>Merge the folder's changes onto the latest release, conflicts marked in the files</td>
 </tr>
@@ -1263,11 +1300,11 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 </tr>
 <tr>
 <td><code>loadout review list [--all] [--package P]</code></td>
-<td>Proposals of your team</td>
+<td>Proposals and requests to delete a package (<code>del-</code> ids) of your team</td>
 </tr>
 <tr>
 <td><code>loadout review show ID</code></td>
-<td>A proposal's note, prompts, reviews and diff (teammates add prompts on the proposal's web page)</td>
+<td>A proposal's note, prompts, reviews and diff (teammates add prompts on the proposal's web page), or a deletion request's reason and outcome</td>
 </tr>
 <tr>
 <td><code>loadout review TEAM/NAME [--from V] [--to V]</code></td>
@@ -1283,11 +1320,11 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 </tr>
 <tr>
 <td><code>loadout review approve|reject|withdraw ID [--note T]</code></td>
-<td>Decide on a proposal, or take back your own</td>
+<td>Decide on a proposal or a deletion request, or take back your own; approving a <code>del-</code> request deletes the package</td>
 </tr>
 <tr>
 <td><code>loadout review approve ID --as-owner --note T</code></td>
-<td>Owners: release your own proposal without review, marked for everyone</td>
+<td>Owners: release your own proposal, or delete a package on your own request, without review, marked for everyone</td>
 </tr>
 <tr>
 <td><code>loadout review approve ID --over V</code></td>
@@ -1372,6 +1409,10 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 <tr>
 <td><code>loadout user add --email E --password-file F [--admin]</code></td>
 <td>Add an account with a password read from a file or <code>-</code>, never a flag, keeping the password of one that exists (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout package delete TEAM/NAME [--yes] [--reason T]</code></td>
+<td>List what a package holds and, with <code>--yes</code>, delete it with its releases and proposals, recorded (on the host; admins delete on the web, everyone else asks with <code>propose delete</code>)</td>
 </tr>
 <tr>
 <td><code>loadout setup --skills [--target T] [--force]</code></td>

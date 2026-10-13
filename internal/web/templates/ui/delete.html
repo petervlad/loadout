@@ -1,0 +1,31 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Back}}">{{template "icon-back"}}{{.ID}}</a></div>
+<section class="panel" aria-labelledby="delete-h">
+<div class="panel-head"><div class="grow"><h2 id="delete-h">Delete {{.ID}}?</h2><p>This is what loadout removes.</p></div></div>
+{{template "footprint" .Facts}}
+<div class="panel-note">
+<p><strong>This cannot be undone.</strong> Every release, proposal, review and prompt of {{.ID}} is removed, and the name is free to publish again.</p>
+<ul class="consequences">
+<li>People who installed it keep their files. Their next <code>loadout sync</code> says it was removed from the registry and how to uninstall it.</li>
+<li>Older versions of loadout report a failed check until they are updated.</li>
+<li>{{.Readers}}</li>
+<li>loadout saves a copy of the database first. Restoring it also undoes everything changed after.</li>
+</ul>
+</div>
+</section>
+<form class="panel form danger-zone" method="post" action="{{.Back}}/delete">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="seen" value="{{.Seen}}">
+<div class="fieldrow">
+<label for="delete-reason">Why is it deleted?</label>
+<textarea id="delete-reason" name="reason" class="field" rows="3" maxlength="4096" required{{if eq $.Field "delete-reason"}} aria-invalid="true" aria-describedby="form-error reason-hint" autofocus{{else}} aria-describedby="reason-hint"{{end}}>{{.Reason}}</textarea>
+<p class="hint" id="reason-hint">Kept in the registry's record of deletions with your name, after the package is gone.</p>
+</div>
+<div class="fieldrow">
+<label for="delete-confirm">Type {{.ID}} to confirm</label>
+<input id="delete-confirm" name="confirm" class="field" required autocomplete="off" autocapitalize="off" spellcheck="false" value="{{.Confirm}}"{{if eq $.Field "delete-confirm"}} aria-invalid="true" aria-describedby="form-error delete-hint" autofocus{{else}} aria-describedby="delete-hint"{{end}}>
+<p class="hint" id="delete-hint">Type the team, a slash and the name, so a click on the wrong package cannot delete it.</p>
+</div>
+<div class="buttons"><a class="btn btn-lg" href="{{.Back}}">Cancel<span class="vh"> and keep {{.ID}}</span></a><button type="submit" class="btn btn-lg btn-danger">Delete package<span class="vh"> {{.ID}}</span></button></div>
+</form>
+{{end}}{{end}}

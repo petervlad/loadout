@@ -54,3 +54,5 @@ mv "$out.tmp" "$out"
 echo "loadout-backup: wrote $out ($(du -h "$out" | cut -f 1))"
 
 find "$DEST" -maxdepth 1 -type f -name 'loadout-*.tar.gz' -mtime +"$KEEP_DAYS" -print -delete
+# The server's copies from before a package delete, kept as long as the nightly archives.
+find "$DEST" -maxdepth 1 -type f -name 'before-delete-*.db' -mtime +"$KEEP_DAYS" -print -delete

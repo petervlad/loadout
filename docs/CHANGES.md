@@ -20,6 +20,14 @@ fixed. The [user guide](../) explains how to use each one.
   password.
 - Feature: The built-in setup skill walks through a messy machine, including agents that
   show twice in VS Code and the `chat.agentFilesLocations` setting that fixes it.
+- Feature: `loadout package delete TEAM/NAME` on the registry host lists what a package
+  holds and, with `--yes`, deletes it with its releases and proposals. People who have it
+  installed keep their files and `loadout sync` tells them it was removed from the registry.
+- Feature: Admins delete a package from its page on the web. The registry saves a copy of
+  its database first, and every delete leaves a record with the reason.
+- Feature: Anyone who reads a package can ask to delete it, on its page or with
+  `loadout propose delete TEAM/NAME --reason "why"`. A maintainer or owner who did not ask
+  approves it on the request's page or with `loadout review approve del-ID`.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->

@@ -11,6 +11,7 @@ import (
 
 	"github.com/petervlad/loadout/internal/lock"
 	"github.com/petervlad/loadout/internal/pack"
+	"github.com/petervlad/loadout/internal/target"
 	"github.com/petervlad/loadout/internal/update"
 )
 
@@ -72,7 +73,7 @@ func printSync(out io.Writer, results []update.Result) error {
 	failed, held := 0, 0
 	for _, r := range results {
 		latest := "-"
-		if r.Outcome != update.OutcomeFailed {
+		if r.Outcome != update.OutcomeFailed && r.Outcome != update.OutcomeGone {
 			latest = r.Latest.String()
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", r.Entry.ID, r.Entry.Scope.Kind, r.Entry.Version, latest, syncResult(r))
@@ -92,6 +93,8 @@ func printSync(out io.Writer, results []update.Result) error {
 			writeHeld(out, r)
 		case r.Outcome == update.OutcomeFailed && r.Err != nil:
 			fmt.Fprintf(out, "\n%s: %v\n", r.Entry.ID, r.Err)
+		case r.Outcome == update.OutcomeGone:
+			writeGone(out, r)
 		case r.Outcome == update.OutcomeModelsChanged:
 			fmt.Fprintf(out, "\n%s: your team changed which model it runs; apply with: loadout install %s --scope %s\n", r.Entry.ID, r.Entry.ID, r.Entry.Scope.Kind)
 		}
@@ -105,6 +108,17 @@ func printSync(out io.Writer, results []update.Result) error {
 		return exitError{err: fmt.Errorf("%d updates are held back by your edits; see above", held), code: exitHeld}
 	}
 	return nil
+}
+
+// writeGone says a package left its registry and how to remove the files
+// loadout keeps. It is not an error: nothing failed, and exit stays 0.
+func writeGone(w io.Writer, r update.Result) {
+	e := r.Entry
+	scope := string(e.Scope.Kind)
+	fmt.Fprintf(w, "\n%s is no longer on its registry. loadout keeps your files; remove them with: loadout uninstall %s --scope %s\n", e.ID, e.ID, scope)
+	if e.Scope.Kind == target.ScopeProject {
+		fmt.Fprintf(w, "Run it in %s.\n", e.Scope.Root)
+	}
 }
 
 func newPolicyCmd(d Deps) *cobra.Command {

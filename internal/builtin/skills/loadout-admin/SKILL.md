@@ -58,6 +58,12 @@ loadout member add --data /var/lib/loadout --namespace TEAM --email NAME@company
 
 Add the person to the project (L0) and to their team (L1). `loadout user add` keeps the password of an account that exists. Ask first, and never print or repeat a password back.
 
+## Deleting a package
+
+The web way first, and for everyone but admins it goes through review: anyone who reads a package asks on its page (**Ask to delete…**, with a reason) or with `loadout propose delete TEAM/NAME --reason "why"`, and a maintainer or owner of the package's team (or project) who is not the person who asked approves it on the request's page or with `loadout review approve del-ID`. An owner may approve their own request with `--as-owner --note "why"`. The record then says "Deleted without review". Rejecting (`loadout review reject del-ID --note`) or the author withdrawing (`loadout review withdraw del-ID`) leaves the package alone. A registry admin can also delete at once: the package page's **Delete package…** asks for a reason and the whole `TEAM/NAME`. Either way loadout saves a copy of the database first (`before-delete-TEAM-NAME-<time>.db` in `LOADOUT_BACKUP_DIR`, kept 14 days) and refuses to delete if it cannot, and keeps a record of who asked, who decided, why and what went. The web pages are off when the registry has no backup folder. Tell the person to check the list on the page, since it cannot be undone except by restoring that copy. Ask before approving anything for them: approving deletes the package for everyone.
+
+On the registry host, as the operator, and as the fallback when the web delete is off: `loadout package delete TEAM/NAME --data /var/lib/loadout` lists what a package holds (releases, proposals with reviews and prompts, courses, open deletion requests) and deletes nothing. Add `--yes` and `--reason "why"` to delete it (the reason goes in the record). It takes no copy, so ask first and back up the database before `--yes`. People who have it installed keep their files and see "removed from the registry" on their next `sync`.
+
 ## Teams and review
 
 ```sh

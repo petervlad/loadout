@@ -63,10 +63,10 @@ Everyone who signs in has a role in a team or project:
 
 | Role | Can do |
 | --- | --- |
-| member | install, sync, propose new versions, edit the wiki |
-| maintainer (of a team) | everything a member can, plus publish, approve or reject proposals (not their own), add and remove members, make machine tokens |
-| owner (of a project) | everything a maintainer can, as owner of the project and of every team below it; create teams in the project; add maintainers; turn review and the wiki on or off and choose its course; approve their own proposals as owner, with a note, which everyone can see |
-| admin (whole registry) | everything: create projects, make owners, delete empty namespaces |
+| member | install, sync, propose new versions, ask to delete a package, edit the wiki |
+| maintainer (of a team) | everything a member can, plus publish, approve or reject proposals and requests to delete a package (not their own), add and remove members, make machine tokens |
+| owner (of a project) | everything a maintainer can, as owner of the project and of every team below it; create teams in the project; add maintainers; turn review and the wiki on or off and choose its course; approve their own proposals and deletion requests as owner, with a note, which everyone can see |
+| admin (whole registry) | everything: create projects, make owners, delete empty namespaces, delete a package at once |
 
 Anyone in a team is also a member of the project above it: they install its packages and may propose changes to it, and the project's maintainers or owners decide. They read the project's wiki too, but edit it only with a role in the project. A team maintainer is not a project maintainer; an owner adds that role separately.
 
@@ -329,6 +329,10 @@ loadout install payments/runbooks --policy auto
 ```
 
 A file you edited is never overwritten by `sync`. When your project changes which model its agents run, `sync` treats it like a new version of the agents it changes: `auto` applies it, `notify` reports "model settings changed", `pin` leaves the file alone.
+
+### When a package is removed from the registry
+
+If the person who runs the registry deletes a package, `sync` shows **removed from the registry** for it, prints the command to remove it from your machine (`loadout uninstall TEAM/NAME --scope user`), and still exits 0: nothing failed. `sync` never removes your files itself, because you may have edited them. The package stays in `status` until you uninstall it. Older versions of loadout show a failed check ("404") for it on every `sync` until you update loadout or uninstall the package.
 
 ### When your edits hold an update back
 
@@ -653,6 +657,34 @@ On a proposal's page on the website, anyone on the team can add the prompts they
 
 On the website the same is **Approve as owner…** on your own proposal. Publishing directly stays refused when review is required, for owners too: propose, then approve as owner.
 
+### Ask to delete a package
+
+Anyone who reads a package may ask to delete it, from the package page (**Ask to delete…**) or with the CLI. A reason is required: the registry keeps it with your name.
+
+```sh
+loadout propose delete lime/lime-app-dev --reason "Replaced by lime/planner; nobody installs it any more"
+```
+
+Nothing is deleted yet. The request appears with the proposals under **Reviews** (and in `loadout review list`, as a `delete` row with an id that starts with `del-`). A package has one open request at a time, and you can withdraw yours (`loadout review withdraw del-3f9a1c2b7d4e`, or **Withdraw…** on its page) until someone decides.
+
+A maintainer or owner of the package's team (or project) who is not you decides, on the request's page or with the CLI:
+
+```sh
+loadout review show del-3f9a1c2b7d4e                       # the reason, who asked, what would go
+loadout review approve del-3f9a1c2b7d4e                    # deletes the package
+loadout review reject del-3f9a1c2b7d4e --note "The demo still installs it"
+```
+
+The page lists what approving removes (releases, proposals with the open ones linked, reviews, prompts, any wiki course) and says who may have the package installed: loadout does not record installs, so it names the namespace, and for a project's package its teams. Before it deletes, loadout saves a copy of the database in the backup folder, and if the copy fails nothing is deleted. (A registry without a backup folder shows no request pages: the CLI can still ask, and approving is refused with a sentence that names the folder.) If a release came out after the request was made, it cannot be approved: it was asked about something else, so withdraw it and ask again. A request still open when the package is deleted another way (an admin deleting it at once, or the person who runs the registry) closes as **deleted another way**.
+
+If you own the project, you may approve your own request with a note, as with a proposal. It is deleted at once, and the request, the pages and `review list --all` say **Deleted without review**:
+
+```sh
+loadout review approve del-3f9a1c2b7d4e --as-owner --note "The team moved to acme/python-standards"
+```
+
+After a decision the request stays as the record: who asked and why, who decided and when, and what went (releases, proposals, reviews and prompts). The CLI refuses `review compare` and `review report` for it, since there is nothing to compare. A registry or CLI older than requests to delete a package cannot ask for or approve one: update loadout first.
+
 `loadout review payments/planner` compares the version you have installed (else the latest release) with the newest open proposal (else the latest release), on the proposal's prompts. Pick other versions with `--from` and `--to`: a version such as `1.2.0`, `latest`, or a proposal id. Each version runs in its own throwaway folder next to the team's other packages (the latest release of each, as `install --all` gets them), so an agent can use the team's skills and knowledge bases; `--no-context` leaves them out.
 
 ```text
@@ -806,6 +838,37 @@ Without accounts, teammates join with invites. For the website and `loadout logi
 
 **Let your own AI agent set it up.** `loadout setup --host-skills` installs two skills, and the first, `loadout-host-provision`, takes you from nothing to a running registry: ask your agent to "set up a loadout registry on Hetzner" (or AWS Lightsail, DigitalOcean, Fly.io, any VPS with ssh, or a home server). It checks that your cloud's command line tool is logged in, shows what it will create and what that costs, and asks before it spends money, changes DNS or deletes anything. It creates the machine with your public key, opens ports 22, 80 and 443, waits until your name points at the machine (Let's Encrypt limits failed attempts), installs loadout from a checked release with systemd and Caddy, turns on off-host backups and proves them with a restore into a scratch folder, then writes down what it made and how to tear it down. The second skill, `loadout-host-setup`, then chooses the login mode with you (email codes, email codes plus Google, simple login, or tokens only), has you fill in the settings file in your own editor (it checks it with `loadout serve --check`, which prints one line per part and never a secret), walks the sender-domain DNS records (SPF, DKIM, DMARC) for Amazon SES, Resend, Postmark or any SMTP provider, proves the mail with `loadout mail test` and the headers of the message that arrives, makes the first admin (`loadout admin grant`, and `loadout user password` for simple login), and creates the first project and team. There is one file per provider in the skill, with the provider's mail-port limits (DigitalOcean blocks 25, 465 and 587, so sign-in mail there needs port 2525 or 2587). The agent runs on your computer with your own logins: it never asks you to paste a secret (cloud tokens stay in the provider tool's store; you type passwords yourself), never reads your settings file, and loadout calls no cloud and runs no model for it.
 
+### Delete a package at once (admins)
+
+Deleting a package at once is for registry admins. Owners, maintainers and members ask for the deletion instead (see Ask to delete a package under Review), and a second person approves it; an owner may approve their own with a note. A login token cannot delete a package. The page needs the registry to keep a backup folder (`LOADOUT_BACKUP_DIR`, which the `deploy/` setup sets); without one neither the requests nor this page are there, and the host command below still works.
+
+1. Open the package and scroll to **Delete package**, then choose **Delete package…**.
+2. The next page lists what goes: every release, every proposal (the open ones linked), the reviews and prompts, any wiki that shows it as its course, and any open request to delete it (it closes as deleted another way). It says who may have it installed: loadout does not record installs, so it names the namespace, and for a project's package its teams.
+3. Say why, type the whole id, for example `lime/lime-app-dev`, and choose **Delete package**. A wrong name or a missing reason deletes nothing. If a release or proposal appeared since you opened the page, the page shows the new list and asks again.
+
+Before it deletes, loadout saves a copy of the database in the backup folder as `before-delete-TEAM-NAME-<time>.db`. If the copy fails, nothing is deleted. The nightly backup job removes these copies after 14 days. You land on the packages page with what was removed, and the registry keeps a record of the delete, with your name and your reason, as a request that reads **Deleted without review** under Reviews. People who have the package installed keep their files and see "removed from the registry" on their next `sync`, as below.
+
+It cannot be undone, except by restoring that copy, which also undoes everything changed since. The person who runs the registry restores it on the host:
+
+```sh
+sudo systemctl stop loadout
+sudo cp /var/backups/loadout/before-delete-lime-lime-app-dev-20261006T101500Z.db /var/lib/loadout/registry.db
+sudo rm -f /var/lib/loadout/registry.db-wal /var/lib/loadout/registry.db-shm
+sudo chown loadout:loadout /var/lib/loadout/registry.db
+sudo systemctl start loadout
+```
+
+### Delete a package (on the host)
+
+The person who runs the registry can also delete a package on the host with `--data`, without the web page and without the automatic copy, because it cannot be undone except by restoring a backup. Back up the database first. Without `--yes` the command lists what would go and deletes nothing:
+
+```sh
+loadout package delete lime/lime-app-dev --data /var/lib/loadout
+loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason "Replaced by lime/planner"
+```
+
+It removes every release, every proposal with its reviews and prompts (open proposals too, listed by id in the dry run), and clears the package as the course of any wiki. Tokens, members and wiki pages are not touched. The delete is recorded like the others, with the author "operator" and your `--reason` (default "Deleted on the registry host."). People who have it installed keep their files and see "removed from the registry" on their next `sync` (see [When a package is removed from the registry](#when-a-package-is-removed-from-the-registry)). The name is free again afterwards: publish it again only above the version that was deleted, or machines that kept the old version report "up to date" for a lower number.
+
 ### The server page (admins)
 
 Admins open **Account**, then **Server details** (`/account/server`). Its numbers cover the whole registry, every project included, so nobody else sees the page, not even a project's owners (they get "Nothing here"). It shows:
@@ -825,7 +888,7 @@ Each part works on its own: one that cannot be read says why, and the rest still
 | `LOADOUT_HOST_CONSOLE` | An `https` link to the host's console. Anything else stops `loadout serve` at startup, naming the variable |
 | `LOADOUT_HETZNER_TOKEN` | A **read-only** Hetzner Cloud API token of the server's project. Unset: the Hetzner and cost panels are not shown. Needed only on a Hetzner server |
 | `LOADOUT_HETZNER_SERVER` | The server's id or name. Unset: the server whose public IPv4 is this machine's |
-| `LOADOUT_BACKUP_DIR` | Where the nightly backups are; the `deploy/` unit sets `/var/backups/loadout` |
+| `LOADOUT_BACKUP_DIR` | Where the nightly backups are, and where the registry saves a copy of its database before a package is deleted on the web; the `deploy/` unit sets `/var/backups/loadout`. Unset: packages cannot be deleted or asked about on the web |
 
 On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a token set the page also shows that Hetzner server, and the log warns about it. Hetzner answers are kept for 5 minutes and a slow answer is given up after 5 seconds.
 
@@ -876,15 +939,16 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout import kb DIR --team T --description TEXT` | Turn a folder of documents into a knowledge base (`--name`, `--out`) |
 | `loadout publish [FOLDER] [--bump patch\|minor\|major] [--base V\|latest]` | Publish a new version; refused when the folder is behind the latest release, unless `--base` says what it was made from |
 | `loadout propose [FOLDER] --prompt TEXT...` | Upload a candidate for review (`--bump`, `--note`, `--prompts-file`, `--base`); replaces your open proposal of the folder |
+| `loadout propose delete TEAM/NAME --reason TEXT` | Ask to delete a whole package; a maintainer or owner who is not you approves it (a folder named `delete` is proposed as `./delete`) |
 | `loadout rebase [FOLDER] [--proposal ID] [--base V\|latest]` | Merge the folder's changes onto the latest release, conflicts marked in the files |
 | `loadout rebase [FOLDER] --resolved FILE` | Keep a file a rebase left deleted on one side and changed on the other |
-| `loadout review list [--all] [--package P]` | Proposals of your team |
-| `loadout review show ID` | A proposal's note, prompts, reviews and diff (teammates add prompts on the proposal's web page) |
+| `loadout review list [--all] [--package P]` | Proposals and requests to delete a package (`del-` ids) of your team |
+| `loadout review show ID` | A proposal's note, prompts, reviews and diff (teammates add prompts on the proposal's web page), or a deletion request's reason and outcome |
 | `loadout review TEAM/NAME [--from V] [--to V]` | Run two versions (installed and the newest proposal by default) in your own AI tool and attach the report to the proposal (`--safe`, `--no-context`, `--no-upload`, `--tool`, `--runs`, `--prompt`, `--model`, `--timeout`, `--out`) |
 | `loadout review compare ID [--upload]` | The latest release against one proposal; attaches the report only with `--upload` (same run flags) |
 | `loadout review report ID [N]` | Print a review attached to a proposal |
-| `loadout review approve\|reject\|withdraw ID [--note T]` | Decide on a proposal, or take back your own |
-| `loadout review approve ID --as-owner --note T` | Owners: release your own proposal without review, marked for everyone |
+| `loadout review approve\|reject\|withdraw ID [--note T]` | Decide on a proposal or a deletion request, or take back your own; approving a `del-` request deletes the package |
+| `loadout review approve ID --as-owner --note T` | Owners: release your own proposal, or delete a package on your own request, without review, marked for everyone |
 | `loadout review approve ID --over V` | Approve a proposal that is behind, over the latest release V, dropping its changes; recorded |
 | `loadout member add\|set\|list\|remove --namespace NS --email E [--role R]` | Manage who is in a team or project |
 | `loadout member invite --namespace PROJECT --email E [--role R] [--team T=ROLE]...` | Add a person to a project and some of its teams in one step; prints what changed and a sign-in link, and mails it when the registry sends mail |
@@ -906,6 +970,7 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout user delete --email E` | Delete an account (on the host) |
 | `loadout user password --email E` | Set an account's password, creating it; the password comes from standard input, never a flag (on the host) |
 | `loadout user add --email E --password-file F [--admin]` | Add an account with a password read from a file or `-`, never a flag, keeping the password of one that exists (on the host) |
+| `loadout package delete TEAM/NAME [--yes] [--reason T]` | List what a package holds and, with `--yes`, delete it with its releases and proposals, recorded (on the host; admins delete on the web, everyone else asks with `propose delete`) |
 | `loadout setup --skills [--target T] [--force]` | Install loadout's own skills for your AI agent now (login does it for you); brings back ones you uninstalled |
 | `loadout setup --host-skills [--target T] [--force]` | Install the two skills that set up a registry of your own; login and sync never add them, but keep installed ones up to date |
 | `loadout setup --hooks [--target T]`, `setup --no-hooks` | Set up, or remove, the session hooks that say when your edits hold an update back or a newer loadout is out (login sets them up) |

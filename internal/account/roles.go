@@ -138,6 +138,12 @@ func (a Access) CanCreateChild(parentKind, kind registry.NamespaceKind) bool {
 	return a.Governs && parentKind == registry.KindProject && kind == registry.KindTeam
 }
 
+// CanDeletePackage reports whether the user may delete a package of this
+// namespace at once, with every release and proposal: admins only. Owners
+// and everyone else ask for the deletion, and a second person approves it
+// (an owner may approve their own with a note).
+func (a Access) CanDeletePackage() bool { return a.Role == RoleAdmin }
+
 // CanSetReview reports whether the user may turn review-only publishing on
 // or off.
 func (a Access) CanSetReview() bool { return a.Governs }

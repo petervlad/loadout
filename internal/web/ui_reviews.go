@@ -78,6 +78,10 @@ type proposalRow struct {
 	Created time.Time
 	Status  status
 	Reports int
+	// Delete marks a request to delete a package; Path is its page. A
+	// proposal's page is /t/{ns}/reviews/{ID}.
+	Delete bool
+	Path   string
 }
 
 func (h *handler) reviewsPage(w http.ResponseWriter, r *http.Request, t team) {
@@ -119,7 +123,18 @@ func (h *handler) reviewsPage(w http.ResponseWriter, r *http.Request, t team) {
 			Created: p.CreatedAt,
 			Status:  proposalStatus(p),
 			Reports: len(p.Reviews),
+			Path:    "/t/" + t.ns() + "/reviews/" + p.ID,
 		})
+	}
+	if h.ui.Requests != nil {
+		dels, err := h.requestRows(r, t, all)
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		v.Rows = append(v.Rows, dels...)
+		// Newest first, requests and proposals together.
+		slices.SortStableFunc(v.Rows, func(a, b proposalRow) int { return b.Created.Compare(a.Created) })
 	}
 	h.renderTeam(w, r, http.StatusOK, "reviews.html", "reviews", t, uiView{Title: "Reviews · " + t.ns(), Wide: true, Page: v})
 }

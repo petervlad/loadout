@@ -71,7 +71,7 @@ Run one instance only: the database is SQLite and the sign-in limits live in the
 - A **registry** stores packages by namespace: a team, or a project that sits above several teams. A closer layer wins when two layers ship the same name.
 - An **adapter** per AI tool renders a package into that tool's folders. `loadout sync` keeps installs current per policy (`auto`, `notify`, `pin`) and never overwrites a file you edited.
 - **Accounts and roles** (member, maintainer, owner, admin) decide who may install, propose, publish and approve. `loadout login` signs in through the browser, like `gh auth login`; without accounts, invites carry a token.
-- **Review**: `propose` uploads a candidate, a teammate runs both versions in their own AI tool with `review`, and `review approve` releases it.
+- **Review**: `propose` uploads a candidate, a teammate runs both versions in their own AI tool with `review`, and `review approve` releases it. A package that should go is deleted the same way: `propose delete` asks, a second person approves, and the registry saves a copy of its database first.
 
 Supported tools: Claude Code and GitHub Copilot. Packages go only into the tools each person has.
 

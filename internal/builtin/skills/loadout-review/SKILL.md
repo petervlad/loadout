@@ -71,6 +71,16 @@ loadout review approve 3f2a9c01b7de --as-owner --note "Hotfix, nobody else is ar
 
 On the website the same is **Approve as owner…** on the proposal page.
 
+A request to delete a package is reviewed the same way, with an id that starts with `del-` (`loadout review list` shows it as a `delete` row). Read it first, tell the person what approving does (the whole package goes for everyone, after a copy of the registry's database, and people who have it installed keep their files), and ask before deciding:
+
+```sh
+loadout review show del-3f9a1c2b7d4e                        # the reason, who asked, whether a release came out since
+loadout review approve del-3f9a1c2b7d4e --note "agreed"     # deletes the package, not your own request
+loadout review reject del-3f9a1c2b7d4e --note "The demo still installs it"
+```
+
+An owner may approve their own request with `--as-owner --note`, recorded as deleted without review, only when the person asks for that. There is nothing to compare, so `review compare` and `review report` refuse it. A request cannot be approved once a release came out after it was made, so the author withdraws it and asks again.
+
 A plain approval of a behind proposal is refused. Usually the author brings it up to date with `loadout rebase --proposal 3f2a9c01b7de` and proposes again; suggest that first. Only if the person says dropping the newer release's changes is intended (the proposal redoes a hotfix, for example), and after asking them, approve over it, naming the latest release exactly:
 
 ```sh

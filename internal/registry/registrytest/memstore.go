@@ -31,6 +31,8 @@ type MemStore struct {
 	tiers      map[string]tier.Table
 	// proposals are kept in creation order.
 	proposals []storedProposal
+	// deletions are kept in creation order.
+	deletions []registry.Deletion
 	// wikis holds each namespace's kept revisions, oldest first.
 	wikis map[string][]wiki.Revision
 }

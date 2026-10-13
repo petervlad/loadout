@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // stubs are the commands deploy.sh calls, replaced for the test: ssh runs
@@ -538,5 +539,61 @@ func TestScriptsParse(t *testing.T) {
 				t.Errorf("sh -n %s: %v\n%s", name, err, out)
 			}
 		})
+	}
+}
+
+// TestUnitCanWriteTheBackupFolder: the server writes a copy of the database
+// before it deletes a package, and the unit's ReadWritePaths is the only
+// place it may write besides the data folder.
+func TestUnitCanWriteTheBackupFolder(t *testing.T) {
+	unit, err := os.ReadFile("loadout.service")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var paths, dir string
+	for line := range strings.Lines(string(unit)) {
+		line = strings.TrimSpace(line)
+		if v, ok := strings.CutPrefix(line, "ReadWritePaths="); ok {
+			paths = v
+		}
+		if v, ok := strings.CutPrefix(line, "Environment=LOADOUT_BACKUP_DIR="); ok {
+			dir = v
+		}
+	}
+	if dir == "" || !slices.Contains(strings.Fields(paths), dir) {
+		t.Errorf("ReadWritePaths = %q, want it to list LOADOUT_BACKUP_DIR %q", paths, dir)
+	}
+}
+
+// TestBackupPrunesDeleteCopies: the nightly script removes before-delete-*.db
+// copies after KEEP_DAYS like the archives, and keeps newer ones.
+func TestBackupPrunesDeleteCopies(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("loadout-backup.sh is a POSIX shell script")
+	}
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 is not installed")
+	}
+	data, dest := t.TempDir(), t.TempDir()
+	old, fresh := filepath.Join(dest, "before-delete-lime-x-20200101T000000Z.db"), filepath.Join(dest, "before-delete-lime-y-20261006T000000Z.db")
+	for _, f := range []string{old, fresh} {
+		if err := os.WriteFile(f, []byte("db"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	longAgo := time.Now().AddDate(0, 0, -30)
+	if err := os.Chtimes(old, longAgo, longAgo); err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.CommandContext(t.Context(), "sh", "loadout-backup.sh")
+	cmd.Env = append(os.Environ(), "LOADOUT_DATA="+data, "LOADOUT_BACKUP_DIR="+dest, "LOADOUT_BACKUP_KEEP_DAYS=14")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("loadout-backup.sh: %v\n%s", err, out)
+	}
+	if _, err := os.Stat(old); !os.IsNotExist(err) {
+		t.Errorf("the 30 day old copy is still there (stat error %v)", err)
+	}
+	if _, err := os.Stat(fresh); err != nil {
+		t.Errorf("the new copy was removed: %v", err)
 	}
 }

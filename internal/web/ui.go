@@ -8,6 +8,11 @@ package web
 //	GET  /t/{ns}                               packages the team reads (?q= filters)
 //	GET  /t/{ns}/p/{team}/{name}               one package: releases, main file, files (?version=)
 //	GET  /t/{ns}/p/{team}/{name}/{version}/... a release's zip, files and previews (ui_files.go)
+//	GET  /t/{ns}/p/{team}/{name}/delete        what deleting it removes, and the form (admins)
+//	POST /t/{ns}/p/{team}/{name}/delete        delete it, then back to /t/{ns} with the counts
+//	GET|POST /t/{ns}/p/{team}/{name}/delete-request   ask for a deletion (everyone who reads it; ui_deletions.go)
+//	GET  /t/{ns}/deletions/{id}                one request to delete a package
+//	POST /t/{ns}/deletions/{id}/approve|reject|withdraw
 //	GET  /t/{ns}/reviews                       proposals (?status=all for closed ones)
 //	GET  /t/{ns}/reviews/{id}                  one proposal (?prompt=, ?run=, ?report=)
 //	GET  /t/{ns}/reviews/{id}/diff             its full diff from its base (?view=since|effect when behind)
@@ -131,6 +136,12 @@ type UI struct {
 	// Wiki serves the namespaces' wiki pages; nil leaves out their
 	// routes, the Wiki tab and the switch on Settings.
 	Wiki Wiki
+	// Deletes deletes packages at once for admins; nil leaves out the
+	// delete routes and the package page's Delete section.
+	Deletes Deletes
+	// Requests reviews requests to delete a package; nil leaves out their
+	// routes, the Ask to delete button and the deletions in the reviews list.
+	Requests DeleteRequests
 }
 
 // uiPages is the UI with its parsed templates.
@@ -202,6 +213,17 @@ func (h *handler) routeUI(mux *http.ServeMux) {
 	mux.HandleFunc("POST /t/{ns}/settings", h.inTeam(h.saveReview))
 	mux.HandleFunc("GET /t/{ns}/tiers", h.inTeam(h.tiersPage))
 	mux.HandleFunc("POST /t/{ns}/tiers", h.inTeam(h.saveTiers))
+	if h.ui.Deletes != nil {
+		// One segment fewer than .../{version}/download, so the mux sees no conflict.
+		mux.HandleFunc("GET /t/{ns}/p/{team}/{name}/delete", h.inTeam(h.deletePage))
+		mux.HandleFunc("POST /t/{ns}/p/{team}/{name}/delete", h.inTeam(h.deletePackage))
+	}
+	if h.ui.Requests != nil {
+		mux.HandleFunc("GET /t/{ns}/p/{team}/{name}/delete-request", h.inTeam(h.askPage))
+		mux.HandleFunc("POST /t/{ns}/p/{team}/{name}/delete-request", h.inTeam(h.askDeletion))
+		mux.HandleFunc("GET /t/{ns}/deletions/{id}", h.inTeam(h.deletionPage))
+		mux.HandleFunc("POST /t/{ns}/deletions/{id}/{action}", h.inTeam(h.decideRequest))
+	}
 	if h.ui.Skills != nil {
 		h.routeSkills(mux)
 	}
@@ -529,6 +551,14 @@ func (h *handler) renderTeam(w http.ResponseWriter, r *http.Request, status int,
 			return
 		}
 		hd.Reviews = len(props)
+		if h.ui.Requests != nil {
+			n, err := h.openRequests(r, t)
+			if err != nil {
+				h.fail(w, r, err)
+				return
+			}
+			hd.Reviews += n
+		}
 	}
 	if !v.Bare {
 		v.Header = hd
@@ -575,7 +605,7 @@ func (h *handler) refused(w http.ResponseWriter, r *http.Request, t team, err er
 		return
 	case errors.Is(err, registry.ErrForbidden):
 		status, heading = http.StatusForbidden, "Not allowed"
-	case errors.Is(err, registry.ErrVersionConflict), errors.Is(err, registry.ErrProposalClosed), errors.Is(err, registry.ErrBehind):
+	case errors.Is(err, registry.ErrVersionConflict), errors.Is(err, registry.ErrProposalClosed), errors.Is(err, registry.ErrBehind), errors.Is(err, registry.ErrExists):
 		status, heading = http.StatusConflict, "Something changed"
 	case errors.Is(err, registry.ErrInvalid):
 		status, heading = http.StatusBadRequest, "That did not work"
@@ -599,7 +629,7 @@ func (h *handler) explain(w http.ResponseWriter, r *http.Request, t team, status
 // after the sentinel's prefix, capitalized, with a full stop.
 func sentence(err error) string {
 	msg := err.Error()
-	for _, prefix := range []string{registry.ErrForbidden.Error() + ": ", registry.ErrInvalid.Error() + ": ", registry.ErrBehind.Error() + ": "} {
+	for _, prefix := range []string{registry.ErrForbidden.Error() + ": ", registry.ErrInvalid.Error() + ": ", registry.ErrBehind.Error() + ": ", registry.ErrExists.Error() + ": "} {
 		if i := strings.LastIndex(msg, prefix); i >= 0 {
 			msg = msg[i+len(prefix):]
 		}
@@ -625,5 +655,7 @@ func back(w http.ResponseWriter, r *http.Request, path, notice string, extra url
 	if len(q) > 0 {
 		path += "?" + q.Encode()
 	}
-	http.Redirect(w, r, path, http.StatusSeeOther)
+	// Every caller builds path from a namespace and package ids that passed
+	// ident and pack.NewID, so it is a path of this site, never a URL.
+	http.Redirect(w, r, path, http.StatusSeeOther) //nolint:gosec // G710: path is built from validated ids
 }

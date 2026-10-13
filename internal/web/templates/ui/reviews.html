@@ -7,13 +7,13 @@
 {{if .Rows}}
 <div class="panel">
 <table class="list fit">
-<thead><tr><th scope="col">Proposal</th><th scope="col">Version</th><th scope="col">Proposed by</th><th scope="col">Reports</th><th scope="col">Status</th></tr></thead>
+<thead><tr><th scope="col">Package</th><th scope="col">Version</th><th scope="col">By</th><th scope="col">Reports</th><th scope="col">Status</th></tr></thead>
 <tbody>{{range .Rows}}
 <tr>
-<td class="stack"><a class="name" href="/t/{{$.NS}}/reviews/{{.ID}}">{{.Package}}</a>{{if .Note}}<span class="desc" title="{{.Note}}">{{.Note}}</span>{{end}}</td>
-<td class="num">{{if .From}}{{.From}} → {{end}}{{.To}}{{if .Behind}}<span class="pill pill-warn behind-pill">Behind {{.Behind}}</span>{{end}}</td>
+<td class="stack"><a class="name" href="{{.Path}}">{{.Package}}</a>{{if .Note}}<span class="desc" title="{{.Note}}">{{.Note}}</span>{{end}}</td>
+<td class="num">{{if .Delete}}<span class="pill pill-bad">Delete</span>{{else}}{{if .From}}{{.From}} → {{end}}{{.To}}{{if .Behind}}<span class="pill pill-warn behind-pill">Behind {{.Behind}}</span>{{end}}{{end}}</td>
 <td class="stack clip"><span title="{{.Author}}">{{.Author}}</span><span class="desc"><time datetime="{{stamp .Created}}" title="{{exact .Created}}">{{ago .Created}}</time></span></td>
-<td class="muted">{{if .Reports}}{{plural .Reports "report"}}{{else}}None yet{{end}}</td>
+<td class="muted">{{if .Delete}}<span class="vh">A request to delete has no reports</span>{{else if .Reports}}{{plural .Reports "report"}}{{else}}None yet{{end}}</td>
 <td><span class="pill pill-{{.Status.Tone}}">{{.Status.Label}}</span></td>
 </tr>{{end}}
 </tbody>
@@ -22,7 +22,7 @@
 {{else}}
 <div class="panel empty">
 <h2>{{if .All}}No proposals yet{{else}}Nothing waiting for review{{end}}</h2>
-<p>A proposal is a new version of a package that a teammate approves before everyone gets it. Propose one from a package folder with <code>loadout propose</code>.</p>
+<p>A proposal is a new version of a package that a teammate approves before everyone gets it. Propose one from a package folder with <code>loadout propose</code>. A request to delete a package shows here too, and is reviewed the same way.</p>
 {{if not .All}}<a href="/t/{{$.NS}}/reviews?status=all">Show closed proposals</a>{{end}}
 </div>
 {{end}}

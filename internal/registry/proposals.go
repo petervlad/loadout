@@ -57,14 +57,20 @@ func NewProposalService(releases Store, proposals ProposalStore, now func() time
 // in narrows an account principal to namespace ns (see Service.In); others
 // are returned as they are.
 func (s *ProposalService) in(ctx context.Context, pr Principal, ns string) (Principal, error) {
+	return narrow(ctx, s.access, pr, ns)
+}
+
+// narrow is the narrowing both review services do: an account principal
+// is narrowed by access to ns, and refused when there is no access.
+func narrow(ctx context.Context, access *Service, pr Principal, ns string) (Principal, error) {
 	if !pr.Account || pr.Team == ns {
 		return pr, nil
 	}
-	if s.access == nil {
+	if access == nil {
 		return Principal{}, ErrUnauthorized
 	}
 	pr.Team = ""
-	return s.access.In(ctx, pr, ns)
+	return access.In(ctx, pr, ns)
 }
 
 // ProposalInput is what an author sends with a candidate bundle.
@@ -377,7 +383,8 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 	if err != nil {
 		return Proposal{}, Release{}, err
 	}
-	if err := checkDecider(pr, p, "approve"); err != nil {
+	subj := p.subject()
+	if err := checkDecider(pr, subj, "approve"); err != nil {
 		return Proposal{}, Release{}, err
 	}
 	if p.Status != ProposalOpen {
@@ -390,9 +397,9 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 	if err := checkOver(p, st, in.Over); err != nil {
 		return Proposal{}, Release{}, err
 	}
-	self := selfError(pr, p, "approve")
+	self := selfError(pr, subj, "approve")
 	if self != nil {
-		if err := s.checkOwnApproval(ctx, pr, p, in, self); err != nil {
+		if err := checkOwnApproval(ctx, s.owners, pr, subj, in.AsOwner, in.Note, self); err != nil {
 			return Proposal{}, Release{}, err
 		}
 	}
@@ -425,31 +432,6 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 	return p, rel, nil
 }
 
-// checkOwnApproval lets the author approve their own proposal only as an
-// owner of its namespace (a person: a token without a user has nobody to
-// call an owner), who says so with AsOwner and says why in the note. self
-// is the four-eyes refusal everyone else gets. Owns is asked only here, so
-// ordinary approvals cost no extra query.
-func (s *ProposalService) checkOwnApproval(ctx context.Context, pr Principal, p Proposal, in ApproveInput, self error) error {
-	if s.owners == nil || pr.UserID == "" {
-		return self
-	}
-	ns := p.Package.Team()
-	owns, err := s.owners.Owns(ctx, pr.UserID, ns)
-	if err != nil {
-		return fmt.Errorf("approve %s: ownership of %s: %w", p.ID, ns, err)
-	}
-	switch {
-	case !owns:
-		return self
-	case !in.AsOwner:
-		return fmt.Errorf("%w; as an owner of %s you may approve it yourself: loadout review approve %s --as-owner --note WHY", self, ns, p.ID)
-	case strings.TrimSpace(in.Note) == "":
-		return fmt.Errorf("%w: say why %s@%s is released without review; a note is required when you approve your own proposal", ErrInvalid, p.Package, p.Version)
-	}
-	return nil
-}
-
 // Reject closes an open proposal. Like Approve it needs a publish token
 // that is not the author's; authors withdraw instead.
 func (s *ProposalService) Reject(ctx context.Context, pr Principal, id, note string) (Proposal, error) {
@@ -457,7 +439,7 @@ func (s *ProposalService) Reject(ctx context.Context, pr Principal, id, note str
 	if err != nil {
 		return Proposal{}, err
 	}
-	if err := checkReviewer(pr, p, "reject"); err != nil {
+	if err := checkReviewer(pr, p.subject(), "reject"); err != nil {
 		return Proposal{}, fmt.Errorf("%w (authors withdraw their own proposals)", err)
 	}
 	return s.decide(ctx, pr, id, ProposalRejected, note)
@@ -469,7 +451,7 @@ func (s *ProposalService) Withdraw(ctx context.Context, pr Principal, id, note s
 	if err != nil {
 		return Proposal{}, err
 	}
-	if !actorOf(pr).same(p.Author) {
+	if !p.By(pr) {
 		return Proposal{}, fmt.Errorf("%w: only the author can withdraw proposal %s", ErrForbidden, id)
 	}
 	return s.decide(ctx, pr, id, ProposalWithdrawn, note)
@@ -488,26 +470,46 @@ func (s *ProposalService) decide(ctx context.Context, pr Principal, id string, s
 	return p, nil
 }
 
-// checkReviewer enforces four eyes: pr may decide (checkDecider) and is not
-// the author (selfError).
-func checkReviewer(pr Principal, p Proposal, verb string) error {
-	if err := checkDecider(pr, p, verb); err != nil {
-		return err
-	}
-	return selfError(pr, p, verb)
+// subject is what the four-eyes checks need to know about a proposal or a
+// deletion request, so one code decides who may approve, reject and
+// self-approve both.
+type subject struct {
+	id     string
+	team   string
+	author Actor
+	// noun names it in a refusal: "proposal", "deletion request".
+	noun string
+	// released says what approving it does to the namespace, for the
+	// refusal of an owner who gave no reason: "X is released without review".
+	released string
 }
 
-// checkDecider checks that pr may decide about the team's proposals: a
-// publish token of the team (for a user, maintainer or above there). A
-// machine token a user made never decides: approving is a person's call,
-// and such a token would let its maker approve their own proposal.
-func checkDecider(pr Principal, p Proposal, verb string) error {
-	team := p.Package.Team()
+func (p Proposal) subject() subject {
+	return subject{
+		id: p.ID, team: p.Package.Team(), author: p.Author, noun: "proposal",
+		released: fmt.Sprintf("%s@%s is released", p.Package, p.Version),
+	}
+}
+
+// checkReviewer enforces four eyes: pr may decide (checkDecider) and is not
+// the author (selfError).
+func checkReviewer(pr Principal, sub subject, verb string) error {
+	if err := checkDecider(pr, sub, verb); err != nil {
+		return err
+	}
+	return selfError(pr, sub, verb)
+}
+
+// checkDecider checks that pr may decide about the team's proposals and
+// deletion requests: a publish token of the team (for a user, maintainer or
+// above there). A machine token a user made never decides: approving is a
+// person's call, and such a token would let its maker approve their own.
+func checkDecider(pr Principal, sub subject, verb string) error {
 	switch {
 	case pr.Machine():
-		return fmt.Errorf("%w: a machine token cannot %s proposals; a maintainer does, signed in with loadout login", ErrForbidden, verb)
-	case !pr.CanPublish(team):
-		return fmt.Errorf("%w: %s needs a publish token of team %s (a maintainer's, for a user)", ErrForbidden, verb, team)
+		return fmt.Errorf("%w: a machine token cannot %s %ss; a maintainer does, signed in with loadout login", ErrForbidden, verb, sub.noun)
+	case !pr.CanPublish(sub.team):
+		return fmt.Errorf("%w: %s needs a publish token of team %s (a maintainer's, for a user)", ErrForbidden, verb, sub.team)
 	}
 	return nil
 }
@@ -517,12 +519,36 @@ func checkDecider(pr Principal, p Proposal, verb string) error {
 // decide; matching labels are refused too as a guard against one person
 // holding two host-made tokens, but labels are chosen freely and are
 // informational only, so an empty label never matches.
-func selfError(pr Principal, p Proposal, verb string) error {
+func selfError(pr Principal, sub subject, verb string) error {
 	switch {
-	case actorOf(pr).same(p.Author):
-		return fmt.Errorf("%w: the author cannot %s their own proposal; ask a teammate", ErrForbidden, verb)
-	case sameLabel(pr.Label, p.Author.Label):
+	case actorOf(pr).same(sub.author):
+		return fmt.Errorf("%w: the author cannot %s their own %s; ask a teammate", ErrForbidden, verb, sub.noun)
+	case sameLabel(pr.Label, sub.author.Label):
 		return fmt.Errorf("%w: your token has the same label (%q) as the author's; ask a teammate", ErrForbidden, pr.Label)
+	}
+	return nil
+}
+
+// checkOwnApproval lets the author approve their own proposal or request
+// only as an owner of its namespace (a person: a token without a user has
+// nobody to call an owner), who says so with asOwner and says why in the
+// note. self is the four-eyes refusal everyone else gets. Owns is asked
+// only here, so ordinary approvals cost no extra query.
+func checkOwnApproval(ctx context.Context, owners Owners, pr Principal, sub subject, asOwner bool, note string, self error) error {
+	if owners == nil || pr.UserID == "" {
+		return self
+	}
+	owns, err := owners.Owns(ctx, pr.UserID, sub.team)
+	if err != nil {
+		return fmt.Errorf("approve %s: ownership of %s: %w", sub.id, sub.team, err)
+	}
+	switch {
+	case !owns:
+		return self
+	case !asOwner:
+		return fmt.Errorf("%w; as an owner of %s you may approve it yourself: loadout review approve %s --as-owner --note WHY", self, sub.team, sub.id)
+	case strings.TrimSpace(note) == "":
+		return fmt.Errorf("%w: say why %s without review; a note is required when you approve your own %s", ErrInvalid, sub.released, sub.noun)
 	}
 	return nil
 }

@@ -13,6 +13,7 @@ import (
 	"math/big"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/petervlad/loadout/internal/device"
@@ -35,6 +36,8 @@ type Registry interface {
 	Namespace(ctx context.Context, name string) (registry.Namespace, error)
 	CreateNamespace(ctx context.Context, name, parent string, kind registry.NamespaceKind) (registry.Namespace, error)
 	DeleteNamespace(ctx context.Context, name string) error
+	PackageFootprint(ctx context.Context, id pack.ID) (registry.PackageFootprint, error)
+	DeletePackage(ctx context.Context, id pack.ID) (registry.PackageFootprint, error)
 	SetRequireReview(ctx context.Context, name string, on bool) (registry.Namespace, error)
 	SetWiki(ctx context.Context, name string, on bool) (registry.Namespace, error)
 	SetCourse(ctx context.Context, name string, course pack.ID) (registry.Namespace, error)
@@ -50,6 +53,17 @@ type Registry interface {
 
 var _ Registry = (*registry.Service)(nil)
 
+// Snapshots keeps a copy of the database before a change nothing undoes.
+type Snapshots = registry.Snapshots
+
+// Deletions keeps the record a delete without review leaves: who deleted
+// the package, why and what went, written in the transaction that deletes.
+type Deletions interface {
+	RecordDelete(ctx context.Context, by registry.Actor, id pack.ID, reason string) (registry.PackageFootprint, error)
+}
+
+var _ Deletions = (*registry.DeletionService)(nil)
+
 // Options configures a Service.
 type Options struct {
 	// PublicURL is the registry's address in a browser, for links in mails
@@ -63,6 +77,12 @@ type Options struct {
 	// Wiki keeps the namespaces' wiki pages. Nil means this registry has
 	// no wiki.
 	Wiki Wikis
+	// Snapshots takes the copy that comes before a package is deleted on
+	// the web. Nil turns web deletes off.
+	Snapshots Snapshots
+	// Deletions keeps the record of every direct delete. Nil deletes
+	// without one, for tests; the registry always sets it.
+	Deletions Deletions
 	// Now is time.Now in production.
 	Now func() time.Time
 	Log *slog.Logger
@@ -79,8 +99,12 @@ type Service struct {
 	hasher    *password.Hasher
 	publicURL string
 	wiki      Wikis
-	now       func() time.Time
-	log       *slog.Logger
+	snapshots Snapshots
+	deletions Deletions
+	// deleteMu makes web deletes run one after the other.
+	deleteMu sync.Mutex
+	now      func() time.Time
+	log      *slog.Logger
 }
 
 // NewService returns an account service. roles resolves access over the
@@ -99,6 +123,8 @@ func NewService(store Store, reg Registry, roles *Roles, flow *device.Flow, o Op
 		mailer:    o.Mailer,
 		publicURL: strings.TrimRight(o.PublicURL, "/"),
 		wiki:      o.Wiki,
+		snapshots: o.Snapshots,
+		deletions: o.Deletions,
 		now:       o.Now,
 		log:       o.Log,
 	}

@@ -2,8 +2,10 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/petervlad/loadout/internal/api"
 	"github.com/petervlad/loadout/internal/client"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/remote"
@@ -102,11 +104,16 @@ var _ update.Registry = registryAdapter{}
 
 func (a registryAdapter) Latest(ctx context.Context, id pack.ID) (semver.Version, error) {
 	rels, err := a.c.Releases(ctx, id)
+	// Only not_found reads as gone; a 403 (a team the person left) stays a
+	// failure. A package with no release is as good as deleted.
+	if errors.Is(err, api.ErrNotFound) {
+		return semver.Version{}, fmt.Errorf("%s: %w", id, update.ErrGone)
+	}
 	if err != nil {
 		return semver.Version{}, err
 	}
 	if len(rels) == 0 {
-		return semver.Version{}, fmt.Errorf("%s has no releases", id)
+		return semver.Version{}, fmt.Errorf("%s has no releases: %w", id, update.ErrGone)
 	}
 	return semver.Parse(rels[len(rels)-1].Version)
 }

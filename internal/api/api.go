@@ -21,8 +21,11 @@ const (
 	CodeUnauthorized    = "unauthorized"
 	CodeForbidden       = "forbidden"
 	CodeInvalid         = "invalid"
-	CodeTooLarge        = "too_large"
-	CodeInternal        = "internal"
+	// CodeExists is the error code for creating what is already there,
+	// such as a second open request to delete one package.
+	CodeExists   = "exists"
+	CodeTooLarge = "too_large"
+	CodeInternal = "internal"
 )
 
 // ErrNotFound matches, with errors.Is, a response carrying CodeNotFound, so

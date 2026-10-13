@@ -20,9 +20,14 @@ import (
 	"github.com/petervlad/loadout/internal/tier"
 )
 
+// ErrGone is what Registry.Latest returns for a package the registry no
+// longer has: the operator deleted it. It is not a failure of the check.
+var ErrGone = errors.New("package is no longer on its registry")
+
 // Registry is what update needs from one remote registry.
 type Registry interface {
-	// Latest returns the highest published version of id.
+	// Latest returns the highest published version of id, or ErrGone when
+	// the registry has no release of it any more.
 	Latest(ctx context.Context, id pack.ID) (semver.Version, error)
 	// Fetch downloads and verifies one version.
 	Fetch(ctx context.Context, id pack.ID, version semver.Version) (*pack.Pack, error)
@@ -103,6 +108,10 @@ const (
 	// this install, so its updates change nothing and are not applied.
 	OutcomeShadowed Outcome = "shadowed by a closer layer"
 	OutcomeFailed   Outcome = "failed"
+	// OutcomeGone means the registry deleted the package. The install is
+	// left as it is, files included: they may hold the person's own work,
+	// and removing what nobody asked to remove is never sync's job.
+	OutcomeGone Outcome = "removed from the registry"
 	// OutcomeRerendered means the same version was written again because
 	// the team's model table changed what it renders (policy auto).
 	OutcomeRerendered Outcome = "model settings applied"
@@ -245,6 +254,10 @@ func (s *Service) open(ctx context.Context, e lock.Entry) source {
 
 func (s *Service) syncOne(ctx context.Context, src source, e lock.Entry) Result {
 	latest, err := src.Registry.Latest(ctx, e.ID)
+	if errors.Is(err, ErrGone) {
+		s.log.Info("sync checked", "id", e.ID, "scope", e.Scope, "current", e.Version, "outcome", OutcomeGone)
+		return Result{Entry: e, Outcome: OutcomeGone, remote: cmp.Or(src.Remote, e.Remote)}
+	}
 	if err != nil {
 		return s.failed(e, fmt.Errorf("check %s: %w", e.ID, err))
 	}

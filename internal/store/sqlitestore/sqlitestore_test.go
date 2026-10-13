@@ -64,6 +64,20 @@ func TestAccountStoreContract(t *testing.T) {
 	})
 }
 
+func TestPackageDeleteContract(t *testing.T) {
+	registrytest.RunPackageDeleteContract(t, func(t *testing.T) registrytest.DeleteBackend {
+		t.Helper()
+		return newStore(t)
+	})
+}
+
+func TestDeletionContract(t *testing.T) {
+	registrytest.RunDeletionContract(t, func(t *testing.T) registrytest.DeletionBackend {
+		t.Helper()
+		return newStore(t)
+	})
+}
+
 func TestCountStoreContract(t *testing.T) {
 	registrytest.RunCountStoreContract(t, func(t *testing.T) registrytest.CountBackend {
 		t.Helper()

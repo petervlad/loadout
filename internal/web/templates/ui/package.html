@@ -45,4 +45,11 @@
 <a class="btn" href="{{.Base}}/raw/{{.MainName}}">{{template "icon-download"}}Download<span class="vh"> {{.MainName}}</span></a>{{end}}</div>
 <pre class="markdown">{{.Main}}</pre>
 </section>
+{{if or .CanAsk .CanDelete}}<section class="panel{{if .CanDelete}} danger-zone{{end}}" aria-labelledby="delete-h">
+<div class="panel-head"><div class="grow"><h2 id="delete-h">Delete package</h2>
+{{if .CanAsk}}{{with .Open}}<p>Deletion asked by <strong>{{.By}}</strong> <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>.{{if .Path}} <a href="{{.Path}}">See the request</a>.{{end}}</p>{{else}}<p>Ask to have {{$.Page.ID}} deleted. A maintainer or owner of its team who is not you approves it first.</p>{{end}}{{end}}
+{{if .CanDelete}}<p>As an admin you can also delete it now: this removes every release and proposal of {{.ID}} for good. You confirm on the next page.</p>{{end}}
+</div>
+<div class="buttons">{{if and .CanAsk (not .Open)}}<a class="btn" href="{{.AskPath}}">Ask to delete…<span class="vh"> {{.ID}}</span></a>{{end}}{{if .CanDelete}}<a class="btn btn-danger" href="{{.DeletePath}}">Delete package…<span class="vh"> {{.ID}}</span></a>{{end}}</div></div>
+</section>{{end}}
 {{end}}{{end}}

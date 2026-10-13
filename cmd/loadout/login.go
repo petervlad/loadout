@@ -16,6 +16,7 @@ import (
 	"github.com/petervlad/loadout/internal/ratelimit"
 	"github.com/petervlad/loadout/internal/registry"
 	"github.com/petervlad/loadout/internal/server"
+	"github.com/petervlad/loadout/internal/snapshot"
 	"github.com/petervlad/loadout/internal/store/sqlitestore"
 	"github.com/petervlad/loadout/internal/target/claudecode"
 	"github.com/petervlad/loadout/internal/target/copilot"
@@ -38,7 +39,7 @@ const (
 // when LOADOUT_PUBLIC_URL is not set: then the registry serves exactly the
 // token API. It logs which parts are on, never a secret. A mail queue it
 // starts is added to closers. The pages include the admins' server page.
-func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMailer account.Mailer, store *sqlitestore.Store, reg *registry.Service, props *registry.ProposalService, wikis *registry.WikiService, roles *account.Roles, closers *closeList) ([]server.Option, error) {
+func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMailer account.Mailer, store *sqlitestore.Store, reg *registry.Service, props *registry.ProposalService, dels *registry.DeletionService, snaps account.Snapshots, wikis *registry.WikiService, roles *account.Roles, closers *closeList) ([]server.Option, error) {
 	if login.PublicURL == "" {
 		log.Info("login is off; set LOADOUT_PUBLIC_URL to turn on web and CLI login")
 		return nil, nil
@@ -71,9 +72,21 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		PublicURL: login.PublicURL,
 		Mailer:    queued,
 		Wiki:      wikis,
+		Snapshots: snaps,
+		Deletions: dels,
 		Now:       time.Now,
 		Log:       log,
 	})
+	// Deleting on the web, directly or through a request, needs the backup
+	// folder: both routes take a copy first. Without one the pages leave
+	// the whole feature out.
+	var (
+		deletes  web.Deletes
+		requests web.DeleteRequests
+	)
+	if snaps != nil {
+		deletes, requests = accounts, dels
+	}
 	pages, err := web.New(web.Config{
 		PublicURL: login.PublicURL,
 		DocsURL:   login.DocsURL,
@@ -92,6 +105,8 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 			Now:       time.Now,
 			Skills:    &web.BuiltinSkills{Packs: skills, Version: stats.Build.String()},
 			Wiki:      accounts,
+			Deletes:   deletes,
+			Requests:  requests,
 		},
 	}, accounts)
 	if err != nil {
@@ -107,6 +122,24 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		server.WithManagement(accounts),
 		server.WithWiki(accounts),
 	}, nil
+}
+
+// webSnapshots returns the copier that comes before a package is deleted on
+// the web, or nil, which turns web deletes off, when LOADOUT_BACKUP_DIR is
+// not set or is not a usable folder. The nil is a plain nil interface, not a
+// nil *snapshot.Dir inside one.
+func webSnapshots(log *slog.Logger, dir string, store *sqlitestore.Store) account.Snapshots {
+	if dir == "" {
+		log.Info("deleting packages on the web is off; set LOADOUT_BACKUP_DIR to turn it on")
+		return nil
+	}
+	d, err := snapshot.New(dir, store, time.Now)
+	if err != nil {
+		log.Warn("deleting packages on the web is off", "error", err)
+		return nil
+	}
+	log.Info("deleting packages on the web is on", "backups", dir)
+	return d
 }
 
 // statsSetup is what the server page and the skills pages need beyond the
