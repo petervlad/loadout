@@ -6,6 +6,24 @@ loadout shares a team's AI agents, skills and knowledge bases with everyone on t
 
 loadout moves files. It never runs a model and never holds an AI key. Every agent, skill and knowledge base runs in each person's own AI tool, on their own subscription. Even `loadout review`, the one command that starts an agent, runs on the reviewer's machine in the reviewer's own tool. The registry only stores text.
 
+## Try it
+
+See loadout working before you install anything. You need Docker, and nothing else: no Go, and nothing is written to your `~/.claude` or `~/.loadout`.
+
+```sh
+docker compose up
+```
+
+The first start prints the address and the demo accounts. Open <http://localhost:8080> and sign in as `alice@example.com` with the password it shows. The registry holds an invented project, `acme`, with two teams, `lime` and `koala`, and a few weeks of work: agents, a skill, knowledge bases with diagrams, proposals to review, a pipeline, team memory, a wiki and a course.
+
+To try the command line side, open a shell that is already signed in as alice, in a small sample project set up for Claude Code and Copilot:
+
+```sh
+docker compose run --rm cli
+```
+
+Then `loadout status`, `loadout install lime/planner --scope project` and `git status` show what an install writes. No AI tool runs in the container, because loadout never runs a model. The demo listens on this machine only and refuses to start anywhere else, since every demo account shares one public password. `docker compose down -v` throws it away. The [guide](docs/GUIDE.md#try-the-demo) has the details.
+
 ## Install
 
 Pick one.
@@ -22,7 +40,7 @@ Pick one.
 
 Check it with `loadout version`, and update it later with `loadout update`, which follows however you installed it.
 
-## Try it in five minutes, on one machine
+## Your first package, in five minutes
 
 You need Claude Code or GitHub Copilot CLI installed (loadout writes into their folders).
 

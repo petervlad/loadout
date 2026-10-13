@@ -1,0 +1,3 @@
+- [Branch names carry the ticket](branch-names.md)
+- [Ticket template](ticket-template.md)
+- [How I like answers](how-i-like-answers.md)

@@ -4,7 +4,7 @@ Throwaway registry with sample data, for looking at the web pages and taking scr
 
 ```sh
 export PATH=/opt/homebrew/bin:$PATH            # Go 1.27
-scripts/preview/seed.sh                         # builds loadout, seeds project acme with teams lime and koala, agents, a proposal with a report, users
+scripts/preview/seed.sh                         # builds loadout, runs `loadout demo seed` for project acme with teams lime and koala, people, packages, proposals, wiki, course and memory, then adds carla, dan and a long report
 scripts/preview/serve.sh                        # runs the registry on 127.0.0.1:7431 and the cookie proxy
 scripts/preview/skills.sh                       # adds a skill, a KB (with Mermaid and draw.io diagrams) and a skill proposal (needs serve.sh running)
 scripts/preview/behind.sh                       # adds a proposal two releases behind and a blocked one (after skills.sh)

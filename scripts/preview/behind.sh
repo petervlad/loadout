@@ -56,26 +56,26 @@ $L propose "$P/rel-propose" --remote lime --note "Group notes by ticket" --promp
   --prompt "Draft notes for a release with only fixes" >/dev/null
 notes "$P/rel-release" 0.9.1 'Draft release notes.' fast
 $L publish "$P/rel-release" --remote lime >/dev/null
-OLD=$(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'release-notes'")
+OLD=$(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'release-notes' AND status = 'open'")
 $L rebase "$P/rel-propose" --remote lime >/dev/null
 $L propose "$P/rel-propose" --remote lime --note "Group notes by ticket, in past tense" >/dev/null
 
 id() { sqlite3 "$DB" "SELECT id FROM users WHERE email = '$1'"; }
 ago() { date -u -v"$1" +%Y-%m-%dT%H:%M:%S.000000000Z; }
 sqlite3 "$DB" <<Y
-UPDATE proposals SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$(ago -3d)' WHERE name = 'release-notes-skill';
-UPDATE proposals SET author_user_id = '$(id alice@acme.example)', author_label = 'alice@acme.example via loadout login', created_at = '$(ago -5H)' WHERE name = 'code-review';
+UPDATE proposals SET author_user_id = '$(id bogdan@example.com)', author_label = 'bogdan@example.com via loadout login', created_at = '$(ago -3d)' WHERE name = 'release-notes-skill';
+UPDATE proposals SET author_user_id = '$(id alice@example.com)', author_label = 'alice@example.com via loadout login', created_at = '$(ago -5H)' WHERE name = 'code-review';
 UPDATE releases SET published_at = '$(ago -4d)' WHERE name = 'release-notes-skill' AND version = '1.0.0';
-UPDATE releases SET published_at = '$(ago -2d)', published_by_user_id = '$(id carla@acme.example)', published_by_label = 'carla@acme.example via loadout login' WHERE name = 'release-notes-skill' AND version = '1.0.1';
+UPDATE releases SET published_at = '$(ago -2d)', published_by_user_id = '$(id carla@example.com)', published_by_label = 'carla@example.com via loadout login' WHERE name = 'release-notes-skill' AND version = '1.0.1';
 UPDATE releases SET published_at = '$(ago -2H)', published_by_token_id = '', published_by_label = '', published_by_user_id = '' WHERE name = 'release-notes-skill' AND version = '1.0.2';
-UPDATE releases SET published_at = '$(ago -1H)', published_by_user_id = '$(id carla@acme.example)', published_by_label = 'carla@acme.example via loadout login' WHERE name = 'code-review' AND version = '1.9.0';
-UPDATE proposals SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$(ago -2d)', decided_by_user_id = '$(id bogdan@acme.example)', decided_by_label = 'bogdan@acme.example via loadout login', decided_at = '$(ago -30M)' WHERE id = '$OLD';
-UPDATE proposals SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$(ago -30M)' WHERE name = 'release-notes' AND id != '$OLD';
-UPDATE proposal_prompts SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$(ago -2d)' WHERE body = 'Draft notes for 2.4.0';
-UPDATE proposal_prompts SET author_user_id = '$(id carla@acme.example)', author_label = 'carla@acme.example via loadout login', created_at = '$(ago -1d)' WHERE body = 'Draft notes for a release with only fixes'; -- Carla added it on the web; it came along
-UPDATE releases SET published_at = '$(ago -3H)', published_by_user_id = '$(id alice@acme.example)', published_by_label = 'alice@acme.example via loadout login' WHERE name = 'release-notes' AND version = '0.9.1';
+UPDATE releases SET published_at = '$(ago -1H)', published_by_user_id = '$(id carla@example.com)', published_by_label = 'carla@example.com via loadout login' WHERE name = 'code-review' AND version = '1.9.0';
+UPDATE proposals SET author_user_id = '$(id bogdan@example.com)', author_label = 'bogdan@example.com via loadout login', created_at = '$(ago -2d)', decided_by_user_id = '$(id bogdan@example.com)', decided_by_label = 'bogdan@example.com via loadout login', decided_at = '$(ago -30M)' WHERE id = '$OLD';
+UPDATE proposals SET author_user_id = '$(id bogdan@example.com)', author_label = 'bogdan@example.com via loadout login', created_at = '$(ago -30M)' WHERE name = 'release-notes' AND status = 'open' AND id != '$OLD';
+UPDATE proposal_prompts SET author_user_id = '$(id bogdan@example.com)', author_label = 'bogdan@example.com via loadout login', created_at = '$(ago -2d)' WHERE body = 'Draft notes for 2.4.0';
+UPDATE proposal_prompts SET author_user_id = '$(id carla@example.com)', author_label = 'carla@example.com via loadout login', created_at = '$(ago -1d)' WHERE body = 'Draft notes for a release with only fixes'; -- Carla added it on the web; it came along
+UPDATE releases SET published_at = '$(ago -3H)', published_by_user_id = '$(id alice@example.com)', published_by_label = 'alice@example.com via loadout login' WHERE name = 'release-notes' AND version = '0.9.1';
 Y
 echo "replaced: $OLD"
-echo "replacement: $(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'release-notes' AND id != '$OLD'")"
+echo "replacement: $(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'release-notes' AND status = 'open' AND id != '$OLD'")"
 echo "behind: $(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'release-notes-skill'")"
 echo "blocked: $(sqlite3 "$DB" "SELECT id FROM proposals WHERE name = 'code-review'")"

@@ -275,6 +275,7 @@ td code { white-space: nowrap; }
 <li><a href="#the-one-rule">The one rule</a></li>
 <li><a href="#concepts">Concepts</a></li>
 <li><a href="#get-started">Get started</a></li>
+<li><a href="#try-the-demo">Try the demo</a></li>
 <li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
 <li><a href="#team-memory-in-your-ai-tools">Team memory in your AI tools</a></li>
 <li><a href="#loadouts-own-skills">loadout's own skills</a></li>
@@ -304,6 +305,7 @@ td code { white-space: nowrap; }
 <li><a href="#the-one-rule">The one rule</a></li>
 <li><a href="#concepts">Concepts</a></li>
 <li><a href="#get-started">Get started</a></li>
+<li><a href="#try-the-demo">Try the demo</a></li>
 <li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
 <li><a href="#team-memory-in-your-ai-tools">Team memory in your AI tools</a></li>
 <li><a href="#loadouts-own-skills">loadout's own skills</a></li>
@@ -500,6 +502,56 @@ loadout install payments/runbooks</code></pre>
 <h3 id="joining-with-an-invite-instead">Joining with an invite instead</h3>
 <p>A registry without accounts uses invites. Your team lead sends you one (<code>ldi_...</code>). It holds the address, the team and a token, so keep it private. Save it to a file and run:</p>
 <pre class="sh"><code>loadout team join &lt; invite.txt</code></pre>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="try-the-demo">Try the demo</h2>
+</summary><div class="chapter-body">
+<p>The repository holds a demo: a registry full of fake teams and data, and a shell to try the command line in. It needs Docker and nothing else.</p>
+<pre class="sh"><code>docker compose up              # the registry, on http://localhost:8080
+docker compose run --rm cli    # a shell signed in as alice, in /work/sample-app
+docker compose down -v         # throw it away, and the next up starts over</code></pre>
+<p>The first <code>up</code> prints the address and the accounts. They all share one password, which the sign-in page also shows, and every page carries a banner that says it is a demo.</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Account</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alice@example.com</code></td>
+<td>Maintainer of <code>lime</code>, member of <code>koala</code></td>
+</tr>
+<tr>
+<td><code>bogdan@example.com</code></td>
+<td>Member of <code>lime</code></td>
+</tr>
+<tr>
+<td><code>olga@example.com</code></td>
+<td>Owner of <code>acme</code></td>
+</tr>
+<tr>
+<td><code>ada@example.com</code></td>
+<td>Admin of the registry</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The world is a project <code>acme</code> with teams <code>lime</code> (web) and <code>koala</code> (mobile), backdated over five weeks: agents, a skill, knowledge bases with Mermaid and draw.io diagrams, several releases of each, proposals that are open, approved, rejected and behind, a request to delete a package, a pipeline template <code>acme/dev-loop</code> with lime's binding, team memory with a few entries from this week, a wiki and a short course for lime.</p>
+<p>In the shell, the sample project is a git repository set up for Claude Code and Copilot, so an install writes both sets of files side by side. A personal memory folder sits next to it for <code>loadout memory import</code>:</p>
+<pre class="sh"><code>loadout status
+loadout install lime/planner --scope project
+git status
+loadout propose --help
+loadout new pipeline lime/my-loop --uses acme/dev-loop@1
+loadout memory import ../personal-memory --team lime</code></pre>
+<p>No Claude Code or Copilot runs in the container, so nothing here calls a model. To see an agent at work, copy what an install wrote into a project you use with your own tool.</p>
+<p>Without Docker, the same demo runs from the binary:</p>
+<pre class="sh"><code>loadout demo seed --data ./demo-data
+LOADOUT_DEMO=1 LOADOUT_PUBLIC_URL=http://localhost:7420 loadout demo up --data ./demo-data</code></pre>
+<p><code>demo seed</code> writes the world straight into an empty folder, with no server and no tokens. A folder it already seeded is left as it is, and any other folder that has files in it is refused. Demo mode (<code>LOADOUT_DEMO=1</code>) turns on simple login with the shared password, adds the banner, never offers Google and only logs mail. It refuses to start unless <code>LOADOUT_PUBLIC_URL</code> is a localhost address and the folder was made by <code>demo seed</code>, because the password is public. Never point it at a registry other people can reach.</p>
 </div></details>
 <details class="chapter"><summary>
 <h2 id="set-up-claude-code-and-copilot">Set up Claude Code and Copilot</h2>
@@ -1671,6 +1723,14 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <tr>
 <td><code>loadout serve --check [--env-file F]</code></td>
 <td>Check the registry's configuration and exit, without serving. Prints one line per part and never a secret, and exits 1 when a variable is wrong or misspelt (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout demo seed [--data D]</code></td>
+<td>Write the demo world (fake teams, packages, proposals, memory) into an empty folder. A folder it seeded is left alone, any other that has files is refused (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout demo up [--data D] [--addr A]</code></td>
+<td>Seed the folder if it is empty, then serve it. Needs <code>LOADOUT_DEMO=1</code> and a localhost <code>LOADOUT_PUBLIC_URL</code></td>
 </tr>
 <tr>
 <td><code>loadout mail test --to ADDRESS</code></td>

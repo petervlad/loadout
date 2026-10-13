@@ -19,23 +19,20 @@ fi
 rm -rf "$DATA" "$HOME" "$S/pk"
 mkdir -p "$DATA" "$HOME" "$S/pk"
 
-$L namespace create acme --kind project --data "$DATA"
-$L namespace create lime --parent acme --kind team --data "$DATA"
-$L namespace create koala --parent acme --kind team --data "$DATA"
-
-$L member add --namespace lime --email alice@acme.example --role maintainer --data "$DATA"
-$L member add --namespace lime --email bogdan@acme.example --role member --data "$DATA"
-$L member add --namespace lime --email carla@acme.example --role maintainer --data "$DATA"
-$L member add --namespace lime --email dan@acme.example --role member --data "$DATA"
-$L member add --namespace koala --email alice@acme.example --role member --data "$DATA"
-# An admin, for the delete page (olga, an owner of acme, comes with course.sh).
-$L admin grant --email ada@acme.example --data "$DATA"
+# The shared world (people, teams, packages, proposals, wiki, course, memory)
+# comes from the same command the demo uses. This script adds what only a
+# screenshot needs: more people, a long answer in a report and teammates'
+# prompts.
+$L demo seed --data "$DATA" >/dev/null
+$L member add --namespace lime --email carla@example.com --role maintainer --data "$DATA"
+$L member add --namespace lime --email dan@example.com --role member --data "$DATA"
 
 LIME=$($L token create --team lime --publish --label seed-lime --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
 ACME=$($L token create --team acme --publish --label seed-acme --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
 $L token create --team lime --read --label ci-release-job --data "$DATA" >/dev/null
 
-# Start the server in the background for publishing.
+# Start the server in the background for publishing. It is a normal registry,
+# not demo mode, so tokens and the cookie proxy work as before.
 LOADOUT_PUBLIC_URL=$URL LOADOUT_DEV=1 $L serve --addr 127.0.0.1:$PORT --data "$DATA" >"$S/serve.log" 2>&1 &
 SERVER=$!
 trap 'kill $SERVER 2>/dev/null || true' EXIT
@@ -44,42 +41,9 @@ for _ in $(seq 50); do curl -fs "$URL/v1/health" >/dev/null && break; sleep 0.1;
 echo "$LIME" | $L remote add lime "$URL" --token-stdin >/dev/null
 echo "$ACME" | $L remote add acme "$URL" --token-stdin >/dev/null
 
-pkg() { # team name version description remote body
-  local dir="$S/pk/$1-$2"
-  mkdir -p "$dir"
-  printf 'name: %s/%s\nkind: agent\nversion: %s\ndescription: %s\n' "$1" "$2" "$3" "$4" >"$dir/loadout.yaml"
-  printf -- '---\nname: %s\ndescription: %s\nmodel: balanced\ntools: [read, search]\n---\n%s\n' "$2" "$4" "$6" >"$dir/agent.md"
-  $L publish "$dir" --remote "$5" >/dev/null
-}
-
-PLANNER_OLD='You are the team planner. Turn a ticket into a plan.
-
-- Read the ticket and the code it touches.
-- Keep plans short and general.
-- List the risks.'
-pkg lime planner 2.2.0 "Turns a ticket into an ordered plan with files, risks and checks" lime "$PLANNER_OLD"
-pkg lime planner 2.3.0 "Turns a ticket into an ordered plan with files, risks and checks" lime "$PLANNER_OLD
-- Ask before guessing."
-pkg lime code-review 1.8.2 "Adversarial review of a branch against its ticket" lime "Review the branch against the ticket. <script>alert(1)</script> is text."
-pkg lime release-notes 0.9.0 "Drafts release notes from merged pull requests" lime "Draft release notes."
-pkg acme python-standards 4.1.0 "House rules for Python across every acme team" acme "Follow the house rules."
-pkg acme docs-writer 1.0.3 "Short user-facing docs with diagrams and links" acme "Write short docs."
-
-# The candidate: planner 2.4.0.
-dir="$S/pk/lime-planner"
-printf 'name: lime/planner\nkind: agent\nversion: 2.4.0\ndescription: Turns a ticket into an ordered plan with files, risks and checks\n' >"$dir/loadout.yaml"
-printf -- '---\nname: planner\ndescription: Turns a ticket into an ordered plan with files, risks and checks\nmodel: balanced\ntools: [read, search]\n---\n%s\n' 'You are the team planner. Turn a ticket into a plan.
-
-- Read the ticket and the code it touches.
-- Name every file you would touch.
-- End with one concrete test.
-- List the risks.
-- Ask before guessing.' >"$dir/agent.md"
-$L propose "$dir" --remote lime --note "Plans now name the exact files and end with a test step." \
-  --prompt "Plan TRK-1234: add a retry to the upload job" \
-  --prompt "Plan a database migration for the releases table" \
-  --prompt "Plan retries for every upload job, with files, risks and a test" >/dev/null
-ID=$(sqlite3 "$DATA/registry.db" "SELECT id FROM proposals LIMIT 1")
+# The open proposal of lime/planner 2.4.0, with its prompts and a report,
+# comes with the demo, and the third prompt of the big report is added here.
+ID=$(sqlite3 "$DATA/registry.db" "SELECT id FROM proposals WHERE name = 'planner' AND status = 'open'")
 
 # A long answer (about 400 words, with a list, a table and a code block)
 # and a medium one (about 120), so the page shows an answer cut to its
@@ -170,44 +134,38 @@ EOF
 printf '# Review of lime/planner 2.4.0\n\nSee the JSON.\n' >"$S/report.md"
 curl -fs -H "Authorization: Bearer $LIME" -F "markdown=@$S/report.md;type=text/markdown" -F "report=@$S/report.json;type=application/json" "$URL/v1/proposals/$ID/reviews" >/dev/null
 
-# Prompts teammates added after the report (Carla, Alice), and one Dan
-# added and removed; their authors are set below.
+# The third prompt of the report, then prompts teammates added after it
+# (Carla, Alice), and one Dan added and removed; their authors are set below.
 prompt() { curl -fs -H "Authorization: Bearer $LIME" -H "Content-Type: application/json" -d "{\"text\":$(json "$1")}" "$URL/v1/proposals/$ID/prompts" >/dev/null; }
+prompt 'Plan retries for every upload job, with files, risks and a test'
 prompt 'Plan the rollback if the retry makes the nightly bundle miss its 02:00 slot.
 Name the job and the flag you would flip.'
 prompt 'Plan TRK-1301, whose title is "<script>alert(1)</script> in the upload log"'
 prompt 'Plan it in Python 2'
 
-# People: names, sign-in methods, the proposal's author and reviewer, and
-# sessions with known secrets for the screenshots.
+# People: names, sign-in methods, the demo's accounts at other dates and
+# sessions with known secrets for the screenshots. The demo already wrote
+# the proposal's author, its first prompts and its first report.
 DB="$DATA/registry.db"
 id() { sqlite3 "$DB" "SELECT id FROM users WHERE email = '$1'"; }
 NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000000000Z)
 LATER=$(date -u -v+20d +%Y-%m-%dT%H:%M:%S.000000000Z)
-PROPOSED=$(date -u -v-3H +%Y-%m-%dT%H:%M:%S.000000000Z)
 sqlite3 "$DB" <<EOF
-UPDATE users SET name = 'Alice Martin', google_subject = 'g-alice', email_verified_at = '$NOW' WHERE email = 'alice@acme.example';
-UPDATE users SET name = 'Bogdan Ionescu', password_hash = 'x', email_verified_at = '$NOW' WHERE email = 'bogdan@acme.example';
-UPDATE users SET name = 'Carla Ruiz', google_subject = 'g-carla', email_verified_at = '$NOW' WHERE email = 'carla@acme.example';
-UPDATE memberships SET created_at = '2026-06-03T10:00:00.000000000Z' WHERE user_id = '$(id alice@acme.example)';
-UPDATE memberships SET created_at = '2026-07-10T10:00:00.000000000Z' WHERE user_id = '$(id bogdan@acme.example)';
-UPDATE memberships SET created_at = '2026-08-21T10:00:00.000000000Z' WHERE user_id = '$(id carla@acme.example)';
-UPDATE proposals SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$PROPOSED';
-UPDATE proposal_prompts SET author_user_id = '$(id bogdan@acme.example)', author_label = 'bogdan@acme.example via loadout login', created_at = '$PROPOSED' WHERE proposal_id = '$ID' AND seq <= 3;
-UPDATE proposal_prompts SET author_user_id = '$(id carla@acme.example)', author_label = 'carla@acme.example via loadout login', created_at = '$(date -u -v-90M +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 4;
-UPDATE proposal_prompts SET author_user_id = '$(id alice@acme.example)', author_label = 'alice@acme.example via loadout login', created_at = '$(date -u -v-40M +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 5;
-UPDATE proposal_prompts SET author_user_id = '$(id dan@acme.example)', author_label = 'dan@acme.example via loadout login', created_at = '$(date -u -v-30M +%Y-%m-%dT%H:%M:%S.000000000Z)',
-  removed_at = '$(date -u -v-20M +%Y-%m-%dT%H:%M:%S.000000000Z)', removed_by_user_id = '$(id dan@acme.example)', removed_by_label = 'dan@acme.example via loadout login' WHERE proposal_id = '$ID' AND seq = 6;
-UPDATE proposal_reviews SET author_user_id = '$(id carla@acme.example)', author_label = 'carla@acme.example via loadout login', created_at = '$(date -u -v-2H +%Y-%m-%dT%H:%M:%S.000000000Z)';
-UPDATE releases SET published_at = '$(date -u -v-2d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE name = 'planner' AND version = '2.3.0';
-UPDATE releases SET published_at = '$(date -u -v-30d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE name = 'planner' AND version = '2.2.0';
-UPDATE releases SET published_at = '$(date -u -v-1d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE name = 'code-review';
-UPDATE releases SET published_at = '$(date -u -v-21d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE name = 'release-notes';
-UPDATE releases SET published_at = '$(date -u -v-40d +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE team = 'acme';
+UPDATE users SET name = 'Alice Martin', google_subject = 'g-alice' WHERE email = 'alice@example.com';
+UPDATE users SET name = 'Bogdan Ionescu' WHERE email = 'bogdan@example.com';
+UPDATE users SET name = 'Carla Ruiz', google_subject = 'g-carla', email_verified_at = '$NOW' WHERE email = 'carla@example.com';
+UPDATE memberships SET created_at = '2026-08-21T10:00:00.000000000Z' WHERE user_id = '$(id carla@example.com)';
+UPDATE proposal_prompts SET author_user_id = '$(id bogdan@example.com)', author_label = 'bogdan@example.com via loadout login', created_at = '$(date -u -v-3H +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 3;
+UPDATE proposal_prompts SET author_user_id = '$(id carla@example.com)', author_label = 'carla@example.com via loadout login', created_at = '$(date -u -v-90M +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 4;
+UPDATE proposal_prompts SET author_user_id = '$(id alice@example.com)', author_label = 'alice@example.com via loadout login', created_at = '$(date -u -v-40M +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 5;
+UPDATE proposal_prompts SET author_user_id = '$(id dan@example.com)', author_label = 'dan@example.com via loadout login', created_at = '$(date -u -v-30M +%Y-%m-%dT%H:%M:%S.000000000Z)',
+  removed_at = '$(date -u -v-20M +%Y-%m-%dT%H:%M:%S.000000000Z)', removed_by_user_id = '$(id dan@example.com)', removed_by_label = 'dan@example.com via loadout login' WHERE proposal_id = '$ID' AND seq = 6;
+UPDATE proposal_reviews SET author_user_id = '$(id carla@example.com)', author_label = 'carla@example.com via loadout login', created_at = '$(date -u -v-2H +%Y-%m-%dT%H:%M:%S.000000000Z)' WHERE proposal_id = '$ID' AND seq = 2;
+DELETE FROM sessions;
 INSERT INTO sessions (hash, user_id, created_at, expires_at) VALUES
-  (X'$(printf 'alice-session' | shasum -a 256 | cut -d' ' -f1)', '$(id alice@acme.example)', '$NOW', '$LATER'),
-  (X'$(printf 'bogdan-session' | shasum -a 256 | cut -d' ' -f1)', '$(id bogdan@acme.example)', '$NOW', '$LATER'),
-  (X'$(printf 'ada-session' | shasum -a 256 | cut -d' ' -f1)', '$(id ada@acme.example)', '$NOW', '$LATER');
+  (X'$(printf 'alice-session' | shasum -a 256 | cut -d' ' -f1)', '$(id alice@example.com)', '$NOW', '$LATER'),
+  (X'$(printf 'bogdan-session' | shasum -a 256 | cut -d' ' -f1)', '$(id bogdan@example.com)', '$NOW', '$LATER'),
+  (X'$(printf 'ada-session' | shasum -a 256 | cut -d' ' -f1)', '$(id ada@example.com)', '$NOW', '$LATER');
 EOF
 echo "proposal $ID"
 echo "$ID" >"$S/proposal-id"

@@ -1,6 +1,7 @@
 #!/bin/bash
 # Adds a course to the preview (after seed.sh, with serve.sh running): olga
-# owns acme; lime's wiki has a long page and the course lime/lime-course
+# owns acme (the demo made her); lime's wiki gets a long page on top of the
+# demo's and the course lime/lime-course
 # (seven lessons, a Mermaid diagram, three quizzes and one broken quiz);
 # acme's course acme/onboarding shows on koala, which has none of its
 # own; koala's course names a package that does not exist.
@@ -8,9 +9,7 @@ set -euo pipefail
 S=${LOADOUT_PREVIEW_DIR:-${TMPDIR:-/tmp}/loadout-preview}
 L=$S/loadout; DATA=$S/data; DB=$DATA/registry.db; export HOME=$S/home
 P=$S/pk; rm -rf "$P/lime-course" "$P/onboarding"
-$L member add --namespace acme --email olga@acme.example --role owner --data "$DATA" >/dev/null
-$L namespace create koala --parent acme --kind team --data "$DATA" >/dev/null
-for ns in acme lime koala koala; do $L namespace set $ns --wiki on --data "$DATA" >/dev/null; done
+for ns in acme lime koala; do $L namespace set $ns --wiki on --data "$DATA" >/dev/null; done
 
 quiz() { # question right wrong why-right why-wrong
   printf '```quiz\n%s\n\n- [ ] %s\n  %s\n- [x] %s\n  %s\n```\n' "$1" "$3" "$5" "$2" "$4"
@@ -108,16 +107,16 @@ Merge to main; the gate job deploys.
 
 The rota is in the team calendar.'
 NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000000000Z)
-ALICE=$(sqlite3 "$DB" "SELECT id FROM users WHERE email = 'alice@acme.example'")
+ALICE=$(sqlite3 "$DB" "SELECT id FROM users WHERE email = 'alice@example.com'")
 python3 - "$DB" "$WIKI" "$ALICE" "$NOW" <<'PY'
 import sqlite3, sys
 db, text, alice, now = sys.argv[1:]
 c = sqlite3.connect(db)
-c.execute("INSERT INTO wiki_revisions (namespace, seq, format, body, size, author_user_id, author_label, note, created_at) VALUES ('lime', 1, 'md', ?, ?, ?, 'alice@acme.example', 'First page', ?)", (text, len(text.encode()), alice, now))
+c.execute("INSERT INTO wiki_revisions (namespace, seq, format, body, size, author_user_id, author_label, note, created_at) VALUES ('lime', (SELECT COALESCE(MAX(seq), 0) + 1 FROM wiki_revisions WHERE namespace = 'lime'), 'md', ?, ?, ?, 'alice@example.com', 'First page', ?)", (text, len(text.encode()), alice, now))
 c.execute("UPDATE namespaces SET course = 'koala/gone' WHERE name = 'koala'")
 c.commit()
 PY
-OLGA=$(sqlite3 "$DB" "SELECT id FROM users WHERE email = 'olga@acme.example'")
+OLGA=$(sqlite3 "$DB" "SELECT id FROM users WHERE email = 'olga@example.com'")
 LATER=$(date -u -v+20d +%Y-%m-%dT%H:%M:%S.000000000Z)
 sqlite3 "$DB" "UPDATE users SET name = 'Olga Berg', email_verified_at = '$NOW' WHERE id = '$OLGA';
 INSERT INTO sessions (hash, user_id, created_at, expires_at) VALUES (X'$(printf 'olga-session' | shasum -a 256 | cut -d' ' -f1)', '$OLGA', '$NOW', '$LATER');"

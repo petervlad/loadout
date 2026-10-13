@@ -73,7 +73,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # shellcheck is on the runner image.
-      - run: shellcheck -S warning deploy/*.sh scripts/*.sh scripts/preview/*.sh
+      - run: shellcheck -S warning deploy/*.sh deploy/demo/*.sh scripts/*.sh scripts/preview/*.sh
+
+  # The demo (compose.yaml) is valid and both of its images build from the checkout.
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker compose --profile cli config --quiet
+      - run: docker compose --profile cli build
 
   caddy:
     runs-on: ubuntu-latest

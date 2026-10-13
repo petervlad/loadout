@@ -1,0 +1,39 @@
+# Try loadout with fake teams and data, on this machine only.
+#
+#   docker compose up              the registry, on http://localhost:8080
+#   docker compose run --rm cli    a shell signed in as alice, in a sample project
+#   docker compose down -v         throw the demo away and start over
+#
+# The first `up` prints the address and the demo accounts, all with one
+# public password. They exist only in the volume below. The registry refuses
+# to start on anything but a localhost address, see deploy/demo/Dockerfile.
+name: loadout-demo
+
+services:
+  registry:
+    build:
+      context: .
+      dockerfile: deploy/demo/Dockerfile
+      target: registry
+    # Published on this machine only: the demo password is public.
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - registry-data:/data
+
+  cli:
+    build:
+      context: .
+      dockerfile: deploy/demo/Dockerfile
+      target: cli
+    profiles: ["cli"]
+    depends_on:
+      - registry
+    # The registry's network, so it is localhost here too: its address, the
+    # one it was told to expect, works from the shell as it does in a browser.
+    network_mode: "service:registry"
+    stdin_open: true
+    tty: true
+
+volumes:
+  registry-data:

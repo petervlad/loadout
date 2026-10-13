@@ -175,6 +175,49 @@ A registry without accounts uses invites. Your team lead sends you one (`ldi_...
 loadout team join < invite.txt
 ```
 
+## Try the demo
+
+The repository holds a demo: a registry full of fake teams and data, and a shell to try the command line in. It needs Docker and nothing else.
+
+```sh
+docker compose up              # the registry, on http://localhost:8080
+docker compose run --rm cli    # a shell signed in as alice, in /work/sample-app
+docker compose down -v         # throw it away, and the next up starts over
+```
+
+The first `up` prints the address and the accounts. They all share one password, which the sign-in page also shows, and every page carries a banner that says it is a demo.
+
+| Account | Role |
+| --- | --- |
+| `alice@example.com` | Maintainer of `lime`, member of `koala` |
+| `bogdan@example.com` | Member of `lime` |
+| `olga@example.com` | Owner of `acme` |
+| `ada@example.com` | Admin of the registry |
+
+The world is a project `acme` with teams `lime` (web) and `koala` (mobile), backdated over five weeks: agents, a skill, knowledge bases with Mermaid and draw.io diagrams, several releases of each, proposals that are open, approved, rejected and behind, a request to delete a package, a pipeline template `acme/dev-loop` with lime's binding, team memory with a few entries from this week, a wiki and a short course for lime.
+
+In the shell, the sample project is a git repository set up for Claude Code and Copilot, so an install writes both sets of files side by side. A personal memory folder sits next to it for `loadout memory import`:
+
+```sh
+loadout status
+loadout install lime/planner --scope project
+git status
+loadout propose --help
+loadout new pipeline lime/my-loop --uses acme/dev-loop@1
+loadout memory import ../personal-memory --team lime
+```
+
+No Claude Code or Copilot runs in the container, so nothing here calls a model. To see an agent at work, copy what an install wrote into a project you use with your own tool.
+
+Without Docker, the same demo runs from the binary:
+
+```sh
+loadout demo seed --data ./demo-data
+LOADOUT_DEMO=1 LOADOUT_PUBLIC_URL=http://localhost:7420 loadout demo up --data ./demo-data
+```
+
+`demo seed` writes the world straight into an empty folder, with no server and no tokens. A folder it already seeded is left as it is, and any other folder that has files in it is refused. Demo mode (`LOADOUT_DEMO=1`) turns on simple login with the shared password, adds the banner, never offers Google and only logs mail. It refuses to start unless `LOADOUT_PUBLIC_URL` is a localhost address and the folder was made by `demo seed`, because the password is public. Never point it at a registry other people can reach.
+
 ## Set up Claude Code and Copilot
 
 loadout writes into the tools you have. It finds them by their folders: `~/.claude` for Claude Code and `~/.copilot` for Copilot. If a tool's folder does not exist, loadout skips that tool. Use `--target` to choose yourself:
@@ -1272,6 +1315,8 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout remote add NAME URL --token-stdin`, `remote list`, `remote remove NAME` | Manage registries by hand (for CI) |
 | `loadout serve [--addr A] [--data D]` | Run a registry |
 | `loadout serve --check [--env-file F]` | Check the registry's configuration and exit, without serving. Prints one line per part and never a secret, and exits 1 when a variable is wrong or misspelt (on the host) |
+| `loadout demo seed [--data D]` | Write the demo world (fake teams, packages, proposals, memory) into an empty folder. A folder it seeded is left alone, any other that has files is refused (on the host) |
+| `loadout demo up [--data D] [--addr A]` | Seed the folder if it is empty, then serve it. Needs `LOADOUT_DEMO=1` and a localhost `LOADOUT_PUBLIC_URL` |
 | `loadout mail test --to ADDRESS` | Send one test mail with the registry's mail settings and say "sent", or the mail server's refusal (on the host) |
 | `loadout admin grant\|revoke\|list --email E` | Registry admins (on the host) |
 | `loadout user delete --email E` | Delete an account (on the host) |
