@@ -1,5 +1,5 @@
-// Package demo writes the fake world of the demo registry: a project, two
-// teams, four people and a few weeks of work, all made through the same
+// Package demo writes the fake world of the demo registry: two projects with
+// two teams each, seven people and five weeks of work, all made through the same
 // services the registry runs on, so every page has something to show. It
 // runs on a clock it moves back, so the history spreads over weeks.
 //
@@ -18,20 +18,26 @@ type Account struct {
 	Role string
 }
 
-// People are the demo accounts, in the order the sign-in page lists them.
+// people are the demo accounts, in the order the sign-in page lists them.
 var people = []Account{
-	{"alice@example.com", "maintainer of lime, member of koala"},
-	{"bogdan@example.com", "member of lime"},
-	{"olga@example.com", "owner of acme"},
-	{"ada@example.com", "admin of the registry"},
+	{alice, "maintainer of lime, member of koala and pear"},
+	{bogdan, "member of lime"},
+	{olga, "owner of acme"},
+	{chen, "owner of globex"},
+	{dana, "maintainer of pear"},
+	{emil, "member of otter"},
+	{ada, "admin of the registry"},
 }
 
 // Accounts returns the demo accounts. The caller may keep the slice.
 func Accounts() []Account { return append([]Account(nil), people...) }
 
-// Names of the demo's namespaces.
+// Names of the demo's namespaces: two projects with two teams each.
 const (
-	Project = "acme"
-	Lime    = "lime"
-	Koala   = "koala"
+	Acme   = "acme"
+	Lime   = "lime"
+	Koala  = "koala"
+	Globex = "globex"
+	Pear   = "pear"
+	Otter  = "otter"
 )

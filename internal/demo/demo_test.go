@@ -1,7 +1,6 @@
 package demo
 
 import (
-	"io/fs"
 	"strings"
 	"testing"
 	"time"
@@ -28,25 +27,37 @@ func TestAccountsReturnsACopy(t *testing.T) {
 	}
 }
 
-// Every package folder is a valid package, so a bad edit fails here and not
-// half way through a seed.
-func TestEveryPackageFolderBuilds(t *testing.T) {
-	n := 0
-	for _, team := range []string{"acme", "lime", "koala"} {
-		entries, err := fs.ReadDir(content, "content/"+team)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, e := range entries {
-			ref := team + "/" + e.Name()
-			if _, err := bundleOf(ref); err != nil {
-				t.Errorf("%s: %v", ref, err)
-			}
-			n++
+// Every package of the demo is a valid package, so a bad edit fails here and
+// not half way through a seed.
+func TestEveryPackageBuilds(t *testing.T) {
+	for _, r := range releases {
+		if _, err := bundleOf(r.f); err != nil {
+			t.Errorf("%s: %v", r.f["loadout.yaml"], err)
 		}
 	}
-	if n < 15 {
-		t.Errorf("found %d package folders, want the whole demo", n)
+	for _, p := range proposals {
+		if _, err := bundleOf(p.f); err != nil {
+			t.Errorf("%s: %v", p.f["loadout.yaml"], err)
+		}
+	}
+	if len(releases) < 40 {
+		t.Errorf("%d releases, want the whole demo", len(releases))
+	}
+}
+
+// Every note links only to an earlier one, and the keys are unique.
+func TestNotesLinkBackwards(t *testing.T) {
+	seen := map[string]time.Duration{}
+	for _, n := range notes {
+		if _, dup := seen[n.key]; dup {
+			t.Errorf("key %s is used twice", n.key)
+		}
+		for _, l := range n.links {
+			if ago, ok := seen[l]; !ok || ago <= n.ago {
+				t.Errorf("%s links to %s, which is not an earlier entry", n.key, l)
+			}
+		}
+		seen[n.key] = n.ago
 	}
 }
 

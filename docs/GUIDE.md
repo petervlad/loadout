@@ -189,18 +189,22 @@ The first `up` prints the address and the accounts. They all share one password,
 
 | Account | Role |
 | --- | --- |
-| `alice@example.com` | Maintainer of `lime`, member of `koala` |
+| `alice@example.com` | Maintainer of `lime`, member of `koala` and `pear` |
 | `bogdan@example.com` | Member of `lime` |
 | `olga@example.com` | Owner of `acme` |
+| `chen@example.com` | Owner of `globex` |
+| `dana@example.com` | Maintainer of `pear` |
+| `emil@example.com` | Member of `otter` |
 | `ada@example.com` | Admin of the registry |
 
-The world is a project `acme` with teams `lime` (web) and `koala` (mobile), backdated over five weeks: agents, a skill, knowledge bases with Mermaid and draw.io diagrams, several releases of each, proposals that are open, approved, rejected and behind, a request to delete a package, a pipeline template `acme/dev-loop` with lime's binding, team memory with a few entries from this week, a wiki and a short course for lime.
+The world is two projects, `acme` with teams `lime` (web) and `koala` (mobile), and `globex` with teams `pear` (web) and `otter` (releases), backdated over five weeks. Each has its own packages and each team has its own: agents, skills, knowledge bases with Mermaid and draw.io diagrams, several releases of each with some from the last week, and proposals that are open, approved, rejected and behind. Each project publishes two pipeline templates (`acme/dev-loop` and `acme/incident`, `globex/dev-loop` and `globex/release`) and each team binds one of them to its own agents. Team memory is on for every project and team, with entries over the weeks, some from this week, some edited by another person, one retracted and one moved up to the project. Some teams also have a wiki, a course and a request to delete a package.
 
 In the shell, the sample project is a git repository set up for Claude Code and Copilot, so an install writes both sets of files side by side. A personal memory folder sits next to it for `loadout memory import`:
 
 ```sh
 loadout status
 loadout install lime/planner --scope project
+loadout install lime/dev-loop --scope project   # the conductor agent appears in .claude/agents and .github/agents
 git status
 loadout propose --help
 loadout new pipeline lime/my-loop --uses acme/dev-loop@1

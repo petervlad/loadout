@@ -37,7 +37,7 @@ The first `up` prints the URL and the demo accounts.
 
 A Go command that writes the story straight through the registry, account and memory services (no server, no tokens, no shell), so it runs in the distroless image and is tested like any other command.
 
-The story, all fake: project `acme` with teams `lime` (web) and `koala` (mobile). People: alice maintains lime, bogdan is a lime member, olga owns acme, ada is an admin. Content:
+The story, all fake: project `acme` with teams `lime` (web) and `koala` (mobile), and project `globex` with teams `pear` (web) and `otter` (releases). People: alice maintains lime and is a member of koala and pear, bogdan is a lime member, olga owns acme, chen owns globex, dana maintains pear, emil is an otter member, ada is an admin. Each project has two pipeline templates and each team binds one to its own agents. Team memory is on everywhere, with edits, a retraction and a move. Content:
 
 - agents, a skill and a KB with Mermaid and draw.io diagrams, several releases each so the history and diff pages have something to show
 - proposals: one open with a report, one approved, one rejected, one behind
@@ -72,7 +72,7 @@ README gets a "Try it" section at the top: `docker compose up`, open the URL, si
 
 1. Local only. A hosted public demo is a later, separate plan.
 2. Built from source by compose. A prebuilt `ghcr.io/petervlad/loadout-demo` image comes with the first release that has a release pipeline for it.
-3. One project, two teams, about ten packages, backdated over a few weeks.
+3. Two projects (`acme` with `lime` and `koala`, `globex` with `pear` and `otter`), several packages per team and per project, backdated over five weeks. Superseded on 2026-10-13 by the owner: it was one project and about ten packages.
 4. Data only in the UI: banner and the account list, no tour.
 5. Demo mode is in the normal binary, behind hard guards (localhost public URL, a data dir seeded by `demo seed`).
 6. One fixed demo password, shown on the sign-in page.

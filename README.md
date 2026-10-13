@@ -14,7 +14,7 @@ See loadout working before you install anything. You need Docker, and nothing el
 docker compose up
 ```
 
-The first start prints the address and the demo accounts. Open <http://localhost:8080> and sign in as `alice@example.com` with the password it shows. The registry holds an invented project, `acme`, with two teams, `lime` and `koala`, and a few weeks of work: agents, a skill, knowledge bases with diagrams, proposals to review, a pipeline, team memory, a wiki and a course.
+The first start prints the address and the demo accounts. Open <http://localhost:8080> and sign in as `alice@example.com` with the password it shows. The registry holds two invented projects, `acme` (teams `lime` and `koala`) and `globex` (teams `pear` and `otter`), and five weeks of work: agents, skills, knowledge bases with diagrams, proposals to review, pipelines for a dev loop, an incident and a release, team memory, wikis and courses. `alice@example.com` belongs to both projects.
 
 To try the command line side, open a shell that is already signed in as alice, in a small sample project set up for Claude Code and Copilot:
 
@@ -22,7 +22,7 @@ To try the command line side, open a shell that is already signed in as alice, i
 docker compose run --rm cli
 ```
 
-Then `loadout status`, `loadout install lime/planner --scope project` and `git status` show what an install writes. No AI tool runs in the container, because loadout never runs a model. The demo listens on this machine only and refuses to start anywhere else, since every demo account shares one public password. `docker compose down -v` throws it away. The [guide](docs/GUIDE.md#try-the-demo) has the details.
+Then `loadout status`, `loadout install lime/dev-loop --scope project` and `git status` show what an install writes, conductor agent included. No AI tool runs in the container, because loadout never runs a model. The demo listens on this machine only and refuses to start anywhere else, since every demo account shares one public password. `docker compose down -v` throws it away. The [guide](docs/GUIDE.md#try-the-demo) has the details.
 
 ## Install
 

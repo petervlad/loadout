@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -62,21 +63,24 @@ func TestDemoSeedWritesTheWorld(t *testing.T) {
 		what, db, query string
 		want            int
 	}{
-		{"namespaces", reg, "SELECT COUNT(*) FROM namespaces", 3},
-		{"people", reg, "SELECT COUNT(*) FROM users", 4},
+		{"namespaces", reg, "SELECT COUNT(*) FROM namespaces", 6},
+		{"people", reg, "SELECT COUNT(*) FROM users", 7},
 		{"admins", reg, "SELECT COUNT(*) FROM users WHERE is_admin = 1", 1},
-		{"packages", reg, "SELECT COUNT(DISTINCT team || '/' || name) FROM releases", 13},
-		{"releases", reg, "SELECT COUNT(*) FROM releases", 18},
-		{"pipelines", reg, "SELECT COUNT(*) FROM releases WHERE kind = 'pipeline'", 2},
-		{"open proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'open'", 2},
-		{"approved proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'approved'", 1},
-		{"rejected proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'rejected'", 1},
+		{"packages", reg, "SELECT COUNT(DISTINCT team || '/' || name) FROM releases", 44},
+		{"releases", reg, "SELECT COUNT(*) FROM releases", 59},
+		{"pipelines", reg, "SELECT COUNT(*) FROM releases WHERE kind = 'pipeline'", 10},
+		{"releases this week", reg, "SELECT COUNT(DISTINCT team) FROM releases WHERE published_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days')", 6},
+		{"open proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'open'", 5},
+		{"approved proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'approved'", 3},
+		{"rejected proposals", reg, "SELECT COUNT(*) FROM proposals WHERE status = 'rejected'", 2},
 		{"reports", reg, "SELECT COUNT(*) FROM proposal_reviews", 1},
-		{"deletion requests", reg, "SELECT COUNT(*) FROM deletions WHERE status = 'open'", 1},
-		{"wiki pages", reg, "SELECT COUNT(*) FROM wiki_revisions", 2},
-		{"courses", reg, "SELECT COUNT(*) FROM namespaces WHERE course = 'lime/dev-course'", 1},
-		{"memories", mem, "SELECT COUNT(*) FROM entries", 9},
-		{"memories from this week", mem, "SELECT COUNT(*) FROM entries WHERE created_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days')", 4},
+		{"deletion requests", reg, "SELECT COUNT(*) FROM deletions WHERE status = 'open'", 2},
+		{"wiki pages", reg, "SELECT COUNT(*) FROM wiki_revisions", 5},
+		{"courses", reg, "SELECT COUNT(*) FROM namespaces WHERE course != ''", 2},
+		{"memories", mem, "SELECT COUNT(*) FROM entries", 58},
+		{"retracted memories", mem, "SELECT COUNT(*) FROM entries WHERE status = 'retracted'", 2},
+		{"teams with memory from this week", mem, "SELECT COUNT(DISTINCT namespace) FROM entries WHERE created_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days')", 6},
+		{"memories with history (4 edited, 2 retracted, 2 moved)", mem, "SELECT COUNT(DISTINCT entry_id) FROM entry_versions WHERE version > 1", 8},
 	} {
 		if got := count(t, c.db, c.query); got != c.want {
 			t.Errorf("%s = %d, want %d", c.what, got, c.want)
@@ -194,9 +198,22 @@ func TestDemoPagesAndCLI(t *testing.T) {
 		t.Errorf("GET /auth/google/start = %d, want 404", status)
 	}
 
-	pages := []string{
-		"/", "/t/acme", "/t/lime", "/t/koala", "/t/lime/reviews", "/t/lime/wiki", "/t/lime/memory", "/t/acme/memory",
-		"/t/lime/settings", "/t/lime/p/lime/planner", "/t/lime/p/lime/dev-loop", "/t/lime/p/acme/dev-loop", "/t/lime/p/lime/handbook", "/t/lime/p/lime/dev-course", "/account", "/skills",
+	pages := []string{"/", "/account", "/skills"}
+	for _, ns := range []string{"acme", "lime", "koala", "globex", "pear", "otter"} {
+		pages = append(pages, "/t/"+ns, "/t/"+ns+"/memory")
+	}
+	pages = append(pages, "/t/lime/reviews", "/t/koala/reviews", "/t/pear/reviews", "/t/otter/reviews")
+	pages = append(pages, "/t/lime/wiki", "/t/pear/wiki", "/t/lime/settings", "/t/lime/p/lime/planner", "/t/lime/p/lime/dev-loop",
+		"/t/lime/p/acme/dev-loop", "/t/koala/p/koala/incident", "/t/koala/p/acme/incident", "/t/pear/p/pear/dev-loop", "/t/otter/p/otter/release",
+		"/t/otter/p/globex/release", "/t/lime/p/lime/handbook", "/t/lime/p/lime/dev-course")
+	// Where each person belongs: a team they are not in does not exist for them.
+	reach := map[string][]string{
+		"alice@example.com":  {"acme", "lime", "koala", "globex", "pear"},
+		"bogdan@example.com": {"acme", "lime"},
+		"olga@example.com":   {"acme", "lime", "koala"},
+		"chen@example.com":   {"globex", "pear", "otter"},
+		"dana@example.com":   {"globex", "pear"},
+		"emil@example.com":   {"globex", "otter"},
 	}
 	var alice *webBrowser
 	for _, a := range demo.Accounts() {
@@ -207,8 +224,7 @@ func TestDemoPagesAndCLI(t *testing.T) {
 		}
 		for _, p := range pages {
 			status, _, body := web.send(http.MethodGet, p, nil)
-			// A team a person is not in does not exist for them.
-			if status == http.StatusNotFound && (a.Email == "ada@example.com" || (a.Email == "bogdan@example.com" && p == "/t/koala")) {
+			if ns, ok := strings.CutPrefix(p, "/t/"); ok && !slices.Contains(reach[a.Email], strings.SplitN(ns, "/", 2)[0]) {
 				continue
 			}
 			if status != http.StatusOK || !strings.Contains(body, "Demo registry, fake data, resets with docker compose down -v") {

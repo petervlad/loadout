@@ -100,7 +100,7 @@ fixed. The [user guide](../) explains how to use each one.
 - Feature: The backups panel shows how the last run ended, whether the newest archive
   holds both databases, and the copies saved before packages were deleted.
 - Feature: A **demo**. `docker compose up` in the repository starts a registry full of
-  fake teams, people, packages, proposals, a pipeline, team memory, a wiki and a course,
+  fake projects, teams, people, packages, proposals, pipelines, team memory, wikis and courses,
   on `http://localhost:8080`, and `docker compose run --rm cli` opens a shell signed in as
   one of them, in a sample project. Nothing is installed on your machine and it needs no
   Go. It is also `loadout demo seed` and `loadout demo up`. The demo only starts on a

@@ -1,4 +1,0 @@
-name: lime/builder
-kind: agent
-version: 1.1.0
-description: Implements a plan on a branch, one small commit at a time

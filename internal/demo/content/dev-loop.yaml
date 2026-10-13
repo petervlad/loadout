@@ -1,0 +1,35 @@
+start: plan
+slots:
+  plan:
+    brief: Turn the ticket into plan.md, and spec.md after a grill.
+    writes: plan.md
+    also: [spec.md]
+    reads: [ticket]
+    verdicts: [READY]
+  dev:
+    brief: Implement the requirement on a branch.
+    writes: dev.md
+    reads: [spec.md, plan.md, ticket]
+    verdicts: [DONE, SPEC CONFLICT]
+  review:
+    brief: Judge the change against the requirement.
+    writes: review.md
+    reads: [spec.md, plan.md, dev.md, ticket]
+    verdicts: [APPROVE, CHANGES REQUESTED, REPLAN, BLOCKED]
+  test:
+    brief: Run the reviewed change in a safe venue.
+    writes: test.md
+    reads: [spec.md, plan.md, review.md]
+    verdicts: [PASS, FAIL, INCONCLUSIVE]
+edges:
+  - {from: plan,   on: READY,             to: dev,    via: gate}
+  - {from: dev,    on: DONE,              to: review, via: auto}
+  - {from: dev,    on: SPEC CONFLICT,     to: plan,   via: gate}
+  - {from: review, on: APPROVE,           to: test,   via: gate}
+  - {from: review, on: CHANGES REQUESTED, to: dev,    via: gate, max_rounds: 2}
+  - {from: review, on: REPLAN,            to: plan,   via: gate}
+  - {from: review, on: BLOCKED,           to: end,    via: gate}
+  - {from: test,   on: PASS,              to: end,    via: gate}
+  # FAIL is deliberately uncapped, as in today's dev loop: only dev and review are capped.
+  - {from: test,   on: FAIL,              to: dev,    via: gate}
+  - {from: test,   on: INCONCLUSIVE,      to: end,    via: gate}

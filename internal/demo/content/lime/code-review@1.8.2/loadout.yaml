@@ -1,4 +1,0 @@
-name: lime/code-review
-kind: agent
-version: 1.8.2
-description: Adversarial review of a branch against its ticket

@@ -53,6 +53,7 @@ cat <<BANNER
 
     loadout status
     loadout install lime/planner --scope project
+    loadout install lime/dev-loop --scope project   (adds the conductor agent lime-dev-loop)
     loadout sync
     loadout propose --help
     loadout new pipeline lime/my-loop --uses acme/dev-loop@1
