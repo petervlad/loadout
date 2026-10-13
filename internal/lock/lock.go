@@ -25,9 +25,11 @@ const (
 	PolicyPin    Policy = "pin"
 )
 
-// DefaultPolicy is used when the user does not choose one: nobody's agents
-// change under them until they opt in to auto.
-const DefaultPolicy = PolicyNotify
+// DefaultPolicy is used when the user does not choose one. It is auto so
+// that what a team publishes reaches everyone on their next sync: a file the
+// person edited is never overwritten (the update is held back and reported),
+// and notify or pin stay one command away for anyone who wants them.
+const DefaultPolicy = PolicyAuto
 
 // Valid reports whether p is a known policy.
 func (p Policy) Valid() bool {

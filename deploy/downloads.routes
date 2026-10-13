@@ -1,0 +1,35 @@
+# The CLI downloads, imported into the registry's block of the Caddyfile.
+# deploy.sh installs this file into /etc/caddy/loadout.d/ and the files into
+# /var/www/loadout-dl when LOADOUT_DOWNLOADS=1: install.sh in the folder root,
+# and the archives, checksums.txt and VERSION in dl/, so the URLs are
+# /install.sh and /dl/<file> and the folder maps one to one. Handled before
+# the proxy, with the registry's default policy: these are not pages. Nothing
+# is cached, so a deploy is seen at once, and dotfiles are not served.
+@install path /install.sh
+handle @install {
+	root * /var/www/loadout-dl
+	header {
+		Content-Type "text/plain; charset=utf-8"
+		Cache-Control "no-cache"
+		X-Content-Type-Options "nosniff"
+	}
+	file_server {
+		hide .*
+	}
+}
+
+@downloads path /dl/*
+handle @downloads {
+	root * /var/www/loadout-dl
+	header {
+		Cache-Control "no-cache"
+		X-Content-Type-Options "nosniff"
+	}
+	@archives path *.tar.gz
+	header @archives Content-Type "application/gzip"
+	@text path *.txt */VERSION
+	header @text Content-Type "text/plain; charset=utf-8"
+	file_server {
+		hide .*
+	}
+}

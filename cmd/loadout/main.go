@@ -56,6 +56,10 @@ var version = "dev"
 // which are updated by downloading the next release, not from a clone.
 var packaged = ""
 
+// installMethod is "registry" in the CLIs deploy.sh builds for a registry to
+// hand out (-X main.installMethod=registry), so they update from it.
+var installMethod = ""
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	code := run(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr, os.Getenv, workDir())
@@ -190,7 +194,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 	updates := cliupdate.New(cliupdate.Options{
 		Store:  cliupdate.NewStore(filepath.Join(cfg.StateDir, "cliupdate.yaml")),
 		Build:  build,
-		Method: buildinfo.MethodOf(buildinfo.Install{Build: build, Executable: resolvedExecutable(executable), Packaged: packaged == "true"}),
+		Method: buildinfo.MethodOf(buildinfo.Install{Build: build, Executable: resolvedExecutable(executable), Packaged: packaged == "true", Channel: installMethod}),
 		Log:    log,
 		Quiet:  cfg.QuietUpdates,
 	})

@@ -28,9 +28,11 @@
   // still leads back. sessionStorage can be off or full; then only ?from
   // counts.
   var backKey = "loadout-docs-back";
-  // loadoutPage is from when it is a page on a loadout site (or a local
-  // one while developing). Any other address is ignored, so a crafted link
-  // cannot turn "loadout docs" into a link to somewhere else.
+  // loadoutPage is from when it is a page on a loadout site, a local one
+  // while developing, or a page on the very site showing these docs (a
+  // registry that serves its own docs, at any address). Any other address
+  // is ignored, so a crafted link cannot turn "loadout docs" into a link
+  // to somewhere else.
   function loadoutPage(from) {
     if (!from) { return null; }
     try {
@@ -38,7 +40,10 @@
       var host = u.hostname;
       var loadout = u.protocol === "https:" && (host === "loadout.lat" || host.slice(-12) === ".loadout.lat");
       var local = u.protocol === "http:" && (host === "localhost" || host === "127.0.0.1");
-      return loadout || local ? u.href : null;
+      // Same origin is safe whatever the host: the link stays on this site.
+      // Only http and https count, so javascript: and data: never match.
+      var same = (u.protocol === "https:" || u.protocol === "http:") && u.origin === location.origin;
+      return loadout || local || same ? u.href : null;
     } catch (e) {
       return null;
     }

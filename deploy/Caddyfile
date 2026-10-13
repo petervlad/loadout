@@ -17,6 +17,9 @@
 #   }
 #
 # This import comes first because Caddy wants a global block before any site.
+#
+# /etc/caddy/loadout.d/*.routes is imported inside the registry's block below.
+# deploy.sh puts downloads.routes there when you ask for the CLI downloads.
 import /etc/caddy/loadout.d/*.caddy
 
 {$LOADOUT_DOMAIN} {
@@ -40,6 +43,9 @@ import /etc/caddy/loadout.d/*.caddy
 		?Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
 		-Server
 	}
+
+	# Routes that must come before the proxy (downloads.routes, when asked for).
+	import /etc/caddy/loadout.d/*.routes
 
 	# {client_ip} is the peer's address, or the address named by the global
 	# trusted_proxies and client_ip_headers when a file in loadout.d sets them.

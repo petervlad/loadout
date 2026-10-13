@@ -14,8 +14,9 @@ Either way, run **one instance only**: the database is SQLite and the sign-in li
 | `deploy.sh` | Installs the binary, units, settings and Caddy files on the host and checks that it came up |
 | `loadout.env.example` | Every setting, commented out, to copy and fill in |
 | `loadout.service` | `/etc/systemd/system/`, the hardened server unit |
-| `Caddyfile` | `/etc/caddy/Caddyfile`: the registry's block, and an import of `/etc/caddy/loadout.d/*.caddy` |
+| `Caddyfile` | `/etc/caddy/Caddyfile`: the registry's block, and imports of `/etc/caddy/loadout.d/*.caddy` (before the block) and `*.routes` (inside it) |
 | `site.caddy` | `/etc/caddy/loadout.d/site.caddy`, only when you ask for a static site (below) |
+| `downloads.routes`, `install.sh` | Only when you ask for the CLI downloads (below): the routes Caddy imports into the registry's block, and the script served at `/install.sh` |
 | `loadout-backup.sh`, `.service`, `.timer` | Nightly backup to `/var/backups/loadout`, 14 days kept |
 | `container/` | A `Dockerfile` and a `fly.toml.example` |
 
@@ -102,6 +103,26 @@ LOADOUT_HOST=203.0.113.7 LOADOUT_DOMAIN=registry.example.com deploy/deploy.sh
 ```
 
 The pages go to `/var/www/loadout-site` (replaced in one step), and `site.caddy` to `/etc/caddy/loadout.d/`. `deploy.sh` runs `caddy adapt` on the configuration it is about to install, with the files already in `loadout.d`, and stops before replacing anything if Caddy refuses it. Caddy logs a warning that `loadout.d` matched no files when nothing is there; that is harmless.
+
+### The CLI from your registry (optional)
+
+With `LOADOUT_DOWNLOADS=1`, `deploy.sh` also builds the CLI from this checkout for `darwin/arm64`, `darwin/amd64`, `linux/amd64` and `linux/arm64` with the registry's flags plus `-X main.installMethod=registry`, so people on the team need neither Go nor a clone. It cannot be combined with `LOADOUT_BINARY` or `LOADOUT_VERSION`. It swaps `/var/www/loadout-dl` (root-owned, files 0644, folders 0755) and puts `downloads.routes` into `/etc/caddy/loadout.d/`. Caddy serves:
+
+| URL | File |
+| --- | --- |
+| `https://HOST/install.sh` | `install.sh` with `https://$LOADOUT_DOMAIN` put in |
+| `https://HOST/dl/loadout_<os>_<arch>.tar.gz` | one archive per system, holding only `loadout` |
+| `https://HOST/dl/checksums.txt` | sha256 of the four archives |
+| `https://HOST/dl/VERSION` | the version string of the deploy |
+
+None of it is committed, the archives are build output. A deploy without the variable removes the routes and the folder. Someone on the team runs:
+
+```sh
+curl -fsSL https://registry.example.com/install.sh | sh
+loadout login --remote https://registry.example.com
+```
+
+The download uses curl's normal trust store, so the registry's certificate must be one people's machines already trust (the `Caddyfile` gets one from Let's Encrypt). The script checks the archive against `checksums.txt` and installs nothing if it does not match. Running the same line again is how to update, and `loadout update` does it for them.
 
 ### Behind a tunnel or another proxy
 

@@ -145,6 +145,10 @@ func TestMethodOf(t *testing.T) {
 		{"go install on a tag", Install{Build: source, Executable: "/Users/a/go/bin/loadout"}, "source"},
 		{"packaged after a tag", Install{Build: Current("v0.4.0-3-gabc1234", nil, false), Packaged: true}, "source"},
 		{"packaged and modified", Install{Build: Current("v0.4.0-dirty", nil, false), Packaged: true}, "source"},
+		{"registry download", Install{Build: release, Executable: "/Users/a/.local/bin/loadout", Channel: ChannelRegistry}, "registry"},
+		{"registry download of a build after a tag", Install{Build: Current("v0.4.0-3-gabc1234", nil, false), Channel: ChannelRegistry}, "registry"},
+		{"registry download under homebrew's path", Install{Build: release, Executable: "/opt/homebrew/Cellar/loadout/bin/loadout", Channel: ChannelRegistry}, "registry"},
+		{"unknown channel", Install{Build: source, Channel: "usb"}, "source"},
 	}
 	for _, tc := range tests {
 		if got := MethodOf(tc.in).Name; got != tc.want {
@@ -156,5 +160,33 @@ func TestMethodOf(t *testing.T) {
 	}
 	if got, want := MethodOf(Install{Executable: "/opt/homebrew/Caskroom/loadout/0.4.0/loadout"}).Update(), "To update: brew upgrade --cask loadout"; got != want {
 		t.Errorf("homebrew Update() = %q, want %q", got, want)
+	}
+}
+
+func TestMethodForRegistry(t *testing.T) {
+	registry := MethodOf(Install{Channel: ChannelRegistry})
+	tests := []struct {
+		name, registry, want string
+	}{
+		{"an ip address", "https://203.0.113.7", "To update: curl -fsSL https://203.0.113.7/install.sh | sh"},
+		{"a trailing slash and a path", "https://reg.example.com/some/path/", "To update: curl -fsSL https://reg.example.com/install.sh | sh"},
+		{"a port", "http://10.0.0.5:7420", "To update: curl -fsSL http://10.0.0.5:7420/install.sh | sh"},
+		{"no registry known", "", "To update: curl -fsSL <the address of your registry>/install.sh | sh"},
+		{"not a web address", "file:///etc/passwd", "To update: curl -fsSL <the address of your registry>/install.sh | sh"},
+		{"shell characters", "https://x.example;rm -rf ~", "To update: curl -fsSL <the address of your registry>/install.sh | sh"},
+	}
+	for _, tc := range tests {
+		m := registry.For(tc.registry)
+		if got := m.Update(); got != tc.want {
+			t.Errorf("%s: Update() = %q, want %q", tc.name, got, tc.want)
+		}
+		if m.InFolder {
+			t.Errorf("%s: the registry route runs in no loadout folder", tc.name)
+		}
+	}
+	// The other methods have no registry in them and stay as they are.
+	source := MethodOf(Install{})
+	if got := source.For("https://203.0.113.7"); got != source {
+		t.Errorf("source.For changed the method: %+v", got)
 	}
 }

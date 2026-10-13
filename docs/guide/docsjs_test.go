@@ -47,6 +47,19 @@ func TestBackLink(t *testing.T) {
 		q := "?from=" + url.QueryEscape(from)
 		return []string{"/docs/" + q, "/docs/whats-new/" + q, "#install", "/docs/whats-new/" + q + "#top", "mailto:dana@example.com", "https://example.com/docs/"}
 	}
+	// A registry may serve its own docs: the page it names is on the
+	// same origin as the docs, which is safe whatever the host.
+	const (
+		ownDocs = "https://203.0.113.7/docs/"
+		own     = "https://203.0.113.7/t/lime?kind=agent"
+	)
+	// On another origin the absolute link to loadout.lat is not a docs page
+	// of this site, so it is left alone.
+	keepHere := func(from string) []string {
+		l := keep(from)
+		l[3] = links[3]
+		return l
+	}
 	tests := []struct {
 		in   backCase
 		want backResult
@@ -59,6 +72,16 @@ func TestBackLink(t *testing.T) {
 		{backCase{Name: "look-alike host", URL: docs + "?from=" + url.QueryEscape("https://evilloadout.lat/x"), Links: links}, backResult{"#top", links, ""}},
 		{backCase{Name: "javascript in from", URL: docs + "?from=" + url.QueryEscape("javascript:alert(1)"), Links: links}, backResult{"#top", links, ""}},
 		{backCase{Name: "another site kept", URL: docs, Stored: "https://evil.example/x", Links: links}, backResult{"#top", links, "https://evil.example/x"}},
+		{backCase{Name: "same origin, private IP", URL: ownDocs + "?from=" + url.QueryEscape(own), Links: links}, backResult{own, keepHere(own), own}},
+		{backCase{Name: "same origin kept for the tab", URL: ownDocs, Stored: own, Links: links}, backResult{own, keepHere(own), own}},
+		{backCase{Name: "same origin with a port", URL: "http://registry.corp:8080/docs/?from=" + url.QueryEscape("http://registry.corp:8080/skills"), Links: links}, backResult{"http://registry.corp:8080/skills", keepHere("http://registry.corp:8080/skills"), "http://registry.corp:8080/skills"}},
+		{backCase{Name: "another private IP", URL: ownDocs + "?from=" + url.QueryEscape("https://203.0.113.8/t/lime"), Links: links}, backResult{"#top", links, ""}},
+		{backCase{Name: "same host, another port", URL: ownDocs + "?from=" + url.QueryEscape("https://203.0.113.7:8443/t/lime"), Links: links}, backResult{"#top", links, ""}},
+		{backCase{Name: "same host, another scheme", URL: ownDocs + "?from=" + url.QueryEscape("http://203.0.113.7/t/lime"), Links: links}, backResult{"#top", links, ""}},
+		{backCase{Name: "another https host on a registry with its own docs", URL: ownDocs + "?from=" + url.QueryEscape("https://evil.example/x"), Links: links}, backResult{"#top", links, ""}},
+		{backCase{Name: "another private IP kept", URL: ownDocs, Stored: "https://203.0.113.8/t/lime", Links: links}, backResult{"#top", links, "https://203.0.113.8/t/lime"}},
+		{backCase{Name: "javascript in from on a registry with its own docs", URL: ownDocs + "?from=" + url.QueryEscape("javascript:alert(1)"), Links: links}, backResult{"#top", links, ""}},
+		{backCase{Name: "data in from on a registry with its own docs", URL: ownDocs + "?from=" + url.QueryEscape("data:text/html,<script>alert(1)</script>"), Links: links}, backResult{"#top", links, ""}},
 		{backCase{Name: "nothing to go back to", URL: docs, Links: links}, backResult{"#top", links, ""}},
 		{backCase{Name: "no storage, from", URL: docs + "?from=" + url.QueryEscape(wiki), NoStorage: true, Links: links}, backResult{wiki, keep(wiki), ""}},
 		{backCase{Name: "no storage, no from", URL: docs, NoStorage: true, Links: links}, backResult{"#top", links, ""}},

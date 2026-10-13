@@ -46,6 +46,8 @@ type fixture struct {
 	build buildinfo.Build
 	// isQuiet runs the services with LOADOUT_UPDATE_NOTICE=off.
 	isQuiet bool
+	// method is how the binary was installed; the zero value is from source.
+	method buildinfo.Method
 }
 
 func newFixture(t *testing.T, build string) *fixture {
@@ -53,9 +55,16 @@ func newFixture(t *testing.T, build string) *fixture {
 	return &fixture{t: t, path: filepath.Join(t.TempDir(), "cliupdate.yaml"), clock: &fakeClock{t: day0}, build: buildinfo.Current(build, nil, false)}
 }
 
+func (f *fixture) installMethod() buildinfo.Method {
+	if f.method.Name != "" {
+		return f.method
+	}
+	return buildinfo.MethodOf(buildinfo.Install{Build: f.build})
+}
+
 // service is a new run of loadout: nothing heard yet.
 func (f *fixture) service() *Service {
-	return New(Options{Store: NewStore(f.path), Build: f.build, Method: buildinfo.MethodOf(buildinfo.Install{Build: f.build}), Now: f.clock.now, Quiet: f.isQuiet})
+	return New(Options{Store: NewStore(f.path), Build: f.build, Method: f.installMethod(), Now: f.clock.now, Quiet: f.isQuiet})
 }
 
 // run is one loadout command run by a script that heard each advice, then

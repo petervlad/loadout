@@ -39,6 +39,12 @@
 #                     the name Caddy serves them under (site.caddy). Without
 #                     them no site is installed, and one a past deploy
 #                     installed is taken out of Caddy's configuration.
+#   LOADOUT_DOWNLOADS 1 to also publish the CLI for macOS and Linux (arm64 and
+#                     amd64) and an install.sh at https://LOADOUT_DOMAIN/install.sh,
+#                     so people on the team need no Go and no clone. Built
+#                     from this checkout, so it cannot be combined with
+#                     LOADOUT_BINARY or LOADOUT_VERSION. Without it, what an
+#                     earlier deploy published is taken down.
 set -eu
 
 die() {
@@ -57,6 +63,7 @@ RELEASE_URL="${LOADOUT_RELEASE_URL:-https://github.com/petervlad/loadout/release
 ENV_FILE="${LOADOUT_ENV_FILE:-}"
 SITE_DIR="${LOADOUT_SITE_DIR:-}"
 SITE_DOMAIN="${LOADOUT_SITE_DOMAIN:-}"
+DOWNLOADS="${LOADOUT_DOWNLOADS:-}"
 
 [ -n "$HOST" ] || die "set LOADOUT_HOST"
 [ -n "$DOMAIN" ] || die "set LOADOUT_DOMAIN (e.g. 203-0-113-7.sslip.io)"
@@ -83,6 +90,13 @@ case "$SITE_DOMAIN" in
 esac
 [ -z "$SITE_DIR" ] || [ -d "$SITE_DIR" ] || die "LOADOUT_SITE_DIR is not a folder: $SITE_DIR"
 [ -z "$ENV_FILE" ] || [ -f "$ENV_FILE" ] || die "LOADOUT_ENV_FILE does not exist: $ENV_FILE"
+case "$DOWNLOADS" in
+'' | 0 | 1) ;;
+*) die "LOADOUT_DOWNLOADS is 1 to publish the CLI, or unset" ;;
+esac
+[ "$DOWNLOADS" != 0 ] || DOWNLOADS=""
+[ -z "$DOWNLOADS" ] || { [ -z "$BINARY" ] && [ -z "$VERSION_WANTED" ]; } ||
+	die "LOADOUT_DOWNLOADS builds the CLI from this checkout: leave LOADOUT_BINARY and LOADOUT_VERSION out"
 [ -z "$BINARY" ] || [ -z "$VERSION_WANTED" ] || die "set LOADOUT_BINARY or LOADOUT_VERSION, not both"
 command -v curl >/dev/null 2>&1 || die "curl is not installed"
 
@@ -172,6 +186,44 @@ check_env_locally() {
 	loadout serve --check --env-file "$ENV_FILE" || die "the settings file is not right (see above); fix it and run again"
 }
 
+# build_downloads makes $stage/dl.tar: install.sh for this registry and, in
+# dl/, one archive of the CLI per system with the registry's flags plus the
+# install method, checksums.txt and VERSION. The names carry no version
+# because every deploy replaces them. It builds in .dl, a hidden folder of
+# the stage, so the scp glob below uploads only the tar.
+build_downloads() {
+	command -v go >/dev/null 2>&1 || die "go is not installed, and LOADOUT_DOWNLOADS builds the CLI here"
+	command -v tar >/dev/null 2>&1 || die "tar is not installed"
+	printf '==> Building the loadout CLI for darwin and linux\n'
+	dl="$stage/.dl/dl"
+	mkdir -p "$dl" "$stage/.dl/bin"
+	for os_arch in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64; do
+		os="${os_arch%/*}"
+		arch="${os_arch#*/}"
+		(
+			cd "$root"
+			CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
+				-ldflags "-s -w -X main.version=$version -X main.installMethod=registry" \
+				-o "$stage/.dl/bin/loadout" ./cmd/loadout
+		)
+		COPYFILE_DISABLE=1 tar --no-xattrs -C "$stage/.dl/bin" -czf "$dl/loadout_${os}_${arch}.tar.gz" loadout
+		rm -f "$stage/.dl/bin/loadout"
+	done
+	rm -rf "$stage/.dl/bin"
+	(
+		cd "$dl"
+		for f in loadout_*.tar.gz; do
+			printf '%s  %s\n' "$(sha256 "$f")" "$f"
+		done >checksums.txt
+	)
+	printf '%s\n' "$version" >"$dl/VERSION"
+	# The address is the one people fetch the script from, so each registry's
+	# copy knows its own. DOMAIN was checked to be host name characters
+	# above, which are safe in sed.
+	sed "s|__LOADOUT_BASE_URL__|https://$DOMAIN|g" "$here/install.sh" >"$stage/.dl/install.sh"
+	COPYFILE_DISABLE=1 tar --no-xattrs -C "$stage/.dl" -cf "$stage/dl.tar" .
+}
+
 version=""
 if [ -n "$BINARY" ]; then
 	[ -f "$BINARY" ] || die "LOADOUT_BINARY does not exist: $BINARY"
@@ -200,6 +252,11 @@ if [ -n "$ENV_FILE" ]; then
 	(umask 077 && cp "$ENV_FILE" "$stage/loadout.env")
 fi
 [ -z "$PREPARE" ] || cp "$here/prepare.sh" "$stage/"
+# The CLI downloads, only when asked for; see downloads.routes.
+if [ -n "$DOWNLOADS" ]; then
+	build_downloads
+	cp "$here/downloads.routes" "$stage/"
+fi
 # Static pages, only when asked for; see site.caddy.
 if [ -n "$SITE_DIR" ]; then
 	cp "$here/site.caddy" "$stage/"
@@ -277,8 +334,9 @@ install -d -m 0755 -o root -g root /etc/caddy/loadout.d
 rm -rf check.d
 install -d check.d
 cp /etc/caddy/loadout.d/*.caddy check.d/ 2>/dev/null || true
-rm -f check.d/site.caddy
+rm -f check.d/site.caddy check.d/downloads.routes
 [ ! -f site.caddy ] || cp site.caddy check.d/
+[ ! -f downloads.routes ] || cp downloads.routes check.d/
 sed "s#/etc/caddy/loadout.d#$remote/check.d#" Caddyfile > Caddyfile.check
 LOADOUT_DOMAIN="$domain" LOADOUT_SITE_DOMAIN="$site_domain" caddy adapt --adapter caddyfile --config Caddyfile.check >/dev/null
 install -m 0644 -o root -g root Caddyfile /etc/caddy/Caddyfile
@@ -297,6 +355,25 @@ if [ -f site.caddy ]; then
 else
 	# Its domain is no longer set, so its block could not start.
 	rm -f /etc/caddy/loadout.d/site.caddy
+fi
+
+if [ -f downloads.routes ]; then
+	install -m 0644 -o root -g root downloads.routes /etc/caddy/loadout.d/downloads.routes
+	# Replace the download folder in one step like the site, so nobody gets
+	# half of an update.
+	rm -rf /var/www/loadout-dl.new
+	install -d -m 0755 -o root -g root /var/www /var/www/loadout-dl.new
+	tar -C /var/www/loadout-dl.new --no-same-owner --no-same-permissions -xf dl.tar
+	chown -R root:root /var/www/loadout-dl.new
+	find /var/www/loadout-dl.new -type d -exec chmod 0755 {} +
+	find /var/www/loadout-dl.new -type f -exec chmod 0644 {} +
+	rm -rf /var/www/loadout-dl.old
+	[ ! -d /var/www/loadout-dl ] || mv /var/www/loadout-dl /var/www/loadout-dl.old
+	mv /var/www/loadout-dl.new /var/www/loadout-dl
+	rm -rf /var/www/loadout-dl.old
+	echo "installed /var/www/loadout-dl"
+else
+	rm -rf /etc/caddy/loadout.d/downloads.routes /var/www/loadout-dl
 fi
 
 systemctl daemon-reload

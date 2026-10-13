@@ -458,3 +458,26 @@ func (f *fixture) sayErr(a Audience, heard map[string]client.CLIAdvice) string {
 	line, _ := s.Finish(f.t.Context(), a)
 	return line
 }
+
+// A CLI downloaded from a registry updates from the registry whose notice
+// it heard, not from a loadout folder.
+func TestStatusNamesTheRegistryToUpdateFrom(t *testing.T) {
+	const own = "https://203.0.113.7"
+	tests := []struct {
+		name  string
+		heard map[string]client.CLIAdvice
+		want  string
+	}{
+		{"newer release", map[string]client.CLIAdvice{own: {Latest: "0.6.0"}}, "To update: curl -fsSL https://203.0.113.7/install.sh | sh"},
+		{"the registry with the newest one", map[string]client.CLIAdvice{own: {Latest: "0.6.0"}, office: {Latest: "0.5.0"}}, "curl -fsSL https://203.0.113.7/install.sh"},
+		{"the registry that needs a newer loadout", map[string]client.CLIAdvice{own: {Latest: "0.5.0"}, office: {Minimum: "0.5.0"}}, "curl -fsSL https://registry.example.com/install.sh"},
+	}
+	for _, tc := range tests {
+		f := newFixture(t, "0.4.0")
+		f.method = buildinfo.MethodOf(buildinfo.Install{Build: f.build, Channel: buildinfo.ChannelRegistry})
+		line := f.say(Person, tc.heard)
+		if !strings.Contains(line, tc.want) || strings.Contains(line, "loadout folder") {
+			t.Errorf("%s: line %q, want %q and no loadout folder", tc.name, line, tc.want)
+		}
+	}
+}

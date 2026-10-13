@@ -116,6 +116,8 @@ type Deps struct {
 	// Hooks sets up and removes the session hooks in the AI tools: after
 	// login and on setup --hooks or --no-hooks. Nil leaves them out.
 	Hooks *hook.Service
+	// RunShell runs the command of `update`; nil runs it with sh. Tests set it.
+	RunShell func(ctx context.Context, command string, stdout, stderr io.Writer) error
 }
 
 // Browser opens a web page for the person at the terminal.
@@ -192,6 +194,7 @@ func NewRoot(d Deps) *cobra.Command {
 		newSetupCmd(d),
 		newNoticesCmd(d),
 		newVersionCmd(d),
+		newUpdateCmd(d),
 	)
 	return root
 }

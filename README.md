@@ -17,9 +17,10 @@ Pick one.
   ```
 
 - **Homebrew** (macOS), once the cask is published: `brew install --cask petervlad/tap/loadout`.
+- **Your team's registry**, if it publishes the CLI: `curl -fsSL https://YOUR-REGISTRY/install.sh | sh`. See [the guide](docs/GUIDE.md#publish-the-cli-from-your-registry).
 - **Go 1.27 or newer:** `go install github.com/petervlad/loadout/cmd/loadout@latest`.
 
-Check it with `loadout version`.
+Check it with `loadout version`, and update it later with `loadout update`, which follows however you installed it.
 
 ## Try it in five minutes, on one machine
 

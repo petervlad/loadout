@@ -10,6 +10,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 
@@ -293,7 +294,7 @@ func (s *Service) Status() Status {
 }
 
 func (s *Service) statusOf(st State, now time.Time) Status {
-	out := Status{Build: s.build, Method: s.method}
+	out := Status{Build: s.build, Method: s.method.For("")}
 	for _, a := range st.registries {
 		if now.Sub(a.Seen) > maxAge {
 			continue
@@ -303,10 +304,17 @@ func (s *Service) statusOf(st State, now time.Time) Status {
 		}
 		if c := a.Latest.Compare(out.Latest); c > 0 || (c == 0 && a.Latest != (semver.Version{}) && a.Seen.After(out.Seen)) {
 			out.Latest, out.From, out.Seen = a.Latest, host(a.URL), a.Seen
+			out.Method = s.method.For(a.URL)
 		}
 		if a.Minimum != (semver.Version{}) && s.build.Behind(a.Minimum) {
 			out.TooOld = append(out.TooOld, a)
 		}
+	}
+	// A registry that needs a newer loadout is the one to update from, even
+	// when another has advertised a newer release.
+	if len(out.TooOld) > 0 {
+		worst := slices.MaxFunc(out.TooOld, func(a, b Advice) int { return a.Minimum.Compare(b.Minimum) })
+		out.Method = s.method.For(worst.URL)
 	}
 	return out
 }

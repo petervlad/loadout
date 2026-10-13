@@ -70,6 +70,7 @@ The deploy files, copied from the loadout repository's `deploy/` folder when thi
 | `assets/cloud-init.yaml` | Optional VM user data: the admin user with the person's key, no root login, no ssh passwords |
 | `assets/Caddyfile` | `/etc/caddy/Caddyfile` for the registry, with an import of `/etc/caddy/loadout.d/*.caddy` |
 | `assets/site.caddy` | A static site block, installed only when `LOADOUT_SITE_DIR` and `LOADOUT_SITE_DOMAIN` are set; not needed here |
+| `assets/downloads.routes` and `assets/install.sh` | The routes and the script that let the registry hand out the CLI, installed only when `LOADOUT_DOWNLOADS=1` is set; not needed here |
 | `assets/loadout.service` | The hardened systemd unit |
 | `assets/loadout-backup.service` | The nightly backup job |
 | `assets/loadout-backup.timer` | Runs the backup job at about 03:15 |

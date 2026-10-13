@@ -29,6 +29,21 @@ fixed. The [user guide](../) explains how to use each one.
   `loadout propose delete TEAM/NAME --reason "why"`. A maintainer or owner who did not ask
   approves it on the request's page or with `loadout review approve del-ID`.
 
+- Feature: `loadout update` updates the CLI the way it was installed. With Homebrew it
+  runs `brew upgrade --cask loadout`, from a registry's download it runs that registry's
+  install script again, and for the release binary or a clone it prints what to do.
+  `--check` shows the command without running it.
+- Feature: A registry can hand out the CLI. Deploy with `LOADOUT_DOWNLOADS=1` and people run
+  `curl -fsSL https://REGISTRY/install.sh | sh`, with no Go and no clone. The download
+  is checked against `checksums.txt` and uses the machine's normal HTTPS trust.
+- Feature: A CLI installed from a registry names that registry's install line in the
+  "newer loadout" message.
+- Feature: New installs follow the `auto` update policy by default.
+- Feature: A registry that serves its own copy of the docs gets a working "loadout" link
+  back from them.
+- Feature: The built-in setup skill tells an AI tool to run `loadout update` when asked to
+  update loadout.
+
 ### 12 October 2026
 <!-- through 9a4ea7f -->
 

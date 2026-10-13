@@ -120,7 +120,7 @@ func TestTeamSharesAnAgentThroughALANRegistry(t *testing.T) {
 	if out := bob.must("", "list"); !strings.Contains(out, "lime/planner") || !strings.Contains(out, "0.1.0") {
 		t.Errorf("list output = %q", out)
 	}
-	bob.must("", "install", "lime/planner")
+	bob.must("", "install", "lime/planner", "--policy", "notify")
 	bobAgent := filepath.Join(bob.home, ".claude", "agents", "planner.md")
 	if _, err := os.Stat(bobAgent); err != nil {
 		t.Fatalf("Bob's agent not installed: %v", err)

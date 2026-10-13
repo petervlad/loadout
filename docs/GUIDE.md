@@ -92,11 +92,14 @@ Pick one:
 
 - **The release binary.** `curl -fsSL https://raw.githubusercontent.com/petervlad/loadout/main/scripts/install.sh | sh` downloads the archive for your system from the project's GitHub releases, checks it against `checksums.txt` and puts `loadout` in `~/.local/bin` (`LOADOUT_INSTALL_DIR` changes it, `LOADOUT_VERSION` picks a release). Or download the archive from the releases page yourself; Windows ships a `.zip`.
 - **Homebrew** (macOS), once the cask is published: `brew install --cask petervlad/tap/loadout`.
+- **Your registry.** If your team's registry publishes the CLI (see [Publish the CLI from your registry](#publish-the-cli-from-your-registry)), `curl -fsSL https://REGISTRY/install.sh | sh` puts the build for your system in `~/.local/bin` (`LOADOUT_BIN_DIR` changes it), checks it against the registry's `checksums.txt` and installs nothing if it does not match. It needs no `sudo`, and the download uses your computer's normal trust store like any other HTTPS address.
 - **Go** 1.27 or newer: `go install github.com/petervlad/loadout/cmd/loadout@latest`, or from a clone, `go install ./cmd/loadout`. Make sure `$(go env GOPATH)/bin` is on your `PATH`.
 
 ```sh
 loadout version
 ```
+
+`loadout update` updates the CLI the way it was installed: from a registry it runs that registry's install script again, with Homebrew it runs `brew upgrade --cask loadout`, and for the release binary or a clone it prints what to do (run the install script again, or `git pull && go install ./cmd/loadout`). It goes by what registries said the last time loadout talked to one, so run it after a command that asks a registry, such as `loadout sync`. `loadout update --check` shows the command without running it, and `--force` runs it when no newer release is known.
 
 `loadout version` names the release you built. Built from a release tag it says `loadout 0.4.0`; built from a commit after it, `loadout after 0.4.0 (built 4 Oct 2026 from b42ddb9)`; from a clone without any release yet, `loadout dev (built 4 Oct 2026 from b42ddb9)`. `modified` in the brackets means you built it with changes of your own in the folder.
 
@@ -152,6 +155,8 @@ Your registry says which loadout release it runs, and loadout compares it with i
 ```text
 loadout 0.5.0 is out (you have 0.4.0). To update, in your loadout folder: git pull && go install ./cmd/loadout
 ```
+
+The last words depend on how you installed it: `brew upgrade --cask loadout` for Homebrew, `curl -fsSL https://REGISTRY/install.sh | sh` for a download from a registry, and a pointer to the install page for the release binary. `loadout update` runs the first two for you.
 
 - The line goes to standard error, after the command's own output, and never changes what the command prints or its exit code. A script or cron job sees it at most once a day too; set `LOADOUT_UPDATE_NOTICE=off` in its environment to keep it out. `status`, `notices` and `version` still show it when you run them.
 - If a registry says your loadout is too old for it ("registry.example.com needs loadout 0.3.0 or newer"), that line comes after every command, `LOADOUT_UPDATE_NOTICE=off` included, because it explains why a command may fail. Update, then try again.
@@ -319,9 +324,11 @@ Each installed package has a policy:
 
 | Policy | What `sync` does |
 | --- | --- |
-| `notify` (default) | tells you a new version is out |
-| `auto` | installs the new version |
+| `notify` | tells you a new version is out |
+| `auto` (default) | installs the new version |
 | `pin` | nothing; you stay on this version |
+
+A new install starts with `auto`, so what your team publishes reaches you on your next `loadout sync`. A file you edited is never overwritten: the update is held back and `sync` tells you (see below). Installs you made earlier keep the policy they have. Pick another with `loadout install TEAM/NAME --policy notify` or `loadout policy TEAM/NAME notify`.
 
 ```sh
 loadout policy payments/planner auto
@@ -838,6 +845,12 @@ Without accounts, teammates join with invites. For the website and `loadout logi
 
 **Let your own AI agent set it up.** `loadout setup --host-skills` installs two skills, and the first, `loadout-host-provision`, takes you from nothing to a running registry: ask your agent to "set up a loadout registry on Hetzner" (or AWS Lightsail, DigitalOcean, Fly.io, any VPS with ssh, or a home server). It checks that your cloud's command line tool is logged in, shows what it will create and what that costs, and asks before it spends money, changes DNS or deletes anything. It creates the machine with your public key, opens ports 22, 80 and 443, waits until your name points at the machine (Let's Encrypt limits failed attempts), installs loadout from a checked release with systemd and Caddy, turns on off-host backups and proves them with a restore into a scratch folder, then writes down what it made and how to tear it down. The second skill, `loadout-host-setup`, then chooses the login mode with you (email codes, email codes plus Google, simple login, or tokens only), has you fill in the settings file in your own editor (it checks it with `loadout serve --check`, which prints one line per part and never a secret), walks the sender-domain DNS records (SPF, DKIM, DMARC) for Amazon SES, Resend, Postmark or any SMTP provider, proves the mail with `loadout mail test` and the headers of the message that arrives, makes the first admin (`loadout admin grant`, and `loadout user password` for simple login), and creates the first project and team. There is one file per provider in the skill, with the provider's mail-port limits (DigitalOcean blocks 25, 465 and 587, so sign-in mail there needs port 2525 or 2587). The agent runs on your computer with your own logins: it never asks you to paste a secret (cloud tokens stay in the provider tool's store; you type passwords yourself), never reads your settings file, and loadout calls no cloud and runs no model for it.
 
+The website's **Docs** and **What's new** links go to the public guide at `https://loadout.lat/docs/` unless you set `LOADOUT_DOCS_URL` in the server's environment. A registry with no route to loadout.lat can serve its own copy of the guide on its own address, and the "loadout" link at the top of those pages then leads back to the registry page you came from.
+
+### Publish the CLI from your registry
+
+A registry can hand out the CLI itself, so people on the team need neither Go nor a clone. Deploy from a checkout of loadout with `LOADOUT_DOWNLOADS=1` (it cannot be combined with `LOADOUT_BINARY` or `LOADOUT_VERSION`, because the CLI is built from the checkout). `deploy.sh` builds it for macOS and Linux on arm64 and amd64, and Caddy serves `https://YOUR-DOMAIN/install.sh` and the archives, `checksums.txt` and `VERSION` under `/dl/`. The registry serves only these files over the same HTTPS address as the rest, with the certificate Caddy got for it, so it must be one that people's machines already trust. A deploy without the variable takes the downloads down again. Each CLI it hands out knows where it came from, so `loadout update` and the "newer loadout" line name that registry's install script.
+
 ### Delete a package at once (admins)
 
 Deleting a package at once is for registry admins. Owners, maintainers and members ask for the deletion instead (see Ask to delete a package under Review), and a second person approves it; an owner may approve their own with a note. A login token cannot delete a package. The page needs the registry to keep a backup folder (`LOADOUT_BACKUP_DIR`, which the `deploy/` setup sets); without one neither the requests nor this page are there, and the host command below still works.
@@ -975,6 +988,7 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout setup --host-skills [--target T] [--force]` | Install the two skills that set up a registry of your own; login and sync never add them, but keep installed ones up to date |
 | `loadout setup --hooks [--target T]`, `setup --no-hooks` | Set up, or remove, the session hooks that say when your edits hold an update back or a newer loadout is out (login sets them up) |
 | `loadout version` | Print the version, and whether a newer one is out (from what a registry last said) |
+| `loadout update [--check] [--force]` | Update the CLI the way it was installed (a registry's install script, or `brew upgrade`), or print what to do for a release download or a clone |
 
 Every command takes `--help`.
 
@@ -1023,7 +1037,7 @@ You signed in before loadout had session hooks. Run `loadout setup --hooks` to g
 A newer loadout ships new text for one of its skills, and you edited the installed one. Your edit stays. `loadout setup --skills --force` replaces it with the new text.
 
 **"loadout 0.5.0 is out (you have 0.4.0)"**
-A registry you use runs a newer release. Update with the command in the line (from a clone: `git pull && go install ./cmd/loadout` in your loadout folder), then `loadout version` says the new one. To keep the line out of scripts, set `LOADOUT_UPDATE_NOTICE=off`.
+A registry you use runs a newer release. Run `loadout update`, or the command in the line yourself (for Homebrew `brew upgrade --cask loadout`, from a registry `curl -fsSL https://REGISTRY/install.sh | sh` with your registry's address, from a clone `git pull && go install ./cmd/loadout` in your loadout folder), then `loadout version` says the new one. To keep the line out of scripts, set `LOADOUT_UPDATE_NOTICE=off`.
 
 **"registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail"**
 That registry no longer supports your loadout. Update with the command in the line and run the command again. This line comes after every command until you do.

@@ -208,7 +208,7 @@ func TestInstallMerge(t *testing.T) {
 	prompt := "Line one.\nLine two.\nLine three.\nLine four.\nLine five.\n"
 	alice.publishPrompt(t, agentMD, head, prompt, "")
 	bob.must(readToken+"\n", "remote", "add", "office", url, "--token-stdin")
-	bob.must("", "install", "lime/planner")
+	bob.must("", "install", "lime/planner", "--policy", "notify") // the default is auto, which exits 2 when held back; this test follows the notify wording
 	bobAgent := filepath.Join(bob.home, ".claude", "agents", "planner.md")
 	bob.replaceIn(t, bobAgent, "Line five.", "Line five, Bob's way.")
 

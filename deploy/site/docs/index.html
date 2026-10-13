@@ -449,9 +449,11 @@ td code { white-space: nowrap; }
 <ul>
 <li><strong>The release binary.</strong> <code>curl -fsSL https://raw.githubusercontent.com/petervlad/loadout/main/scripts/install.sh | sh</code> downloads the archive for your system from the project's GitHub releases, checks it against <code>checksums.txt</code> and puts <code>loadout</code> in <code>~/.local/bin</code> (<code>LOADOUT_INSTALL_DIR</code> changes it, <code>LOADOUT_VERSION</code> picks a release). Or download the archive from the releases page yourself; Windows ships a <code>.zip</code>.</li>
 <li><strong>Homebrew</strong> (macOS), once the cask is published: <code>brew install --cask petervlad/tap/loadout</code>.</li>
+<li><strong>Your registry.</strong> If your team's registry publishes the CLI (see <a href="#publish-the-cli-from-your-registry">Publish the CLI from your registry</a>), <code>curl -fsSL https://REGISTRY/install.sh | sh</code> puts the build for your system in <code>~/.local/bin</code> (<code>LOADOUT_BIN_DIR</code> changes it), checks it against the registry's <code>checksums.txt</code> and installs nothing if it does not match. It needs no <code>sudo</code>, and the download uses your computer's normal trust store like any other HTTPS address.</li>
 <li><strong>Go</strong> 1.27 or newer: <code>go install github.com/petervlad/loadout/cmd/loadout@latest</code>, or from a clone, <code>go install ./cmd/loadout</code>. Make sure <code>$(go env GOPATH)/bin</code> is on your <code>PATH</code>.</li>
 </ul>
 <pre class="sh"><code>loadout version</code></pre>
+<p><code>loadout update</code> updates the CLI the way it was installed: from a registry it runs that registry's install script again, with Homebrew it runs <code>brew upgrade --cask loadout</code>, and for the release binary or a clone it prints what to do (run the install script again, or <code>git pull &amp;&amp; go install ./cmd/loadout</code>). It goes by what registries said the last time loadout talked to one, so run it after a command that asks a registry, such as <code>loadout sync</code>. <code>loadout update --check</code> shows the command without running it, and <code>--force</code> runs it when no newer release is known.</p>
 <p><code>loadout version</code> names the release you built. Built from a release tag it says <code>loadout 0.4.0</code>; built from a commit after it, <code>loadout after 0.4.0 (built 4 Oct 2026 from b42ddb9)</code>; from a clone without any release yet, <code>loadout dev (built 4 Oct 2026 from b42ddb9)</code>. <code>modified</code> in the brackets means you built it with changes of your own in the folder.</p>
 <h3 id="2-sign-in">2. Sign in</h3>
 <p>Your team lead gives you the registry address and adds your email to the team. Then:</p>
@@ -475,6 +477,7 @@ loadout install payments/runbooks</code></pre>
 <h4 id="a-newer-loadout">A newer loadout</h4>
 <p>Your registry says which loadout release it runs, and loadout compares it with its own version on the requests it makes anyway; it adds no request of its own. When yours is older, one line after a command says so, at most once a day for each new release:</p>
 <pre class="text"><code>loadout 0.5.0 is out (you have 0.4.0). To update, in your loadout folder: git pull &amp;&amp; go install ./cmd/loadout</code></pre>
+<p>The last words depend on how you installed it: <code>brew upgrade --cask loadout</code> for Homebrew, <code>curl -fsSL https://REGISTRY/install.sh | sh</code> for a download from a registry, and a pointer to the install page for the release binary. <code>loadout update</code> runs the first two for you.</p>
 <ul>
 <li>The line goes to standard error, after the command's own output, and never changes what the command prints or its exit code. A script or cron job sees it at most once a day too; set <code>LOADOUT_UPDATE_NOTICE=off</code> in its environment to keep it out. <code>status</code>, <code>notices</code> and <code>version</code> still show it when you run them.</li>
 <li>If a registry says your loadout is too old for it ("registry.example.com needs loadout 0.3.0 or newer"), that line comes after every command, <code>LOADOUT_UPDATE_NOTICE=off</code> included, because it explains why a command may fail. Update, then try again.</li>
@@ -639,11 +642,11 @@ loadout notices       # updates your edits hold back, one line each (nothing if 
 </thead>
 <tbody>
 <tr>
-<td><code>notify</code> (default)</td>
+<td><code>notify</code></td>
 <td>tells you a new version is out</td>
 </tr>
 <tr>
-<td><code>auto</code></td>
+<td><code>auto</code> (default)</td>
 <td>installs the new version</td>
 </tr>
 <tr>
@@ -653,6 +656,7 @@ loadout notices       # updates your edits hold back, one line each (nothing if 
 </tbody>
 </table>
 </div>
+<p>A new install starts with <code>auto</code>, so what your team publishes reaches you on your next <code>loadout sync</code>. A file you edited is never overwritten: the update is held back and <code>sync</code> tells you (see below). Installs you made earlier keep the policy they have. Pick another with <code>loadout install TEAM/NAME --policy notify</code> or <code>loadout policy TEAM/NAME notify</code>.</p>
 <pre class="sh"><code>loadout policy payments/planner auto
 loadout install payments/runbooks --policy auto</code></pre>
 <p>A file you edited is never overwritten by <code>sync</code>. When your project changes which model its agents run, <code>sync</code> treats it like a new version of the agents it changes: <code>auto</code> applies it, <code>notify</code> reports "model settings changed", <code>pin</code> leaves the file alone.</p>
@@ -1072,6 +1076,9 @@ loadout publish ./planner --remote registry --bump patch --base latest</code></p
 loadout token create --team payments --read --invite --url http://10.0.4.12:7420</code></pre>
 <p>Without accounts, teammates join with invites. For the website and <code>loadout login</code>, run it behind HTTPS with a public address; the repository's <code>deploy/</code> folder has a ready setup for any Debian or Ubuntu host you can ssh to (cloud VM, VPS or a home server) and for a container: copy <code>deploy/loadout.env.example</code>, fill it in, check it with <code>loadout serve --check --env-file FILE</code>, and deploy with <code>deploy/deploy.sh</code> (from a checkout, or <code>LOADOUT_VERSION=X.Y.Z</code> to install a checked release). If a proxy that is not on the registry's machine sits in front (a container platform, a tunnel, a load balancer), tell the registry which addresses it connects from and which header carries the client's address, so the sign-in limits count each person and not the proxy: <code>LOADOUT_TRUSTED_PROXIES=203.0.113.0/24</code> and <code>LOADOUT_CLIENT_IP_HEADER=Fly-Client-IP</code> (use the header your platform documents, one address per request; <code>X-Forwarded-For</code> is refused, and so is a range that covers every address). Without them loadout trusts only a proxy on the same machine. <code>loadout serve --check</code> shows what is set. Commands with <code>--data</code> run on the registry host as the operator, who alone makes the first admin: <code>loadout admin grant --email you@example.com</code>. (In simple login mode a new registry makes <code>admin@loadout.local</code> itself on its first start; see "Roles".)</p>
 <p><strong>Let your own AI agent set it up.</strong> <code>loadout setup --host-skills</code> installs two skills, and the first, <code>loadout-host-provision</code>, takes you from nothing to a running registry: ask your agent to "set up a loadout registry on Hetzner" (or AWS Lightsail, DigitalOcean, Fly.io, any VPS with ssh, or a home server). It checks that your cloud's command line tool is logged in, shows what it will create and what that costs, and asks before it spends money, changes DNS or deletes anything. It creates the machine with your public key, opens ports 22, 80 and 443, waits until your name points at the machine (Let's Encrypt limits failed attempts), installs loadout from a checked release with systemd and Caddy, turns on off-host backups and proves them with a restore into a scratch folder, then writes down what it made and how to tear it down. The second skill, <code>loadout-host-setup</code>, then chooses the login mode with you (email codes, email codes plus Google, simple login, or tokens only), has you fill in the settings file in your own editor (it checks it with <code>loadout serve --check</code>, which prints one line per part and never a secret), walks the sender-domain DNS records (SPF, DKIM, DMARC) for Amazon SES, Resend, Postmark or any SMTP provider, proves the mail with <code>loadout mail test</code> and the headers of the message that arrives, makes the first admin (<code>loadout admin grant</code>, and <code>loadout user password</code> for simple login), and creates the first project and team. There is one file per provider in the skill, with the provider's mail-port limits (DigitalOcean blocks 25, 465 and 587, so sign-in mail there needs port 2525 or 2587). The agent runs on your computer with your own logins: it never asks you to paste a secret (cloud tokens stay in the provider tool's store; you type passwords yourself), never reads your settings file, and loadout calls no cloud and runs no model for it.</p>
+<p>The website's <strong>Docs</strong> and <strong>What's new</strong> links go to the public guide at <code>https://loadout.lat/docs/</code> unless you set <code>LOADOUT_DOCS_URL</code> in the server's environment. A registry with no route to loadout.lat can serve its own copy of the guide on its own address, and the "loadout" link at the top of those pages then leads back to the registry page you came from.</p>
+<h3 id="publish-the-cli-from-your-registry">Publish the CLI from your registry</h3>
+<p>A registry can hand out the CLI itself, so people on the team need neither Go nor a clone. Deploy from a checkout of loadout with <code>LOADOUT_DOWNLOADS=1</code> (it cannot be combined with <code>LOADOUT_BINARY</code> or <code>LOADOUT_VERSION</code>, because the CLI is built from the checkout). <code>deploy.sh</code> builds it for macOS and Linux on arm64 and amd64, and Caddy serves <code>https://YOUR-DOMAIN/install.sh</code> and the archives, <code>checksums.txt</code> and <code>VERSION</code> under <code>/dl/</code>. The registry serves only these files over the same HTTPS address as the rest, with the certificate Caddy got for it, so it must be one that people's machines already trust. A deploy without the variable takes the downloads down again. Each CLI it hands out knows where it came from, so <code>loadout update</code> and the "newer loadout" line name that registry's install script.</p>
 <h3 id="delete-a-package-at-once-admins">Delete a package at once (admins)</h3>
 <p>Deleting a package at once is for registry admins. Owners, maintainers and members ask for the deletion instead (see Ask to delete a package under Review), and a second person approves it; an owner may approve their own with a note. A login token cannot delete a package. The page needs the registry to keep a backup folder (<code>LOADOUT_BACKUP_DIR</code>, which the <code>deploy/</code> setup sets); without one neither the requests nor this page are there, and the host command below still works.</p>
 <ol type="1">
@@ -1430,6 +1437,10 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <td><code>loadout version</code></td>
 <td>Print the version, and whether a newer one is out (from what a registry last said)</td>
 </tr>
+<tr>
+<td><code>loadout update [--check] [--force]</code></td>
+<td>Update the CLI the way it was installed (a registry's install script, or <code>brew upgrade</code>), or print what to do for a release download or a clone</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1452,7 +1463,7 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <p><strong>"left ~/.claude/settings.json alone: ~/.claude/settings.json is a symbolic link"</strong> (or "is not valid JSON") loadout does not change a settings file it cannot change safely. Add the entry it printed under <code>hooks.SessionStart</code> yourself, in the file the link points to, or fix the JSON and run <code>loadout setup --hooks</code> again.</p>
 <p><strong>"Tip: loadout setup --hooks makes Claude Code and Copilot say this when a session starts"</strong> You signed in before loadout had session hooks. Run <code>loadout setup --hooks</code> to get them, or <code>loadout setup --no-hooks</code> to stop the tip.</p>
 <p><strong>"kept your own loadout-setup skill: a file you edited is in the way"</strong> A newer loadout ships new text for one of its skills, and you edited the installed one. Your edit stays. <code>loadout setup --skills --force</code> replaces it with the new text.</p>
-<p><strong>"loadout 0.5.0 is out (you have 0.4.0)"</strong> A registry you use runs a newer release. Update with the command in the line (from a clone: <code>git pull &amp;&amp; go install ./cmd/loadout</code> in your loadout folder), then <code>loadout version</code> says the new one. To keep the line out of scripts, set <code>LOADOUT_UPDATE_NOTICE=off</code>.</p>
+<p><strong>"loadout 0.5.0 is out (you have 0.4.0)"</strong> A registry you use runs a newer release. Run <code>loadout update</code>, or the command in the line yourself (for Homebrew <code>brew upgrade --cask loadout</code>, from a registry <code>curl -fsSL https://REGISTRY/install.sh | sh</code> with your registry's address, from a clone <code>git pull &amp;&amp; go install ./cmd/loadout</code> in your loadout folder), then <code>loadout version</code> says the new one. To keep the line out of scripts, set <code>LOADOUT_UPDATE_NOTICE=off</code>.</p>
 <p><strong>"registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail"</strong> That registry no longer supports your loadout. Update with the command in the line and run the command again. This line comes after every command until you do.</p>
 <p><strong>"--scope project needs a git repository"</strong> Run the command inside a git repository, or use <code>--scope user</code>.</p>
 <p><strong>A package shows as "shadowed"</strong> A closer layer (your team) ships a package with the same name, and its file wins. That is expected.</p>

@@ -129,7 +129,7 @@ same lines the file holds conflict markers for you to resolve.`,
 	f := cmd.Flags()
 	f.StringSliceVar(&targets, "target", nil, fmt.Sprintf("AI tools to install into (available: %v)", d.Installer.Targets()))
 	f.StringVar(&scope, "scope", string(target.ScopeUser), "user (your home) or project (the current repo)")
-	f.StringVar(&policy, "policy", "", "how updates arrive: auto, notify or pin (default notify, or the current policy)")
+	f.StringVar(&policy, "policy", "", "how updates arrive: auto, notify or pin (default auto, or the current policy)")
 	f.StringVar(&remoteName, "remote", "", "registry to install from (default: the team's registry, else the default remote)")
 	f.BoolVar(&force, "force", false, "overwrite files loadout did not write or that were edited")
 	f.BoolVar(&adopt, "adopt", false, "move files and links an older setup left in the way into ~/.loadout/backup, then install")

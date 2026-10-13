@@ -21,7 +21,19 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 
 ## Install the CLI
 
-For now loadout is built from source with Go 1.27 or newer. The team lead gives access to the source.
+The release binary, Homebrew and `go install` are the public ways, and the install page in the guide lists them. If the team's registry publishes the CLI, it hands out the CLI itself, so the person needs no Go and no clone. Give them the line for their registry address (the local skill or the team lead has it). They run it in their own terminal:
+
+```sh
+curl -fsSL https://REGISTRY/install.sh | sh
+loadout version
+```
+
+- It downloads over ordinary HTTPS and checks the archive against the registry's `checksums.txt`. If that fails, nothing is installed.
+- It installs `loadout` in `~/.local/bin` without `sudo`. If that folder is not on the `PATH`, it prints the line for `~/.zshrc`. A new terminal is needed after adding it.
+- `loadout update` updates loadout the way it was installed (from a registry it runs this line again). Running the line again does the same.
+- Sign in with `loadout login --remote https://REGISTRY`.
+
+To build it from source instead, use Go 1.27 or newer and a clone of the project.
 
 ```sh
 git clone <the loadout repository> loadout && cd loadout
@@ -33,12 +45,12 @@ loadout version
 
 ## When loadout says a newer version is out
 
-A registry tells loadout which release it runs. When the person's loadout is older, a line follows a command on standard error, at most once a day per release. Run by you, it reads "loadout, for the agent: a newer loadout CLI is available (0.5.0; this is 0.4.0). Tell the user once ..."; at a terminal, "loadout 0.5.0 is out (you have 0.4.0). To update, in your loadout folder: git pull && go install ./cmd/loadout".
+A registry tells loadout which release it runs. When the person's loadout is older, a line follows a command on standard error, at most once a day per release. Run by you, it reads "loadout, for the agent: a newer loadout CLI is available (0.5.0; this is 0.4.0). Tell the user once ..."; at a terminal, "loadout 0.5.0 is out (you have 0.4.0). To update: curl -fsSL https://REGISTRY/install.sh | sh" (for a CLI installed from a registry) or "To update, in your loadout folder: git pull && go install ./cmd/loadout" (built from a clone).
 
 - Tell the person once, in one sentence, with the command loadout printed. It is not an error: the command before it worked as usual.
-- Do not run `git pull` or `go install` yourself unless they ask: the loadout folder is their clone, and you do not know where it is.
+- Do not run the update yourself unless they ask. When they do, run `loadout update`: for a CLI installed from a registry or Homebrew it runs the right command, and for a clone or a release download it only prints what to do (`git pull` and `go install` work in their clone, which you do not know the place of). `loadout update --check` shows the command without running it.
 - "registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail" comes after every command. Say that this is likely why a command failed, and suggest updating before trying again.
-- `loadout version` shows the same from what a registry last said. `LOADOUT_UPDATE_NOTICE=off` keeps the line out of scripts; the too-old one stays.
+- `loadout version` shows the same from what a registry last said. `loadout update` goes by the same news, so run a command that asks a registry first (`loadout list`). `LOADOUT_UPDATE_NOTICE=off` keeps the line out of scripts; the too-old one stays.
 
 ## Sign in
 
@@ -118,7 +130,7 @@ loadout cleanup --tool vscode --apply   # moves old copies that remain (see the 
 
 ```sh
 loadout sync                             # checks every installed package
-loadout policy payments/planner auto         # auto: install updates; notify (default): report them; pin: hold
+loadout policy payments/planner auto         # auto (default): install updates; notify: report them; pin: hold
 ```
 
 `sync` never overwrites a file the person edited and is safe to run from cron. When the team changes which model its agents run, `sync` treats it like a new version.

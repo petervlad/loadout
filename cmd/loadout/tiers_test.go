@@ -34,7 +34,7 @@ func TestModelTiers(t *testing.T) {
 	}
 
 	alice.must("", "install", "lime/planner", "--target", "claude,copilot", "--policy", "auto")
-	alice.must("", "install", "web/styles", "--target", "copilot")
+	alice.must("", "install", "web/styles", "--target", "copilot", "--policy", "notify")
 	planner := filepath.Join(alice.home, ".copilot", "agents", "planner.md")
 	for _, want := range []string{`model: Claude Sonnet 5 (copilot)`, "models: [claude-sonnet-5]", "reasoning-effort: high"} {
 		if got := readText(t, planner); !strings.Contains(got, want) {

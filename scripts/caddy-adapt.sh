@@ -1,9 +1,10 @@
 #!/bin/sh
-# Check that deploy/Caddyfile adapts, without and with the optional site block.
+# Check that deploy/Caddyfile adapts, without and with the optional site block
+# and the download routes.
 #
 #   sh scripts/caddy-adapt.sh
 #
-# Needs caddy on PATH. The Caddyfile imports /etc/caddy/loadout.d/*.caddy; the
+# Needs caddy on PATH. The Caddyfile imports /etc/caddy/loadout.d/*.caddy and *.routes; the
 # copy under test points that import at a temporary folder instead.
 set -eu
 
@@ -23,3 +24,7 @@ echo "caddy-adapt: without the site block: ok."
 cp "$root/deploy/site.caddy" "$tmp/loadout.d/site.caddy"
 caddy adapt --config "$tmp/Caddyfile" --adapter caddyfile >/dev/null
 echo "caddy-adapt: with the site block: ok."
+
+cp "$root/deploy/downloads.routes" "$tmp/loadout.d/downloads.routes"
+caddy adapt --config "$tmp/Caddyfile" --adapter caddyfile >/dev/null
+echo "caddy-adapt: with the download routes: ok."
