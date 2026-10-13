@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
-	"github.com/petervlad/loadout/internal/hetzner"
 	"github.com/petervlad/loadout/internal/mail"
 	"github.com/petervlad/loadout/internal/registry"
 )
@@ -29,13 +28,18 @@ type queue struct{}
 
 func (queue) Stats() mail.QueueStats { return mail.QueueStats{Sent: 4, Failed: 1} }
 
+// refused is a provider error as the page shows it: a plain sentence.
+const refused = "Example Cloud refused the token."
+
 type cloud struct{ err error }
 
-func (c cloud) Summary(context.Context) (hetzner.Summary, error) {
+func (cloud) Name() string { return "Example Cloud" }
+
+func (c cloud) Summary(context.Context) (CloudSummary, error) {
 	if c.err != nil {
-		return hetzner.Summary{}, c.err
+		return CloudSummary{}, c.err
 	}
-	return hetzner.Summary{Server: hetzner.Server{Name: "loadout-registry"}}, nil
+	return CloudSummary{Facts: []CloudFact{{Label: "Name", Value: "loadout-registry"}}}, nil
 }
 
 func write(t *testing.T, path string, n int, mod time.Time) {
@@ -102,8 +106,8 @@ func TestReport(t *testing.T) {
 	if !r.Mail.On || r.Mail.Stats.Sent != 4 {
 		t.Errorf("Mail = %+v", r.Mail)
 	}
-	if !r.Hetzner.Configured || r.Hetzner.Summary.Server.Name != "loadout-registry" || r.Hetzner.Err != "" {
-		t.Errorf("Hetzner = %+v", r.Hetzner)
+	if !r.Cloud.Configured || r.Cloud.Name != "Example Cloud" || r.Cloud.Summary.Facts[0].Value != "loadout-registry" || r.Cloud.Err != "" {
+		t.Errorf("Cloud = %+v", r.Cloud)
 	}
 }
 
@@ -114,7 +118,7 @@ func TestReportDegrades(t *testing.T) {
 	c := New(Config{
 		DataDir: data, DBFiles: []string{"registry.db", "memory.db"}, BackupDir: filepath.Join(data, "no-such-folder"),
 		Started: time.Now(), Registry: counters{err: errors.New("database is locked")}, Accounts: counters{},
-		Cloud: cloud{err: &hetzner.APIError{Status: 401, Code: "unauthorized"}},
+		Cloud: cloud{err: errors.New(refused)},
 	})
 	r := c.Report(t.Context())
 	if len(r.Disk.DBs) != 2 || r.Disk.DBs[0].Err != "It does not exist." || r.Disk.DBs[1].Err != "It does not exist." || r.Disk.FSErr != "" {
@@ -129,13 +133,13 @@ func TestReportDegrades(t *testing.T) {
 	if r.Mail.On {
 		t.Errorf("Mail = %+v, want off", r.Mail)
 	}
-	if !r.Hetzner.Configured || !strings.Contains(r.Hetzner.Err, "refused the token") {
-		t.Errorf("Hetzner = %+v", r.Hetzner)
+	if !r.Cloud.Configured || !strings.Contains(r.Cloud.Err, "refused the token") {
+		t.Errorf("Cloud = %+v", r.Cloud)
 	}
 
 	r = New(Config{DataDir: data, DBFiles: []string{"registry.db", "memory.db"}}).Report(t.Context())
-	if !r.Backups.Off || r.Hetzner.Configured {
-		t.Errorf("without a backup folder or token: Backups %+v, Hetzner %+v", r.Backups, r.Hetzner)
+	if !r.Backups.Off || r.Cloud.Configured {
+		t.Errorf("without a backup folder or provider: Backups %+v, Cloud %+v", r.Backups, r.Cloud)
 	}
 }
 

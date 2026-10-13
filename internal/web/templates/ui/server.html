@@ -28,26 +28,26 @@
 </section>
 </div>
 
-{{if ne .Hetzner.State "off"}}<div class="grid2">
+{{if ne .Cloud.State "off"}}<div class="grid2">
 <section class="panel" aria-labelledby="hz-h">
-<div class="panel-head"><h2 id="hz-h">Hetzner server</h2></div>
-{{with .Hetzner}}{{if eq .State "error"}}<p class="panel-note" role="status"><strong>Hetzner unavailable:</strong> {{.Reason}}</p>
+<div class="panel-head"><h2 id="hz-h">{{.Cloud.Name}} server</h2></div>
+{{with .Cloud}}{{if eq .State "error"}}<p class="panel-note" role="status"><strong>{{.Name}} unavailable:</strong> {{.Reason}}</p>
 {{else}}{{template "facts" .Facts}}{{end}}{{end}}
 </section>
 
-<section class="panel" aria-labelledby="cost-h">
+{{if or .Cloud.HasCost (eq .Cloud.State "error")}}<section class="panel" aria-labelledby="cost-h">
 <div class="panel-head"><h2 id="cost-h">Estimated monthly cost</h2></div>
-{{with .Hetzner}}{{if eq .State "ok"}}<table class="cost">
+{{with .Cloud}}{{if .HasCost}}<table class="cost">
 <thead><tr><th scope="col">Item</th><th scope="col" class="amount">A month</th></tr></thead>
 <tbody>{{range .Cost}}
 <tr><th scope="row">{{.Label}}{{with .Detail}}<span class="desc">{{.}}</span>{{end}}</th><td class="amount">{{.Amount}}</td></tr>{{end}}
 </tbody>
 <tfoot><tr><th scope="row">Total</th><td class="amount">{{.Total}}</td></tr></tfoot>
 </table>
-<p class="panel-foot">Estimated from Hetzner's list prices, with {{.VAT}}% VAT as Hetzner states it for your account. The Cloud API has no invoices: the bill itself is in the Hetzner Console. Hetzner figures are checked <time datetime="{{stamp .Checked}}">{{ago .Checked}}</time> and kept for 5 minutes.{{with .Unpriced}} {{.}}{{end}}</p>
-{{else}}<p class="panel-note">Shown once the Hetzner server can be read.</p>{{end}}{{end}}
+<p class="panel-foot">{{.Note}} Checked <time datetime="{{stamp .Checked}}">{{ago .Checked}}</time>.{{with .Unpriced}} {{.}}{{end}}</p>
+{{else}}<p class="panel-note">Shown once the {{.Name}} server can be read.</p>{{end}}{{end}}
 </section>
-</div>
+{{end}}</div>
 
 {{end}}<div class="grid2">
 <section class="panel" aria-labelledby="backup-h">

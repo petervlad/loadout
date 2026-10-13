@@ -1013,9 +1013,9 @@ It removes every release, every proposal with its reviews and prompts (open prop
 
 Admins open **Account**, then **Server details** (`/account/server`). Its numbers cover the whole registry, every project included, so nobody else sees the page, not even a project's owners (they get "Nothing here"). It shows:
 
-- at the top: the host (or, on a Hetzner server, the estimated monthly cost), how full the disk is, when the last backup was made, and how long the server has run;
+- at the top: the host (or, with a cloud provider that estimates cost, such as Hetzner, the estimated monthly cost), how full the disk is, when the last backup was made, and how long the server has run;
 - the host: provider, region, size and contact as the operator wrote them in the environment file, plus what the machine says itself (host name, operating system, CPUs loadout sees) and the registry's address, with a link to the host's console when one is set (it may open only from the company network or VPN). The stated values are not measured, and without any the panel says which variables to set;
-- only with a Hetzner token, the Hetzner server: name, type, location, status, backups, public IPs, volumes and this billing period's traffic, with a monthly cost estimated from Hetzner's list prices (VAT included as Hetzner states it; the Cloud API has no invoices, so the bill itself stays in the Hetzner Console);
+- only with a cloud provider set up (Hetzner is built in), the server as the cloud sees it. For Hetzner with a token: name, type, location, status, backups, public IPs, volumes and this billing period's traffic, with a monthly cost estimated from Hetzner's list prices (VAT included as Hetzner states it; the Cloud API has no invoices, so the bill itself stays in the Hetzner Console);
 - storage: the disk, the database and its write-ahead log, what releases, proposals and review reports take up, and the whole data folder;
 - the nightly backups, the registry's counts (projects, teams, packages by kind, releases, proposals, accounts, memberships, sessions, tokens), the login mail queue and the process (version, uptime, memory).
 
@@ -1030,7 +1030,7 @@ Each part works on its own: one that cannot be read says why, and the rest still
 | `LOADOUT_HETZNER_SERVER` | The server's id or name. Unset: the server whose public IPv4 is this machine's |
 | `LOADOUT_BACKUP_DIR` | Where the nightly backups are, and where the registry saves a copy of its database before a package is deleted on the web; the `deploy/` unit sets `/var/backups/loadout`. Unset: packages cannot be deleted or asked about on the web |
 
-On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a token set the page also shows that Hetzner server, and the log warns about it. Hetzner answers are kept for 5 minutes and a slow answer is given up after 5 seconds.
+On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a token set the page also shows that Hetzner server, and the log warns about it. Hetzner answers are kept for 5 minutes and a slow answer is given up after 5 seconds. Another cloud needs a small provider written in Go, which the developer documentation (`docs/DESIGN.md`, Adding a cloud provider) describes.
 
 ## Rules and limits
 

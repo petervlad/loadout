@@ -26,7 +26,7 @@ func TestServerStats(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := c.Report(t.Context())
-	if r.Hetzner.Configured || r.Mail.On || !r.Backups.Off || len(r.Disk.DBs) != 2 || r.Disk.DBs[0].DBBytes == 0 || r.Counts.Err != "" {
+	if r.Cloud.Configured || r.Mail.On || !r.Backups.Off || len(r.Disk.DBs) != 2 || r.Disk.DBs[0].DBBytes == 0 || r.Counts.Err != "" {
 		t.Errorf("Report() without settings = %+v", r)
 	}
 
@@ -42,7 +42,7 @@ func TestServerStats(t *testing.T) {
 	if strings.Contains(logs.String(), token) {
 		t.Errorf("the log shows the token:\n%s", logs.String())
 	}
-	if !strings.Contains(logs.String(), "hetzner=true") {
+	if !strings.Contains(logs.String(), "cloud=Hetzner") {
 		t.Errorf("the log does not say Hetzner is on:\n%s", logs.String())
 	}
 }

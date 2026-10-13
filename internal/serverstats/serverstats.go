@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
-	"github.com/petervlad/loadout/internal/hetzner"
 	"github.com/petervlad/loadout/internal/mail"
 	"github.com/petervlad/loadout/internal/registry"
 )
@@ -38,11 +37,6 @@ type MailQueue interface {
 	Stats() mail.QueueStats
 }
 
-// Cloud reads the server from its cloud provider.
-type Cloud interface {
-	Summary(ctx context.Context) (hetzner.Summary, error)
-}
-
 // Config says where to look.
 type Config struct {
 	// DataDir is the registry's --data folder; DBFiles the databases in it
@@ -59,8 +53,8 @@ type Config struct {
 	Accounts AccountCounter
 	// Mail is nil when email sign-in is off.
 	Mail MailQueue
-	// Cloud is nil when no Hetzner token is set.
-	Cloud Cloud
+	// Cloud is nil when no cloud provider is set up.
+	Cloud CloudProvider
 	// Host is what the operator states about the machine; PublicURL is
 	// the registry's address in a browser.
 	Host      HostFacts
@@ -96,7 +90,7 @@ type Report struct {
 	Counts  Counts
 	Backups Backups
 	Mail    Mail
-	Hetzner Hetzner
+	Cloud   Cloud
 	Host    Host
 }
 
@@ -189,21 +183,12 @@ type Mail struct {
 	Stats mail.QueueStats
 }
 
-// Hetzner is the cloud server.
-type Hetzner struct {
-	// Configured is false without a token.
-	Configured bool
-	Summary    hetzner.Summary
-	// Err is a plain reason when it could not be read.
-	Err string
-}
-
 // Report collects a report. The cloud is asked at the same time as the
 // machine, and each part fails on its own.
 func (c *Collector) Report(ctx context.Context) Report {
 	now := c.cfg.Now()
-	cloud := make(chan Hetzner, 1)
-	go func() { cloud <- c.hetzner(ctx) }()
+	cloud := make(chan Cloud, 1)
+	go func() { cloud <- c.cloud(ctx) }()
 	r := Report{
 		At:      now,
 		Process: c.process(now),
@@ -213,7 +198,7 @@ func (c *Collector) Report(ctx context.Context) Report {
 		Mail:    c.mail(),
 		Host:    c.host(),
 	}
-	r.Hetzner = <-cloud
+	r.Cloud = <-cloud
 	return r
 }
 
@@ -404,17 +389,6 @@ func unquote(v string) string {
 		v = v[1 : len(v)-1]
 	}
 	return v
-}
-
-func (c *Collector) hetzner(ctx context.Context) Hetzner {
-	if c.cfg.Cloud == nil {
-		return Hetzner{}
-	}
-	s, err := c.cfg.Cloud.Summary(ctx)
-	if err != nil {
-		return Hetzner{Configured: true, Err: hetzner.Reason(err)}
-	}
-	return Hetzner{Configured: true, Summary: s}
 }
 
 // reason turns a file error into a short sentence without the path, which

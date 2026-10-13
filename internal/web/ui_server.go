@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
-	"github.com/petervlad/loadout/internal/hetzner"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/registry"
 	"github.com/petervlad/loadout/internal/serverstats"
@@ -28,14 +27,13 @@ const (
 	diskWarnPercent = 80
 	diskBadPercent  = 90
 	backupWarnAge   = 36 * time.Hour
-	trafficWarnPct  = 80
 )
 
 // serverView is the body of server.html.
 type serverView struct {
 	Checked time.Time
 	Tiles   []statTile
-	Hetzner hetznerView
+	Cloud   cloudView
 	Host    sectionView
 	// HostConsole is the stated console link, drawn as a link.
 	HostConsole string
@@ -74,15 +72,19 @@ type diskView struct {
 	Err     string
 }
 
-type hetznerView struct {
-	// State is "off" without a token, "error" when it could not be read,
-	// else "ok".
-	State    string
+// cloudView is the cloud provider's two panels.
+type cloudView struct {
+	// State is "off" without a provider, "error" when it could not be
+	// read, else "ok".
+	State string
+	// Name is the provider's name, Reason why it could not be read.
+	Name     string
 	Reason   string
 	Facts    []fact
 	Cost     []costRow
+	HasCost  bool
 	Total    string
-	VAT      string
+	Note     string
 	Unpriced string
 	Checked  time.Time
 }
@@ -116,7 +118,7 @@ func (h *handler) serverPage(w http.ResponseWriter, r *http.Request) {
 
 func newServerView(rep serverstats.Report, now time.Time) serverView {
 	v := serverView{Checked: rep.At}
-	v.Hetzner = newHetznerView(rep.Hetzner)
+	v.Cloud = newCloudView(rep.Cloud)
 	v.Host, v.HostConsole = hostSection(rep.Host), rep.Host.Stated.Console
 	v.Tiles = []statTile{firstTile(rep), diskTile(rep.Disk), backupTile(rep.Backups, now), uptimeTile(rep.Process)}
 	v.Disk, v.Storage = storageFacts(rep.Disk, rep.Counts)
@@ -127,11 +129,12 @@ func newServerView(rep serverstats.Report, now time.Time) serverView {
 	return v
 }
 
-// firstTile is the cost with a Hetzner token, else the host, so a registry
-// elsewhere is not pointed at Hetzner.
+// firstTile is the cost when a cloud provider is set up and has an
+// estimate, else the host, so a registry elsewhere is not pointed at a
+// cloud it does not use.
 func firstTile(rep serverstats.Report) statTile {
-	if rep.Hetzner.Configured {
-		return costTile(rep.Hetzner)
+	if rep.Cloud.Configured && (rep.Cloud.Err != "" || rep.Cloud.Summary.Cost != nil) {
+		return costTile(rep.Cloud)
 	}
 	return hostTile(rep.Host)
 }
@@ -150,17 +153,14 @@ func hostTile(h serverstats.Host) statTile {
 	return t
 }
 
-func costTile(hz serverstats.Hetzner) statTile {
+func costTile(c serverstats.Cloud) statTile {
 	t := statTile{Label: "Estimated cost"}
-	switch {
-	case !hz.Configured:
-		t.Value, t.Note = "Not set up", "No Hetzner token"
-	case hz.Err != "":
-		t.Value, t.Note, t.Tone = "Unavailable", "Hetzner did not answer", "warn"
-	default:
-		c := hz.Summary.Cost
-		t.Value, t.Note = money(c.Currency, c.Total), "a month, with VAT"
+	if c.Err != "" {
+		t.Value, t.Note, t.Tone = "Unavailable", c.Name+" did not answer", "warn"
+		return t
 	}
+	cost := c.Summary.Cost
+	t.Value, t.Note = money(cost.Currency, cost.Total), "a month"
 	return t
 }
 
@@ -204,68 +204,24 @@ func uptimeTile(p serverstats.Process) statTile {
 	return statTile{Label: "Running for", Value: duration(p.Uptime), Note: "Version " + p.Version}
 }
 
-func newHetznerView(hz serverstats.Hetzner) hetznerView {
+func newCloudView(c serverstats.Cloud) cloudView {
 	switch {
-	case !hz.Configured:
-		return hetznerView{State: "off"}
-	case hz.Err != "":
-		return hetznerView{State: "error", Reason: hz.Err}
+	case !c.Configured:
+		return cloudView{State: "off"}
+	case c.Err != "":
+		return cloudView{State: "error", Name: c.Name, Reason: c.Err}
 	}
-	s := hz.Summary
-	srv := s.Server
-	v := hetznerView{State: "ok", Checked: s.CheckedAt}
-	status := fact{Label: "Status", Value: capitalize(srv.Status), Pill: "warn"}
-	if srv.Status == "running" {
-		status.Pill = "ok"
+	s := c.Summary
+	v := cloudView{State: "ok", Name: c.Name, Checked: s.CheckedAt}
+	for _, f := range s.Facts {
+		v.Facts = append(v.Facts, fact{Label: f.Label, Value: f.Value, Note: f.Note, Pill: f.Tone})
 	}
-	v.Facts = []fact{
-		{Label: "Name", Value: srv.Name, Note: "id " + strconv.FormatInt(srv.ID, 10)},
-		status,
-		{Label: "Type", Value: strings.ToUpper(srv.Type.Name), Note: serverSize(srv.Type)},
-		{Label: "Location", Value: place(srv.Location), Note: srv.Location.Name},
-	}
-	backups := fact{Label: "Backups", Value: "Off", Note: "Hetzner's daily server backups"}
-	if srv.Backups {
-		backups.Value = "On"
-	}
-	v.Facts = append(v.Facts, backups)
-	var ips []string
-	for _, ip := range s.PrimaryIPs {
-		ips = append(ips, ip.IP)
-	}
-	if len(ips) == 0 {
-		ips = []string{"None"}
-	}
-	v.Facts = append(v.Facts, fact{Label: "Public IPs", Value: ips[0], Note: strings.Join(ips[1:], ", ")})
-	vols := fact{Label: "Volumes", Value: "None"}
-	if len(s.Volumes) > 0 {
-		var names []string
-		for _, vol := range s.Volumes {
-			names = append(names, fmt.Sprintf("%s, %d GB", vol.Name, vol.SizeGB))
+	if s.Cost != nil {
+		v.HasCost = true
+		for _, l := range s.Cost.Lines {
+			v.Cost = append(v.Cost, costRow{Label: l.Label, Detail: l.Detail, Amount: money(s.Cost.Currency, l.Monthly)})
 		}
-		vols.Value, vols.Note = names[0], strings.Join(names[1:], "; ")
-	}
-	v.Facts = append(v.Facts, vols)
-	out := fact{Label: "Outgoing traffic", Value: "Not counted yet"}
-	if srv.TrafficKnown {
-		out.Value = bytesText(srv.OutgoingBytes)
-		if srv.IncludedBytes > 0 {
-			out.Note = "of " + bytesText(srv.IncludedBytes) + " included this billing period"
-			if srv.OutgoingBytes*100/srv.IncludedBytes >= trafficWarnPct {
-				out.Pill = "warn"
-			}
-		}
-	}
-	v.Facts = append(v.Facts, out, fact{Label: "Incoming traffic", Value: bytesText(srv.IngoingBytes), Note: "not billed"})
-
-	c := s.Cost
-	for _, l := range c.Lines {
-		v.Cost = append(v.Cost, costRow{Label: l.Label, Detail: l.Detail, Amount: money(c.Currency, l.Monthly)})
-	}
-	v.Total = money(c.Currency, c.Total)
-	v.VAT = c.VATRate
-	if len(c.Unpriced) > 0 {
-		v.Unpriced = "Not in the total, since the price list has no price for it: " + strings.Join(c.Unpriced, ", ") + "."
+		v.Total, v.Note, v.Unpriced = money(s.Cost.Currency, s.Cost.Total), s.Cost.Note, s.Cost.Unpriced
 	}
 	return v
 }
@@ -427,22 +383,8 @@ func processSection(p serverstats.Process) sectionView {
 	}
 }
 
-// bytesText writes a size the short way, in powers of 1024 as Hetzner and
-// df do: 812 bytes, 4.2 KB, 1.5 MB, 38.1 GB, 20 TB.
-func bytesText(n int64) string {
-	const unit = 1024
-	if n < unit {
-		return plural(int(n), "byte")
-	}
-	v, i := float64(n), -1
-	for v >= unit && i < 3 {
-		v /= unit
-		i++
-	}
-	s := strconv.FormatFloat(v, 'f', 1, 64)
-	s = strings.TrimSuffix(s, ".0")
-	return s + " " + [...]string{"KB", "MB", "GB", "TB"}[i]
-}
+// bytesText writes a size the short way, in powers of 1024 as df does.
+func bytesText(n int64) string { return serverstats.ByteText(n) }
 
 // money writes an amount with its currency: €4.75, $4.75, 4.75 CHF.
 func money(currency string, v float64) string {
@@ -468,30 +410,4 @@ func duration(d time.Duration) string {
 		return plural(int(d.Hours()), "hour")
 	}
 	return plural(int(d.Hours()/24), "day")
-}
-
-func serverSize(t hetzner.ServerType) string {
-	cpu := plural(t.Cores, "vCPU")
-	if t.CPUType != "" {
-		cpu = fmt.Sprintf("%d %s %s", t.Cores, t.CPUType, strings.TrimPrefix(cpu, strconv.Itoa(t.Cores)+" "))
-	}
-	mem := strings.TrimSuffix(strconv.FormatFloat(t.MemoryGB, 'f', 1, 64), ".0")
-	return fmt.Sprintf("%s, %s GB memory, %d GB disk", cpu, mem, t.DiskGB)
-}
-
-func place(l hetzner.Location) string {
-	switch {
-	case l.City != "" && l.Country != "":
-		return l.City + ", " + l.Country
-	case l.City != "":
-		return l.City
-	}
-	return l.Name
-}
-
-func capitalize(s string) string {
-	if s == "" {
-		return "Unknown"
-	}
-	return strings.ToUpper(s[:1]) + s[1:]
 }

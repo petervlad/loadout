@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
-	"github.com/petervlad/loadout/internal/hetzner"
 	"github.com/petervlad/loadout/internal/mail"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/registry"
@@ -51,19 +50,23 @@ func fullReport() serverstats.Report {
 			},
 			Name: "loadout-1", OS: "Ubuntu 24.04.1 LTS", CPUs: 2, Arch: "amd64", PublicURL: "https://registry.example.com",
 		},
-		Hetzner: serverstats.Hetzner{Configured: true, Summary: hetzner.Summary{
+		Cloud: serverstats.Cloud{Configured: true, Name: "Hetzner", Summary: serverstats.CloudSummary{
 			CheckedAt: now,
-			Server: hetzner.Server{
-				ID: 167857226, Name: "loadout-registry " + xss, Status: "running",
-				Type:          hetzner.ServerType{Name: "cx23", Cores: 2, MemoryGB: 4, DiskGB: 40, CPUType: "shared"},
-				Location:      hetzner.Location{Name: "nbg1", City: "Nuremberg", Country: "DE"},
-				OutgoingBytes: 1843289600, IncludedBytes: 20 << 40, TrafficKnown: true,
+			Facts: []serverstats.CloudFact{
+				{Label: "Name", Value: "loadout-registry " + xss, Note: "id 167857226"},
+				{Label: "Status", Value: "Running", Tone: "ok"},
+				{Label: "Type", Value: "CX23", Note: "2 shared vCPUs, 4 GB memory, 40 GB disk"},
+				{Label: "Location", Value: "Nuremberg, DE", Note: "nbg1"},
+				{Label: "Public IPs", Value: "203.0.113.7"},
+				{Label: "Outgoing traffic", Value: "1.7 GB", Note: "of 20 TB included this billing period"},
 			},
-			PrimaryIPs: []hetzner.PrimaryIP{{Type: "ipv4", IP: "203.0.113.7", Location: "nbg1"}},
-			Cost: hetzner.Cost{Currency: "EUR", VATRate: "19", Total: 4.7481, Lines: []hetzner.CostLine{
-				{Label: "Server", Detail: "cx23 in nbg1", Monthly: 4.1531},
-				{Label: "Primary IPv4", Detail: "203.0.113.7", Monthly: 0.595},
-			}},
+			Cost: &serverstats.CloudCost{
+				Currency: "EUR", Total: 4.7481, Note: "Estimated from Hetzner's list prices, with 19% VAT.",
+				Lines: []serverstats.CloudCostLine{
+					{Label: "Server", Detail: "cx23 in nbg1", Monthly: 4.1531},
+					{Label: "Primary IPv4", Detail: "203.0.113.7", Monthly: 0.595},
+				},
+			},
 		}},
 	}
 }
@@ -92,14 +95,14 @@ func TestServerPageForAdmins(t *testing.T) {
 	}
 	wantIn(t, p, "server page",
 		`aria-current="page"`, `href="/account">`,
-		"Estimated cost", "€4.75", "a month, with VAT",
+		"Estimated cost", "€4.75", "a month",
 		"25% used", "30 GB free",
 		"9 hours ago", "Running for", "2 days",
 		"Example Cloud", "project-x", "2 vCPU, 4 GB RAM, 40 GB disk", "loadout-1", "Ubuntu 24.04.1 LTS", "amd64, 2 CPUs seen by loadout",
 		"https://registry.example.com", "ops &lt;script&gt;", `href="https://console.example.com/overview"`, "stated in loadout.env",
 		"Hetzner server", "loadout-registry &lt;script&gt;", "id 167857226", "CX23", "2 shared vCPUs, 4 GB memory, 40 GB disk",
 		"Nuremberg, DE", "Running", "203.0.113.7", "1.7 GB", "of 20 TB included this billing period",
-		"Estimated monthly cost", "€4.15", "€0.59", "€4.75", "Estimated from Hetzner's list prices, with 19% VAT",
+		"Estimated monthly cost", "€4.15", "€0.59", "€4.75", "Estimated from Hetzner&#39;s list prices, with 19% VAT",
 		`<meter class="meter"`, `value="25"`, "10 GB used of 40 GB, 30 GB free", "4 MB of write-ahead log",
 		"14 archives", "loadout-&lt;script&gt;",
 		"3 agents, 1 skill, 1 knowledge base", "2 open", "3 closed", "5", "4 verified, 1 admin", "3 browser sessions", "2 terminal logins",
@@ -149,13 +152,18 @@ func TestServerPageDegrades(t *testing.T) {
 		absent []string
 	}{
 		{
-			"no token", func(r *serverstats.Report) { r.Hetzner = serverstats.Hetzner{} },
+			"no token", func(r *serverstats.Report) { r.Cloud = serverstats.Cloud{} },
 			[]string{"Example Cloud", "project-x", "ops &lt;script&gt;", `href="https://console.example.com/overview"`, "company network or its VPN", "14 archives", ">Host<"},
-			[]string{"Hetzner", "LOADOUT_HETZNER_TOKEN", "Estimated cost", "€", "Not set up</dd><dd class=\"note\">No Hetzner token", "<script>"},
+			[]string{"Hetzner", "LOADOUT_HETZNER_TOKEN", "Estimated cost", "€", "<script>"},
+		},
+		{
+			"provider without a cost", func(r *serverstats.Report) { r.Cloud.Summary.Cost = nil },
+			[]string{"Hetzner server", "id 167857226", ">Host<"},
+			[]string{"Estimated monthly cost", "€4.75"},
 		},
 		{
 			"nothing stated", func(r *serverstats.Report) {
-				r.Hetzner = serverstats.Hetzner{}
+				r.Cloud = serverstats.Cloud{}
 				r.Host.Stated = serverstats.HostFacts{}
 			},
 			[]string{"Set LOADOUT_HOST_PROVIDER and the other LOADOUT_HOST_ variables in /etc/loadout/loadout.env", "loadout-1", "Ubuntu 24.04.1 LTS"},
@@ -163,7 +171,7 @@ func TestServerPageDegrades(t *testing.T) {
 		},
 		{
 			"host facts unreadable", func(r *serverstats.Report) {
-				r.Hetzner = serverstats.Hetzner{}
+				r.Cloud = serverstats.Cloud{}
 				r.Host.Name, r.Host.NameErr, r.Host.OS, r.Host.OSErr = "", "It could not be read.", "", "It does not exist."
 			},
 			[]string{"It could not be read.", "It does not exist.", "Unknown"},
@@ -171,7 +179,7 @@ func TestServerPageDegrades(t *testing.T) {
 		},
 		{
 			"API down", func(r *serverstats.Report) {
-				r.Hetzner = serverstats.Hetzner{Configured: true, Err: "Hetzner did not answer within 5 seconds."}
+				r.Cloud.Summary, r.Cloud.Err = serverstats.CloudSummary{}, "Hetzner did not answer within 5 seconds."
 			},
 			[]string{"Hetzner unavailable:", "Hetzner did not answer within 5 seconds.", "Unavailable", "10 GB used of 40 GB", "Example Cloud"},
 			[]string{"Hetzner not configured"},
@@ -196,7 +204,7 @@ func TestServerPageDegrades(t *testing.T) {
 			"almost full, old backup, traffic nearly used", func(r *serverstats.Report) {
 				r.Disk.FSFree = 2 << 30
 				r.Backups.Latest = time.Now().Add(-72 * time.Hour)
-				r.Hetzner.Summary.Server.OutgoingBytes = 18 << 40
+				r.Cloud.Summary.Facts[5] = serverstats.CloudFact{Label: "Outgoing traffic", Value: "18 TB", Tone: "warn"}
 			},
 			[]string{"95% used", "tile-bad", "Almost full: 2 GB free", "Older than a day and a half", "tile-warn", `<span class="pill pill-warn">18 TB</span>`},
 			nil,
