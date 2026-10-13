@@ -41,7 +41,7 @@ func (f proposalFixture) principal(t *testing.T, team string, scope registry.Tok
 	return pr
 }
 
-var twoPrompts = registry.ProposalInput{Note: "sharper plans", Prompts: []string{"plan INFOTM-1", "plan INFOTM-2"}}
+var twoPrompts = registry.ProposalInput{Note: "sharper plans", Prompts: []string{"plan TRK-1", "plan TRK-2"}}
 
 func TestProposeRules(t *testing.T) {
 	f := newProposalFixture(t)

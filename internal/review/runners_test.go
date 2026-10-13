@@ -57,7 +57,7 @@ func TestClaudeCodeRun(t *testing.T) {
 	if err != nil || v != "1.2.3 (Fake Tool)" {
 		t.Errorf("Version() = %q, %v", v, err)
 	}
-	ans, err := r.Run(t.Context(), Request{Dir: dir, Agent: "candidate-planner", Prompt: "-plan INFOTM-1", Model: "haiku", Mode: ModeSafe})
+	ans, err := r.Run(t.Context(), Request{Dir: dir, Agent: "candidate-planner", Prompt: "-plan TRK-1", Model: "haiku", Mode: ModeSafe})
 	if err != nil {
 		t.Fatalf("Run() error: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestClaudeCodeRun(t *testing.T) {
 		"args: [-p] [--output-format] [json] [--no-session-persistence] [--permission-mode] [dontAsk] [--agent] [candidate-planner] [--model] [haiku]\n",
 		"dir: " + realDir + "\n",
 		"token: unset\n",
-		"stdin: -plan INFOTM-1\n",
+		"stdin: -plan TRK-1\n",
 	} {
 		if !strings.Contains(rec, s) {
 			t.Errorf("the tool saw:\n%s\nwant it to contain %q", rec, s)

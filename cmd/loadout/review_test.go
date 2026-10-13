@@ -121,7 +121,7 @@ func TestProposeReviewApprove(t *testing.T) {
 
 	// Alice proposes 0.2.0 with the two prompts she tried.
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--note", "plans now cite tickets", "--prompt", "Plan INFOTM-1", "--prompt", "Plan a DB migration")
+	id := propose(t, alice, "--bump", "minor", "--note", "plans now cite tickets", "--prompt", "Plan TRK-1", "--prompt", "Plan a DB migration")
 
 	// She cannot approve her own proposal.
 	if _, errOut, code := alice.runIn("", "review", "approve", id); code == 0 || !strings.Contains(errOut, "cannot approve their own") {
@@ -138,7 +138,7 @@ func TestProposeReviewApprove(t *testing.T) {
 		t.Errorf("review list = %q", out)
 	}
 	out := bob.must("", "review", "show", id)
-	for _, want := range []string{"plans now cite tickets", "1. Plan INFOTM-1", "2. Plan a DB migration", "+Always cite the ticket.", "-version: 0.1.0", "+version: 0.2.0"} {
+	for _, want := range []string{"plans now cite tickets", "1. Plan TRK-1", "2. Plan a DB migration", "+Always cite the ticket.", "-version: 0.1.0", "+version: 0.2.0"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("review show is missing %q:\n%s", want, out)
 		}
@@ -245,7 +245,7 @@ func TestReviewRunsTheCurrentPrompts(t *testing.T) {
 	alice.must("", "new", "agent", "lime/planner")
 	alice.must("", "publish", "planner")
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1")
 
 	added, err := bob.AddPrompt(t.Context(), id, "Plan a rollback of "+id)
 	if err != nil {
@@ -265,19 +265,19 @@ func TestReviewRunsTheCurrentPrompts(t *testing.T) {
 		}
 		return got
 	}
-	if got, want := asked(), []string{"Plan INFOTM-1", "Plan a rollback of " + id}; !slices.Equal(got, want) {
+	if got, want := asked(), []string{"Plan TRK-1", "Plan a rollback of " + id}; !slices.Equal(got, want) {
 		t.Errorf("prompts run after Bob added one = %q, want %q", got, want)
 	}
 	if _, err := bob.EditPrompt(t.Context(), id, added.Seq, "Plan a rollback, step by step"); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := asked(), []string{"Plan INFOTM-1", "Plan a rollback, step by step"}; !slices.Equal(got, want) {
+	if got, want := asked(), []string{"Plan TRK-1", "Plan a rollback, step by step"}; !slices.Equal(got, want) {
 		t.Errorf("prompts run after Bob edited his = %q, want %q", got, want)
 	}
 	if err := bob.RemovePrompt(t.Context(), id, added.Seq); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := asked(), []string{"Plan INFOTM-1"}; !slices.Equal(got, want) {
+	if got, want := asked(), []string{"Plan TRK-1"}; !slices.Equal(got, want) {
 		t.Errorf("prompts run after Bob removed his = %q, want %q", got, want)
 	}
 }
@@ -290,7 +290,7 @@ func TestReviewPackage(t *testing.T) {
 	carol.must("", "install", "lime/planner")               // 0.1.0
 	alice.must("", "publish", "planner", "--bump", "patch") // 0.1.1, the latest release
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1")
 
 	// Carol reviews with one command: her installed 0.1.0 against the open
 	// proposal, the team's KB beside each, in full mode, uploaded.
@@ -314,7 +314,7 @@ func TestReviewPackage(t *testing.T) {
 	if want := "warning: running proposal " + id + " by alice@example.com with full access to this machine (files, shell, web); add --safe"; !strings.Contains(errOut, want) {
 		t.Errorf("stderr = %q, want %q", errOut, want)
 	}
-	if len(ai.runs) != 2 || ai.runs[0].Mode != review.ModeFull || ai.runs[0].Prompt != "Plan INFOTM-1" {
+	if len(ai.runs) != 2 || ai.runs[0].Mode != review.ModeFull || ai.runs[0].Prompt != "Plan TRK-1" {
 		t.Errorf("fake AI runs = %+v, want 2 full-mode runs of the proposal's prompt", ai.runs)
 	}
 	if len(ai.found) != 2 || !ai.found[0] || !ai.found[1] {

@@ -32,7 +32,7 @@ func TestPromptsByRole(t *testing.T) {
 	// buttons, and may add his own.
 	dan := s.as("dan@example.com")
 	p := dan.get(base)
-	wantIn(t, p, "member", `id="prompts"`, "2 of 20", "Plan INFOTM-1", "Plan a migration", "Added by <strong>bob@example.com</strong>",
+	wantIn(t, p, "member", `id="prompts"`, "2 of 20", "Plan TRK-1", "Plan a migration", "Added by <strong>bob@example.com</strong>",
 		`action="`+base+`/prompts"`, `name="text" class="field" maxlength="4096"`)
 	wantOut(t, p, "member", base+`/prompts/1"`, base+`/prompts/1/remove"`)
 
@@ -170,7 +170,7 @@ func TestPromptsLimitAndClosed(t *testing.T) {
 	}
 	p = dan.get(base)
 	wantOut(t, p, "closed", `action="`+base+`/prompts`, "Remove prompt")
-	wantIn(t, p, "closed", "Plan INFOTM-1", "20 prompts", "They no longer change.")
+	wantIn(t, p, "closed", "Plan TRK-1", "20 prompts", "They no longer change.")
 	p = dan.post(base+"/prompts", url.Values{"text": {"late"}})
 	if p.status != http.StatusConflict {
 		t.Errorf("add to a closed proposal = %d, want 409", p.status)
@@ -199,7 +199,7 @@ func TestReportSourcesModeAndContext(t *testing.T) {
 		Candidate: review.Version{Version: "2.4.0", Source: review.SourceProposal, ProposalID: s.proposal},
 		Context:   []review.ContextPackage{{ID: "lime/runbooks", Version: "1.0.0", Kind: "kb"}, {ID: "acme/python-standards", Version: "4.1.0", Kind: "agent"}},
 		Notes:     []string{"Copilot CLI refuses every tool call " + xss},
-		Prompts:   []review.PromptResult{{Prompt: "Plan INFOTM-1", Runs: []review.RunPair{{Current: &answer, Candidate: answer}}}},
+		Prompts:   []review.PromptResult{{Prompt: "Plan TRK-1", Runs: []review.RunPair{{Current: &answer, Candidate: answer}}}},
 	})
 	dan := s.as("dan@example.com")
 	p := dan.get("/t/lime/reviews/" + s.proposal)
@@ -217,7 +217,7 @@ func TestReportSourcesModeAndContext(t *testing.T) {
 		Tool: "claude", Package: "lime/planner", Runs: 1, Mode: review.ModeFull,
 		Current:   &review.Version{Version: "2.3.0", Source: review.SourceRelease},
 		Candidate: review.Version{Version: "2.4.0", Source: review.SourceProposal},
-		Prompts:   []review.PromptResult{{Prompt: "Plan INFOTM-1", Runs: []review.RunPair{{Current: &answer, Candidate: answer}}}},
+		Prompts:   []review.PromptResult{{Prompt: "Plan TRK-1", Runs: []review.RunPair{{Current: &answer, Candidate: answer}}}},
 	})
 	p = dan.get("/t/lime/reviews/" + s.proposal + "?report=2")
 	wantIn(t, p, "no context", "Release · 2.3.0", "· Full access", "No team packages beside it.")

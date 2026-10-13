@@ -41,7 +41,7 @@ func TestPromptsMigrationKeepsOldPrompts(t *testing.T) {
 		args []any
 	}{
 		{"PRAGMA user_version = 10", nil},
-		{insert, []any{"p1", "0.2.0", 2, `["plan INFOTM-1","say \"why\"\nin two lines"]`, "open", "2026-09-28T12:00:00.000000000Z"}},
+		{insert, []any{"p1", "0.2.0", 2, `["plan TRK-1","say \"why\"\nin two lines"]`, "open", "2026-09-28T12:00:00.000000000Z"}},
 		{insert, []any{"p2", "0.3.0", 3, `["only one"]`, "rejected", "2026-09-28T13:00:00.000000000Z"}},
 	} {
 		if _, err := raw.ExecContext(t.Context(), stmt.q, stmt.args...); err != nil {
@@ -57,7 +57,7 @@ func TestPromptsMigrationKeepsOldPrompts(t *testing.T) {
 	at := time.Date(2026, 9, 28, 12, 0, 0, 0, time.UTC)
 	for id, want := range map[string][]registry.Prompt{
 		"p1": {
-			{Seq: 1, Text: "plan INFOTM-1", Author: alice, CreatedAt: at},
+			{Seq: 1, Text: "plan TRK-1", Author: alice, CreatedAt: at},
 			{Seq: 2, Text: "say \"why\"\nin two lines", Author: alice, CreatedAt: at},
 		},
 		"p2": {{Seq: 1, Text: "only one", Author: alice, CreatedAt: at.Add(time.Hour)}},

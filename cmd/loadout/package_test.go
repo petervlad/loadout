@@ -30,7 +30,7 @@ func TestPackageDeleteThenSync(t *testing.T) {
 	editAgent(t, alice, "Always cite the ticket.")
 	alice.must("", "publish", "planner", "--bump", "minor") // 0.2.0
 	editAgent(t, alice, "Answer in English.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.3.0, left open
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.3.0, left open
 	bob.must("", "install", "lime/planner")
 	bobAgent := filepath.Join(bob.home, ".claude", "agents", "planner.md")
 

@@ -141,6 +141,6 @@ $L publish runbooks --remote lime >/dev/null
 sed -i '' 's/1.0.0/1.1.0/' release-notes-skill/loadout.yaml
 printf '# Style\n\nPlain words. No marketing. Link every ticket.\n' > release-notes-skill/references/style.md
 rm release-notes-skill/references/template.md
-printf '# Examples\n\n- Fix: retries on upload (INFOTM-1234)\n' > release-notes-skill/references/examples.md
+printf '# Examples\n\n- Fix: retries on upload (TRK-1234)\n' > release-notes-skill/references/examples.md
 $L propose release-notes-skill --remote lime --note "Link every ticket; examples instead of a template" --prompt "Write release notes for 2.4.0" >/dev/null
 echo seeded

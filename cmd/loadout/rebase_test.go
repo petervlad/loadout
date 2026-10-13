@@ -41,7 +41,7 @@ func bobReleases(t *testing.T, bob *person, edit func(agent string) string) {
 func TestRebaseAProposalAndProposeAgain(t *testing.T) {
 	alice, bob, carol := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0 from 0.1.0
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0 from 0.1.0
 	if _, err := carol.AddPrompt(t.Context(), id, "Plan a rollback"); err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestRebaseAProposalAndProposeAgain(t *testing.T) {
 func TestRebaseWithAConflict(t *testing.T) {
 	alice, bob, _ := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1")
 	bobReleases(t, bob, func(agent string) string { return agent + "Answer in English.\n" })
 
 	out := alice.must("", "rebase", "planner")
@@ -134,7 +134,7 @@ func TestProposeRefusesAFolderThatIsBehind(t *testing.T) {
 	bobReleases(t, bob, func(agent string) string { return agent + "Answer in English.\n" })
 	editAgent(t, alice, "Always cite the ticket.")
 
-	_, errOut, code := alice.runIn("", "propose", "planner", "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	_, errOut, code := alice.runIn("", "propose", "planner", "--bump", "minor", "--prompt", "Plan TRK-1")
 	want := "planner is based on 0.1.0, and 0.1.1 by bob was released since; its changes are not in your folder. Bring them in with: loadout rebase planner. If your folder already has them, propose with --base 0.1.1"
 	if code == 0 || !strings.Contains(errOut, want) {
 		t.Fatalf("propose from a folder behind: exit %d, stderr %q; want %q", code, errOut, want)
@@ -142,7 +142,7 @@ func TestProposeRefusesAFolderThatIsBehind(t *testing.T) {
 	if out := bob.must("", "review", "list"); !strings.Contains(out, "no open proposals") {
 		t.Errorf("a refused propose uploaded something: %q", out)
 	}
-	out := alice.must("", "propose", "planner", "--bump", "minor", "--prompt", "Plan INFOTM-1", "--base", "0.1.1")
+	out := alice.must("", "propose", "planner", "--bump", "minor", "--prompt", "Plan TRK-1", "--base", "0.1.1")
 	if !strings.Contains(out, "proposed lime/planner@0.2.0") || !strings.Contains(out, "based on 0.1.1") {
 		t.Errorf("propose --base 0.1.1 = %q", out)
 	}
@@ -201,7 +201,7 @@ func TestPublishRefusesAFolderThatIsBehind(t *testing.T) {
 func TestPublishARebasedProposalFolder(t *testing.T) {
 	alice, bob, _ := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1")
 	bobReleases(t, bob, func(agent string) string {
 		return strings.Replace(agent, "description: What this agent does.", "description: Plans sprints.", 1)
 	})
@@ -264,13 +264,13 @@ func TestRebaseLeavesADeletedFileUndecided(t *testing.T) {
 func TestTeammateAtAnotherAuthorsProposalVersionCanStillPropose(t *testing.T) {
 	alice, bob, _ := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0 from 0.1.0
+	propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0 from 0.1.0
 
 	bob.must("", "new", "agent", "lime/planner")
 	manifest := filepath.Join(bob.wd, "planner", "loadout.yaml")
 	writeFile(t, manifest, strings.Replace(readFile(t, manifest), "version: 0.1.0", "version: 0.2.0", 1))
 	editAgent(t, bob, "Answer in English.")
-	out, errOut, code := bob.runIn("", "propose", "planner", "--bump", "patch", "--prompt", "Plan INFOTM-2")
+	out, errOut, code := bob.runIn("", "propose", "planner", "--bump", "patch", "--prompt", "Plan TRK-2")
 	if code != 0 || !strings.Contains(out, "proposed lime/planner@0.2.1") {
 		t.Errorf("Bob's propose --bump patch: exit %d, stdout %q, stderr %q; want 0.2.1 proposed beside Alice's 0.2.0", code, out, errOut)
 	}
@@ -281,7 +281,7 @@ func TestTeammateAtAnotherAuthorsProposalVersionCanStillPropose(t *testing.T) {
 func TestPublishAtAnotherAuthorsProposalVersion(t *testing.T) {
 	alice, bob, _ := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0
+	propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0
 	bob.must("", "new", "agent", "lime/planner")
 	manifest := filepath.Join(bob.wd, "planner", "loadout.yaml")
 	writeFile(t, manifest, strings.Replace(readFile(t, manifest), "version: 0.1.0", "version: 0.2.0", 1))
@@ -296,7 +296,7 @@ func TestPublishAtAnotherAuthorsProposalVersion(t *testing.T) {
 func TestRebaseSomeoneElsesProposal(t *testing.T) {
 	alice, bob, _ := rebaseTeam(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0 from 0.1.0
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0 from 0.1.0
 	bobReleases(t, bob, func(agent string) string {
 		return strings.Replace(agent, "description: What this agent does.", "description: Plans sprints.", 1)
 	})
@@ -305,10 +305,10 @@ func TestRebaseSomeoneElsesProposal(t *testing.T) {
 	if want := "planner: proposal " + id + " by someone else (proposing makes one of your own), made from 0.1.0, onto 0.1.1"; !strings.Contains(out, want) {
 		t.Errorf("rebase of Alice's proposal = %q, want %q", out, want)
 	}
-	if _, errOut, code := bob.runIn("", "propose", "alices", "--prompt", "Plan INFOTM-2"); code == 0 || !strings.Contains(errOut, "already has an open proposal") || !strings.Contains(errOut, "--bump patch") {
+	if _, errOut, code := bob.runIn("", "propose", "alices", "--prompt", "Plan TRK-2"); code == 0 || !strings.Contains(errOut, "already has an open proposal") || !strings.Contains(errOut, "--bump patch") {
 		t.Errorf("Bob proposing at Alice's version: exit %d, stderr %q; want the version conflict and the --bump hint", code, errOut)
 	}
-	out = bob.must("", "propose", "alices", "--bump", "patch", "--prompt", "Plan INFOTM-2")
+	out = bob.must("", "propose", "alices", "--bump", "patch", "--prompt", "Plan TRK-2")
 	if !strings.Contains(out, "proposed lime/planner@0.2.1") || strings.Contains(out, "replaces") || !strings.Contains(out, "based on 0.1.1") {
 		t.Errorf("Bob's propose of the rebased files = %q; want his own 0.2.1 based on 0.1.1", out)
 	}

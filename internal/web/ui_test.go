@@ -119,7 +119,7 @@ func newUISiteDocs(t *testing.T, change func(*web.UI), docsURL string) *uiSite {
 	s.publish("acme", "python-standards", "4.1.0", "House rules for Python", "Follow the rules.\n")
 	bob := s.principal("bob@example.com")
 	p, err := props.Propose(ctx, bob, bundleOf(t, "lime", "planner", "2.4.0", "Plans work", "Name every file.\n"),
-		registry.ProposalInput{Note: "Names the files " + xss, Prompts: []string{"Plan INFOTM-1", "Plan a migration"}})
+		registry.ProposalInput{Note: "Names the files " + xss, Prompts: []string{"Plan TRK-1", "Plan a migration"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func (s *uiSite) addReport(withData bool) {
 		Tool: "claude", Package: "lime/planner", Runs: 1,
 		Current:   &review.Version{Version: "2.3.0"},
 		Candidate: review.Version{Version: "2.4.0"},
-		Prompts: []review.PromptResult{{Prompt: "Plan INFOTM-1", Runs: []review.RunPair{{
+		Prompts: []review.PromptResult{{Prompt: "Plan TRK-1", Runs: []review.RunPair{{
 			Current:   &review.Outcome{Answer: review.Answer{Text: "old answer", Duration: 2 * time.Second, InputTokens: 3900, OutputTokens: 1100}},
 			Candidate: review.Outcome{Answer: review.Answer{Text: "new answer " + xss, Duration: time.Second}},
 		}}}, {Prompt: "Plan a migration", Runs: []review.RunPair{{
@@ -599,7 +599,7 @@ func (s *uiSite) ownProposal() string {
 		s.t.Fatal(err)
 	}
 	p, err := s.props.Propose(ctx, s.principal("olga@example.com"), bundleOf(s.t, "lime", "planner", "2.5.0", "Plans work", "Name every file twice.\n"),
-		registry.ProposalInput{Note: "Urgent fix", Prompts: []string{"Plan INFOTM-1"}})
+		registry.ProposalInput{Note: "Urgent fix", Prompts: []string{"Plan TRK-1"}})
 	if err != nil {
 		s.t.Fatal(err)
 	}

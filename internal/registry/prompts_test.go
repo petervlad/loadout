@@ -31,10 +31,10 @@ func TestPromptRules(t *testing.T) {
 			text    string
 			wantErr error
 		}{
-			{"author", author, "plan INFOTM-3", nil},
-			{"member", reviewer, " plan INFOTM-4 \n", nil},
-			{"maintainer", maintainer, "plan INFOTM-5", nil},
-			{"machine token", machine, "plan INFOTM-6", nil},
+			{"author", author, "plan TRK-3", nil},
+			{"member", reviewer, " plan TRK-4 \n", nil},
+			{"maintainer", maintainer, "plan TRK-5", nil},
+			{"machine token", machine, "plan TRK-6", nil},
 			{"other team", outsider, "plan", registry.ErrNotFound},
 			{"blank", reviewer, " \n", registry.ErrInvalid},
 			{"too long", reviewer, strings.Repeat("x", registry.MaxPromptSize+1), registry.ErrInvalid},

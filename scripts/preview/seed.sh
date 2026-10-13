@@ -76,7 +76,7 @@ printf -- '---\nname: planner\ndescription: Turns a ticket into an ordered plan 
 - List the risks.
 - Ask before guessing.' >"$dir/agent.md"
 $L propose "$dir" --remote lime --note "Plans now name the exact files and end with a test step." \
-  --prompt "Plan INFOTM-1234: add a retry to the upload job" \
+  --prompt "Plan TRK-1234: add a retry to the upload job" \
   --prompt "Plan a database migration for the releases table" \
   --prompt "Plan retries for every upload job, with files, risks and a test" >/dev/null
 ID=$(sqlite3 "$DATA/registry.db" "SELECT id FROM proposals LIMIT 1")
@@ -155,9 +155,9 @@ cat >"$S/report.json" <<EOF
  "mode":"full","context":[{"id":"lime/code-review","version":"1.8.2","kind":"agent"},{"id":"lime/release-notes","version":"0.9.0","kind":"agent"},
   {"id":"acme/docs-writer","version":"1.0.3","kind":"agent"},{"id":"acme/python-standards","version":"4.1.0","kind":"agent"}],
  "generated_at":"2026-09-28T11:05:00Z","prompts":[
- {"prompt":"Plan INFOTM-1234: add a retry to the upload job","runs":[
+ {"prompt":"Plan TRK-1234: add a retry to the upload job","runs":[
   {"current":{"answer":{"text":"Here is a plan for adding a retry to the upload job.\n\n1. Find where the upload happens and wrap it in a retry.\n2. Use exponential backoff with a sensible limit.\n3. Log each failed attempt.\n4. Consider making the limit configurable.\n\nRisks: retries could hide a real outage. Let me know if you want me to go deeper on any step.","duration_ns":14200000000,"input_tokens":3900,"output_tokens":1100}},
-   "candidate":{"answer":{"text":"Plan for INFOTM-1234\n\n1. upload/job.py: wrap push_bundle() in the existing retry() helper, 3 tries, 2 s then 8 s.\n2. upload/config.py: add UPLOAD_RETRIES, default 3.\n3. Retry only on timeouts and 5xx; fail at once on 4xx.\n4. Log attempt number and cause at WARN; the final failure at ERROR.\n\nRisk: a stuck upstream now takes up to 10 s longer to fail.\nTest: a fake server that returns 503 twice, then 200. <script>alert(1)</script>","duration_ns":11800000000,"input_tokens":3700,"output_tokens":900}}},
+   "candidate":{"answer":{"text":"Plan for TRK-1234\n\n1. upload/job.py: wrap push_bundle() in the existing retry() helper, 3 tries, 2 s then 8 s.\n2. upload/config.py: add UPLOAD_RETRIES, default 3.\n3. Retry only on timeouts and 5xx; fail at once on 4xx.\n4. Log attempt number and cause at WARN; the final failure at ERROR.\n\nRisk: a stuck upstream now takes up to 10 s longer to fail.\nTest: a fake server that returns 503 twice, then 200. <script>alert(1)</script>","duration_ns":11800000000,"input_tokens":3700,"output_tokens":900}}},
   {"current":{"answer":{"text":"Wrap the upload in a retry loop.","duration_ns":9000000000,"input_tokens":3800,"output_tokens":400}},
    "candidate":{"error":"claude exited with status 1: rate limited"}}]},
  {"prompt":"Plan a database migration for the releases table","runs":[
@@ -175,7 +175,7 @@ curl -fs -H "Authorization: Bearer $LIME" -F "markdown=@$S/report.md;type=text/m
 prompt() { curl -fs -H "Authorization: Bearer $LIME" -H "Content-Type: application/json" -d "{\"text\":$(json "$1")}" "$URL/v1/proposals/$ID/prompts" >/dev/null; }
 prompt 'Plan the rollback if the retry makes the nightly bundle miss its 02:00 slot.
 Name the job and the flag you would flip.'
-prompt 'Plan INFOTM-1301, whose title is "<script>alert(1)</script> in the upload log"'
+prompt 'Plan TRK-1301, whose title is "<script>alert(1)</script> in the upload log"'
 prompt 'Plan it in Python 2'
 
 # People: names, sign-in methods, the proposal's author and reviewer, and

@@ -41,7 +41,7 @@ agent() { # dir version body
   printf -- '---\nname: code-review\ndescription: Adversarial review of a branch against its ticket\nmodel: balanced\ntools: [read, search]\n---\n%s\n' "$3" >"$1/agent.md"
 }
 agent "$P/cr-propose" 1.9.0 'Review the branch against the ticket. Name the line of every finding.'
-$L propose "$P/cr-propose" --remote lime --note "Findings name their line" --prompt "Review INFOTM-1234" >/dev/null
+$L propose "$P/cr-propose" --remote lime --note "Findings name their line" --prompt "Review TRK-1234" >/dev/null
 agent "$P/cr-release" 1.9.0 'Review the branch against the ticket. Start with the riskiest file.'
 $L publish "$P/cr-release" --remote lime >/dev/null
 

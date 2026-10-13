@@ -29,7 +29,7 @@ func TestOwnerApprovesOwnProposal(t *testing.T) {
 	if _, errOut, code := olga.runIn("", "publish", "planner", "--bump", "minor"); code == 0 || !strings.Contains(errOut, "requires review") || !strings.Contains(errOut, "--as-owner") {
 		t.Errorf("publish under review by an owner: exit %d, stderr %q; want refused with the hint", code, errOut)
 	}
-	id := propose(t, olga, "--bump", "minor", "--prompt", "Plan INFOTM-1")
+	id := propose(t, olga, "--bump", "minor", "--prompt", "Plan TRK-1")
 
 	if _, errOut, code := olga.runIn("", "review", "approve", id); code == 0 || !strings.Contains(errOut, "--as-owner") {
 		t.Errorf("approve own without --as-owner: exit %d, stderr %q; want refused with the hint", code, errOut)

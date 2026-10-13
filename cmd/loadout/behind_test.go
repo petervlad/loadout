@@ -13,7 +13,7 @@ import (
 func TestReviewSaysAProposalIsBehind(t *testing.T) {
 	alice, bob, carol := team(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0 from 0.1.0
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0 from 0.1.0
 
 	// Not behind yet: the list says only "open".
 	if out := bob.must("", "review", "list"); strings.Contains(out, "behind") {
@@ -70,7 +70,7 @@ func TestReviewSaysAProposalIsBehind(t *testing.T) {
 func TestApproveOverANewerRelease(t *testing.T) {
 	alice, bob, carol := team(t)
 	editAgent(t, alice, "Always cite the ticket.")
-	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan INFOTM-1") // 0.2.0 from 0.1.0
+	id := propose(t, alice, "--bump", "minor", "--prompt", "Plan TRK-1") // 0.2.0 from 0.1.0
 	bob.must("", "new", "agent", "lime/planner")
 	editAgent(t, bob, "Answer in English.")
 	bob.must("", "publish", "planner", "--bump", "patch") // 0.1.1

@@ -288,7 +288,7 @@ func TestLoginEndToEnd(t *testing.T) {
 	if _, errOut, code := alice.runIn("", "publish", "planner", "--bump", "patch"); code == 0 || !strings.Contains(errOut, "requires review") {
 		t.Errorf("publish with review required: exit %d, %q", code, errOut)
 	}
-	if out := alice.must("", "propose", "planner", "--bump", "patch", "--prompt", "plan INFOTM-1"); !strings.Contains(out, "proposed") {
+	if out := alice.must("", "propose", "planner", "--bump", "patch", "--prompt", "plan TRK-1"); !strings.Contains(out, "proposed") {
 		t.Errorf("propose = %q", out)
 	}
 
