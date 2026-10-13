@@ -28,9 +28,9 @@ func (linuxKernel) Sysinfo() (Sysinfo, error) {
 	}
 	out := Sysinfo{
 		Uptime:    time.Duration(si.Uptime) * time.Second,
-		TotalRAM:  uint64(si.Totalram) * unit,
-		TotalSwap: uint64(si.Totalswap) * unit,
-		FreeSwap:  uint64(si.Freeswap) * unit,
+		TotalRAM:  uint64(si.Totalram) * unit,  //nolint:unconvert // uint32 on 32-bit Linux
+		TotalSwap: uint64(si.Totalswap) * unit, //nolint:unconvert // uint32 on 32-bit Linux
+		FreeSwap:  uint64(si.Freeswap) * unit,  //nolint:unconvert // uint32 on 32-bit Linux
 	}
 	for i, l := range si.Loads {
 		out.Load[i] = float64(l) / loadScale
