@@ -640,3 +640,86 @@ func TestBackupHoldsMemoryDB(t *testing.T) {
 		}
 	}
 }
+
+// lastRun reads the .last-run file of a backup folder as key and value pairs.
+func lastRun(t *testing.T, dest string) map[string]string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join(dest, ".last-run"))
+	if err != nil {
+		t.Fatalf("no .last-run: %v", err)
+	}
+	got := map[string]string{}
+	for line := range strings.Lines(string(data)) {
+		k, v, _ := strings.Cut(strings.TrimSpace(line), "=")
+		got[k] = v
+	}
+	return got
+}
+
+// TestBackupWritesLastRun: a good run records result=ok, the exit code and the
+// archive it wrote, a run that cannot start records result=failed, and the
+// file is never mistaken for an archive or pruned.
+func TestBackupWritesLastRun(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("loadout-backup.sh is a POSIX shell script")
+	}
+	sqlite, err := exec.LookPath("sqlite3")
+	if err != nil {
+		t.Skip("sqlite3 is not installed")
+	}
+	data, dest := t.TempDir(), t.TempDir()
+	if out, err := exec.CommandContext(t.Context(), sqlite, filepath.Join(data, "registry.db"), "PRAGMA journal_mode=WAL; CREATE TABLE t (v TEXT);").CombinedOutput(); err != nil { //nolint:gosec // G204: a fixed command on a temp folder
+		t.Fatalf("sqlite3: %v\n%s", err, out)
+	}
+	run := func(path string) error {
+		cmd := exec.CommandContext(t.Context(), "sh", "loadout-backup.sh")
+		cmd.Env = append(os.Environ(), "PATH="+path, "LOADOUT_DATA="+data, "LOADOUT_BACKUP_DIR="+dest)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Logf("loadout-backup.sh: %v\n%s", err, out)
+		}
+		return err
+	}
+
+	if err := run(os.Getenv("PATH")); err != nil {
+		t.Fatal(err)
+	}
+	archives, _ := filepath.Glob(filepath.Join(dest, "loadout-*.tar.gz"))
+	if len(archives) != 1 {
+		t.Fatalf("archives = %v, want one", archives)
+	}
+	got := lastRun(t, dest)
+	if got["result"] != "ok" || got["exit"] != "0" || got["archive"] != filepath.Base(archives[0]) {
+		t.Errorf(".last-run after a good run = %v, want ok, exit 0 and %s", got, filepath.Base(archives[0]))
+	}
+	if _, err := time.Parse(time.RFC3339, got["finished"]); err != nil || !strings.HasSuffix(got["finished"], "Z") {
+		t.Errorf("finished = %q, want a UTC time: %v", got["finished"], err)
+	}
+	if _, err := os.Stat(filepath.Join(dest, ".last-run.tmp")); !os.IsNotExist(err) {
+		t.Errorf(".last-run.tmp is left behind (stat error %v)", err)
+	}
+
+	// The same script without sqlite3 on the PATH: only the tools the exit
+	// trap needs are linked in.
+	bin := t.TempDir()
+	for _, tool := range []string{"date", "mv", "rm", "basename"} {
+		toolPath, err := exec.LookPath(tool)
+		if err != nil {
+			t.Skipf("%s is not installed", tool)
+		}
+		if err := os.Symlink(toolPath, filepath.Join(bin, tool)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := run(bin); err == nil {
+		t.Fatal("the script should fail without sqlite3")
+	}
+	got = lastRun(t, dest)
+	if got["result"] != "failed" || got["exit"] != "1" || got["archive"] != "" {
+		t.Errorf(".last-run after a failed run = %v, want failed, exit 1 and no archive", got)
+	}
+	// The earlier archive is still there: a failed run takes nothing away.
+	if archives, _ := filepath.Glob(filepath.Join(dest, "loadout-*.tar.gz")); len(archives) != 1 {
+		t.Errorf("archives after a failed run = %v, want the earlier one", archives)
+	}
+}

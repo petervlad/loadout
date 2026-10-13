@@ -9,6 +9,29 @@ DATA="${LOADOUT_DATA:-/var/lib/loadout}"
 DEST="${LOADOUT_BACKUP_DIR:-/var/backups/loadout}"
 KEEP_DAYS="${LOADOUT_BACKUP_KEEP_DAYS:-14}"
 
+# The result of the last run goes to $DEST/.last-run for the admins' server
+# page, from the EXIT trap, so a failed run is recorded too. The leading dot
+# keeps it out of the archive list and out of the pruning below.
+work=""
+archive=""
+finish() {
+	code=$?
+	[ -z "$work" ] || rm -rf "$work"
+	[ -d "$DEST" ] || exit "$code"
+	result=failed
+	[ "$code" -ne 0 ] || result=ok
+	{
+		echo "finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+		echo "result=$result"
+		echo "exit=$code"
+		echo "archive=$archive"
+	} >"$DEST/.last-run.tmp" && mv -f "$DEST/.last-run.tmp" "$DEST/.last-run" || true
+	exit "$code"
+}
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 command -v sqlite3 >/dev/null 2>&1 || {
 	echo "loadout-backup: sqlite3 is not installed" >&2
 	exit 1
@@ -20,7 +43,6 @@ command -v sqlite3 >/dev/null 2>&1 || {
 
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 work=$(mktemp -d "$DEST/.work.XXXXXX")
-trap 'rm -rf "$work"' EXIT INT TERM
 
 # Plain files first, without SQLite databases, their WAL/SHM files, or
 # loadout's own log dir.
@@ -51,6 +73,7 @@ find "$DATA" -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \)
 out="$DEST/loadout-$stamp.tar.gz"
 tar -C "$work" -czf "$out.tmp" .
 mv "$out.tmp" "$out"
+archive=$(basename "$out")
 echo "loadout-backup: wrote $out ($(du -h "$out" | cut -f 1))"
 
 find "$DEST" -maxdepth 1 -type f -name 'loadout-*.tar.gz' -mtime +"$KEEP_DAYS" -print -delete

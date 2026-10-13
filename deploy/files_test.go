@@ -16,7 +16,7 @@ import (
 // must be embedded (or named here as not meant to be), so the skills that
 // ship these files never miss one.
 func TestFSHoldsTheDeployFiles(t *testing.T) {
-	notShipped := []string{"README.md", "files.go", "deploy_test.go", "downloads_test.go", "install_test.go", "files_test.go", "site", "container"}
+	notShipped := []string{"README.md", "files.go", "deploy_test.go", "downloads_test.go", "install_test.go", "files_test.go", "hostfacts_test.go", "site", "container"}
 	embedded, err := fs.Glob(deploy.FS, "*")
 	if err != nil {
 		t.Fatal(err)

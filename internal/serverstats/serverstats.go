@@ -1,25 +1,29 @@
 // Package serverstats gathers what a registry admin wants to see about the
 // server at a glance: the data folder and its disk, what the stores hold,
-// backups, the mail queue, the process, the host as the operator states
-// it and, with a token, the Hetzner server with its estimated cost. Every part is collected on its own, so one that cannot
-// be read leaves a reason and never hides the others.
+// backups, the mail queue, the process, the machine, the host as the
+// operator states it and, with a cloud provider, the server as the cloud
+// sees it with its estimated cost. Every part is collected on its own, so one
+// that cannot be read leaves a reason and never hides the others.
 package serverstats
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
 	"github.com/petervlad/loadout/internal/mail"
+	"github.com/petervlad/loadout/internal/memory"
 	"github.com/petervlad/loadout/internal/registry"
+	"github.com/petervlad/loadout/internal/sitecert"
+	"github.com/petervlad/loadout/internal/vminfo"
 )
 
 // RegistryCounter counts what the registry holds.
@@ -32,9 +36,24 @@ type AccountCounter interface {
 	AccountCounts(ctx context.Context, now time.Time) (account.Counts, error)
 }
 
+// MemoryCounter counts what team memory holds: numbers and dates only.
+type MemoryCounter interface {
+	Stats(ctx context.Context, now time.Time) (memory.Stats, error)
+}
+
 // MailQueue reports what the login mail queue has done.
 type MailQueue interface {
 	Stats() mail.QueueStats
+}
+
+// MachineReader reads the machine the registry runs on.
+type MachineReader interface {
+	Read() vminfo.Machine
+}
+
+// Certificates checks the certificate the site serves.
+type Certificates interface {
+	Check(ctx context.Context) sitecert.Report
 }
 
 // Config says where to look.
@@ -51,22 +70,29 @@ type Config struct {
 	Now      func() time.Time
 	Registry RegistryCounter
 	Accounts AccountCounter
+	// Memory is nil when team memory is not configured.
+	Memory MemoryCounter
 	// Mail is nil when email sign-in is off.
 	Mail MailQueue
+	// Machine is nil when the machine is not read.
+	Machine MachineReader
+	// Certs is nil when the certificate is not checked.
+	Certs Certificates
 	// Cloud is nil when no cloud provider is set up.
 	Cloud CloudProvider
 	// Host is what the operator states about the machine; PublicURL is
 	// the registry's address in a browser.
 	Host      HostFacts
 	PublicURL string
-	// Hostname and OSRelease are seams for tests; New defaults them to
-	// os.Hostname and /etc/os-release.
-	Hostname  func() (string, error)
-	OSRelease string
+	// Hostname is a seam for tests; New defaults it to os.Hostname.
+	Hostname func() (string, error)
 }
 
 // Collector builds reports.
-type Collector struct{ cfg Config }
+type Collector struct {
+	cfg  Config
+	list lister
+}
 
 // New returns a collector.
 func New(cfg Config) *Collector {
@@ -75,9 +101,6 @@ func New(cfg Config) *Collector {
 	}
 	if cfg.Hostname == nil {
 		cfg.Hostname = os.Hostname
-	}
-	if cfg.OSRelease == "" {
-		cfg.OSRelease = "/etc/os-release"
 	}
 	return &Collector{cfg: cfg}
 }
@@ -89,9 +112,18 @@ type Report struct {
 	Disk    Disk
 	Counts  Counts
 	Backups Backups
+	Memory  Memory
 	Mail    Mail
 	Cloud   Cloud
 	Host    Host
+	// Machine is the kernel, memory, load and the files of the system;
+	// MachineOn is false when it is not read.
+	Machine   vminfo.Machine
+	MachineOn bool
+	// Certs is the served certificate; CertsOn is false when it is not
+	// checked.
+	Certs   sitecert.Report
+	CertsOn bool
 }
 
 // HostFacts is what the operator states about the machine, in plain text.
@@ -99,17 +131,22 @@ type HostFacts struct {
 	Provider, Region, Size, Contact, Console string
 }
 
-// Host is the machine the registry runs on. The name and system are read
-// from the machine; the reasons say why one is missing.
+// Host is the machine the registry runs on. The name is read from the
+// machine; the reason says why it is missing. The system, kernel and CPUs
+// are in Report.Machine.
 type Host struct {
 	Stated    HostFacts
 	Name      string
 	NameErr   string
-	OS        string
-	OSErr     string
-	CPUs      int
-	Arch      string
 	PublicURL string
+}
+
+// Memory is the numbers of team memory. On is false when memory is not
+// configured; Err says why they could not be counted.
+type Memory struct {
+	On    bool
+	Stats memory.Stats
+	Err   string
 }
 
 // Process is the running registry.
@@ -175,6 +212,13 @@ type Backups struct {
 	// configured.
 	Err string
 	Off bool
+	// Last is the result of the last run, Contents what the newest archive
+	// holds, and Copies the copies of the database the server saved before
+	// it deleted a package.
+	Last        LastRun
+	Contents    Contents
+	Copies      int
+	CopiesBytes int64
 }
 
 // Mail is the login mail queue.
@@ -183,22 +227,35 @@ type Mail struct {
 	Stats mail.QueueStats
 }
 
-// Report collects a report. The cloud is asked at the same time as the
-// machine, and each part fails on its own.
+// Report collects a report. The cloud and the certificate are asked at the
+// same time as the machine, and each part fails on its own.
 func (c *Collector) Report(ctx context.Context) Report {
 	now := c.cfg.Now()
-	cloud := make(chan Cloud, 1)
-	go func() { cloud <- c.cloud(ctx) }()
+	var (
+		cloud Cloud
+		certs sitecert.Report
+		wait  sync.WaitGroup
+	)
+	wait.Go(func() { cloud = c.cloud(ctx) })
+	if c.cfg.Certs != nil {
+		wait.Go(func() { certs = c.cfg.Certs.Check(ctx) })
+	}
 	r := Report{
 		At:      now,
 		Process: c.process(now),
 		Disk:    c.disk(),
 		Counts:  c.counts(ctx, now),
 		Backups: c.backups(),
+		Memory:  c.memory(ctx, now),
 		Mail:    c.mail(),
 		Host:    c.host(),
 	}
-	r.Cloud = <-cloud
+	if c.cfg.Machine != nil {
+		r.Machine, r.MachineOn = c.cfg.Machine.Read(), true
+	}
+	wait.Wait()
+	r.Cloud = cloud
+	r.Certs, r.CertsOn = certs, c.cfg.Certs != nil
 	return r
 }
 
@@ -317,20 +374,60 @@ func (c *Collector) backups() Backups {
 	}
 	// ReadDir sorts by name and archives are named by their UTC time, so
 	// the last one is the newest.
+	var latest archiveKey
 	for _, e := range entries {
 		n := e.Name()
-		if !e.Type().IsRegular() || !strings.HasPrefix(n, backupPrefix) || !strings.HasSuffix(n, backupSuffix) {
+		if !e.Type().IsRegular() {
+			continue
+		}
+		isCopy := strings.HasPrefix(n, deleteCopyPrefix) && strings.HasSuffix(n, deleteCopySuffix)
+		isArchive := strings.HasPrefix(n, backupPrefix) && strings.HasSuffix(n, backupSuffix)
+		if !isCopy && !isArchive {
 			continue
 		}
 		fi, err := e.Info()
 		if err != nil {
 			continue
 		}
+		if isCopy {
+			b.Copies++
+			b.CopiesBytes += fi.Size()
+			continue
+		}
 		b.Count++
 		b.Bytes += fi.Size()
 		b.Latest, b.LatestName, b.LatestBytes = fi.ModTime(), n, fi.Size()
+		latest = archiveKey{name: n, size: fi.Size(), mod: fi.ModTime()}
+	}
+	b.Last = readLastRun(b.Dir)
+	if b.Count > 0 {
+		b.Contents = c.list.contents(filepath.Join(b.Dir, latest.name), latest, c.databases())
 	}
 	return b
+}
+
+// databases are the database files that exist in the data folder now, which
+// the newest archive should hold. A database that was never created (memory
+// that was never switched on) is not expected.
+func (c *Collector) databases() []string {
+	var names []string
+	for _, n := range c.cfg.DBFiles {
+		if _, err := os.Stat(filepath.Join(c.cfg.DataDir, n)); err == nil {
+			names = append(names, n)
+		}
+	}
+	return names
+}
+
+func (c *Collector) memory(ctx context.Context, now time.Time) Memory {
+	if c.cfg.Memory == nil {
+		return Memory{}
+	}
+	st, err := c.cfg.Memory.Stats(ctx, now)
+	if err != nil {
+		return Memory{On: true, Err: "Team memory could not be counted."}
+	}
+	return Memory{On: true, Stats: st}
 }
 
 func (c *Collector) mail() Mail {
@@ -341,54 +438,13 @@ func (c *Collector) mail() Mail {
 }
 
 func (c *Collector) host() Host {
-	h := Host{Stated: c.cfg.Host, CPUs: runtime.NumCPU(), Arch: runtime.GOARCH, PublicURL: c.cfg.PublicURL}
+	h := Host{Stated: c.cfg.Host, PublicURL: c.cfg.PublicURL}
 	if name, err := c.cfg.Hostname(); err != nil {
 		h.NameErr = reason(err)
 	} else {
 		h.Name = name
 	}
-	f, err := os.Open(c.cfg.OSRelease)
-	if err != nil {
-		h.OSErr = reason(err)
-		return h
-	}
-	defer f.Close()
-	if h.OS = prettyName(f); h.OS == "" {
-		h.OSErr = "The system does not name itself."
-	}
 	return h
-}
-
-// maxOSRelease bounds the read of os-release.
-const maxOSRelease = 16 << 10
-
-// prettyName reads the system's name from os-release content: PRETTY_NAME,
-// else NAME with VERSION_ID. Empty when neither is there.
-func prettyName(r io.Reader) string {
-	data, err := io.ReadAll(io.LimitReader(r, maxOSRelease))
-	if err != nil {
-		return ""
-	}
-	vals := map[string]string{}
-	for line := range strings.Lines(string(data)) {
-		k, v, ok := strings.Cut(strings.TrimSpace(line), "=")
-		if !ok || strings.HasPrefix(k, "#") {
-			continue
-		}
-		vals[k] = unquote(v)
-	}
-	if v := vals["PRETTY_NAME"]; v != "" {
-		return v
-	}
-	return strings.TrimSpace(vals["NAME"] + " " + vals["VERSION_ID"])
-}
-
-func unquote(v string) string {
-	v = strings.TrimSpace(v)
-	if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
-		v = v[1 : len(v)-1]
-	}
-	return v
 }
 
 // reason turns a file error into a short sentence without the path, which

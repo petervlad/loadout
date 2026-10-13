@@ -4,14 +4,18 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
 	"github.com/petervlad/loadout/internal/mail"
+	"github.com/petervlad/loadout/internal/memory"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/registry"
 	"github.com/petervlad/loadout/internal/serverstats"
+	"github.com/petervlad/loadout/internal/store/sqlitestore"
 	"github.com/petervlad/loadout/internal/web"
 )
 
@@ -41,14 +45,27 @@ func fullReport() serverstats.Report {
 			},
 			Accounts: account.Counts{Users: 5, Verified: 4, Admins: 1, Members: map[account.Role]int{account.RoleOwner: 1, account.RoleMember: 3}, Sessions: 3},
 		},
-		Backups: serverstats.Backups{Dir: "/var/backups/loadout", Count: 14, Bytes: 17 << 20, Latest: now.Add(-9 * time.Hour), LatestName: "loadout-" + xss + ".tar.gz", LatestBytes: 1 << 20},
-		Mail:    serverstats.Mail{On: true, Stats: mail.QueueStats{Sent: 12, Failed: 1, LastFailure: now.Add(-2 * time.Hour)}},
+		Backups: serverstats.Backups{
+			Dir: "/var/backups/loadout", Count: 14, Bytes: 17 << 20, Latest: now.Add(-9 * time.Hour), LatestName: "loadout-" + xss + ".tar.gz", LatestBytes: 1 << 20,
+			Last: serverstats.LastRun{OK: true, Finished: now.Add(-9 * time.Hour), Archive: "loadout-x.tar.gz"}, Contents: serverstats.Contents{Checked: true},
+			Copies: 2, CopiesBytes: 3 << 20,
+		},
+		Memory: serverstats.Memory{On: true, Stats: memory.Stats{ValidTokens: 3, Spaces: []memory.SpaceStats{
+			{Namespace: "lime", Enabled: true, Active: 7, Retracted: 2, Versions: 15, Newest: time.Date(2026, 10, 8, 9, 30, 0, 0, time.UTC), Bytes: 5 << 10},
+			{Namespace: "quiet", Enabled: false, Active: 1, Versions: 1},
+			{Namespace: xss, Enabled: true},
+		}}},
+		Mail:      serverstats.Mail{On: true, Stats: mail.QueueStats{Sent: 12, Failed: 1, LastFailure: now.Add(-2 * time.Hour)}},
+		Machine:   fullMachine(now),
+		MachineOn: true,
+		Certs:     fullCerts(now),
+		CertsOn:   true,
 		Host: serverstats.Host{
 			Stated: serverstats.HostFacts{
 				Provider: "Example Cloud", Region: "project-x", Size: "2 vCPU, 4 GB RAM, 40 GB disk",
 				Contact: "ops " + xss, Console: "https://console.example.com/overview",
 			},
-			Name: "loadout-1", OS: "Ubuntu 24.04.1 LTS", CPUs: 2, Arch: "amd64", PublicURL: "https://registry.example.com",
+			Name: "loadout-1", PublicURL: "https://registry.example.com",
 		},
 		Cloud: serverstats.Cloud{Configured: true, Name: "Hetzner", Summary: serverstats.CloudSummary{
 			CheckedAt: now,
@@ -98,7 +115,7 @@ func TestServerPageForAdmins(t *testing.T) {
 		"Estimated cost", "€4.75", "a month",
 		"25% used", "30 GB free",
 		"9 hours ago", "Running for", "2 days",
-		"Example Cloud", "project-x", "2 vCPU, 4 GB RAM, 40 GB disk", "loadout-1", "Ubuntu 24.04.1 LTS", "amd64, 2 CPUs seen by loadout",
+		"Example Cloud", "project-x", "2 vCPU, 4 GB RAM, 40 GB disk", "loadout-1", "Ubuntu 24.04.1 LTS",
 		"https://registry.example.com", "ops &lt;script&gt;", `href="https://console.example.com/overview"`, "stated in loadout.env",
 		"Hetzner server", "loadout-registry &lt;script&gt;", "id 167857226", "CX23", "2 shared vCPUs, 4 GB memory, 40 GB disk",
 		"Nuremberg, DE", "Running", "203.0.113.7", "1.7 GB", "of 20 TB included this billing period",
@@ -107,9 +124,75 @@ func TestServerPageForAdmins(t *testing.T) {
 		"14 archives", "loadout-&lt;script&gt;",
 		"3 agents, 1 skill, 1 knowledge base", "2 open", "3 closed", "5", "4 verified, 1 admin", "3 browser sessions", "2 terminal logins",
 		"Waiting", "Failed", "last 2 hours ago",
+		"Last run", "Succeeded", "Newest holds", `<span class="pill pill-ok">Both databases</span>`, "2 copies", "3 MB in all, saved before packages were deleted",
 		"v1.4.0", "go1.27.1", "12 MB in use",
 	)
 	wantOut(t, p, "server page", xss, "Hetzner not configured", "Hetzner unavailable", "Set LOADOUT_HOST_PROVIDER")
+}
+
+func TestServerPageShowsTeamMemory(t *testing.T) {
+	p := serverSite(t, fullReport()).as("root@example.com").get("/account/server")
+	wantIn(t, p, "server page", "Team memory",
+		`<th scope="row">lime</th>`, `<span class="pill pill-ok">On</span>`, `<span class="pill">Off</span>`,
+		"<th scope=\"row\">quiet</th>", "8 Oct 2026", "5 KB", "<code>/mcp/t/lime</code>", "<code>/mcp/t/quiet</code>",
+		"3 valid memory tokens.", `role="region"`)
+	// A team name is escaped, in the cell and in its endpoint.
+	wantOut(t, p, "server page", xss)
+	wantIn(t, p, "server page", "&lt;script&gt;alert(1)&lt;/script&gt;")
+	// The first row holds the counts in order: active, retracted, versions.
+	wantIn(t, p, "counts", `<td class="amount">7</td><td class="amount">2</td><td class="amount">15</td>`)
+}
+
+func TestServerPageTeamMemoryStates(t *testing.T) {
+	tests := []struct {
+		name   string
+		change func(*serverstats.Report)
+		want   []string
+		absent []string
+	}{
+		{"not configured", func(r *serverstats.Report) { r.Memory = serverstats.Memory{} }, nil, []string{"Team memory", "/mcp/t/"}},
+		{"no space yet", func(r *serverstats.Report) { r.Memory = serverstats.Memory{On: true} }, []string{"Team memory", "No team has switched memory on or off yet.", "0 valid memory tokens"}, []string{"<table class=\"table mem-spaces\""}},
+		{"failed", func(r *serverstats.Report) {
+			r.Memory = serverstats.Memory{On: true, Err: "Team memory could not be counted."}
+		}, []string{"Team memory could not be counted."}, []string{"valid memory token"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rep := fullReport()
+			tt.change(&rep)
+			p := serverSite(t, rep).as("root@example.com").get("/account/server")
+			wantIn(t, p, tt.name, tt.want...)
+			wantOut(t, p, tt.name, tt.absent...)
+		})
+	}
+}
+
+// TestServerPageTeamMemoryLeaksNoText runs the real store: a memory whose
+// name, description and body hold a marker must show as counts only.
+func TestServerPageTeamMemoryLeaksNoText(t *testing.T) {
+	const marker = "LEAK-MARKER-31337"
+	ctx := t.Context()
+	mem, err := sqlitestore.OpenMemory(ctx, filepath.Join(t.TempDir(), "memory.db"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = mem.Close() })
+	at := time.Now().Add(-time.Hour)
+	if err := mem.Switches().Set(ctx, "lime", true, "admin-"+marker, at); err != nil {
+		t.Fatal(err)
+	}
+	d, err := memory.NewDraft("lime", memory.TypeReference, "name "+marker, "desc "+marker, "body "+marker, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mem.Insert(ctx, d, memory.Caller{UserID: "u1", Label: "author-" + marker + "@example.com"}, at); err != nil {
+		t.Fatal(err)
+	}
+	rep := fullReport()
+	rep.Memory = serverstats.New(serverstats.Config{Memory: mem}).Report(ctx).Memory
+	p := serverSite(t, rep).as("root@example.com").get("/account/server")
+	wantIn(t, p, "server page", `<th scope="row">lime</th>`, `<td class="amount">1</td>`)
+	wantOut(t, p, "server page", marker)
 }
 
 func TestServerPageHiddenFromOthers(t *testing.T) {
@@ -172,9 +255,9 @@ func TestServerPageDegrades(t *testing.T) {
 		{
 			"host facts unreadable", func(r *serverstats.Report) {
 				r.Cloud = serverstats.Cloud{}
-				r.Host.Name, r.Host.NameErr, r.Host.OS, r.Host.OSErr = "", "It could not be read.", "", "It does not exist."
+				r.Host.Name, r.Host.NameErr = "", "It could not be read."
 			},
-			[]string{"It could not be read.", "It does not exist.", "Unknown"},
+			[]string{"It could not be read.", "Unknown"},
 			nil,
 		},
 		{
@@ -221,5 +304,15 @@ func TestServerPageDegrades(t *testing.T) {
 			wantIn(t, p, tt.name, tt.want...)
 			wantOut(t, p, tt.name, tt.absent...)
 		})
+	}
+}
+
+// The page's grids must close: a dropped </div> nests the panels after it.
+func TestServerPageDivsBalance(t *testing.T) {
+	rep := fullReport()
+	rep.Host.Stated = serverstats.HostFacts{Provider: "Example Cloud", Console: "https://console.example.com"}
+	p := serverSite(t, rep).as("root@example.com").get("/account/server")
+	if open, shut := strings.Count(p.body, "<div"), strings.Count(p.body, "</div>"); open != shut {
+		t.Errorf("server page has %d <div and %d </div>", open, shut)
 	}
 }

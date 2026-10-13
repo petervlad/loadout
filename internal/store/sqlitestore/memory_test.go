@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -283,5 +284,57 @@ func TestMemoryFilePermissions(t *testing.T) {
 	}
 	if got := fi.Mode().Perm(); got != 0o600 {
 		t.Errorf("memory.db mode = %o, want 600", got)
+	}
+}
+
+func TestMemoryStats(t *testing.T) {
+	s := newMemoryStore(t)
+	ctx := t.Context()
+	sw := s.Switches()
+	for _, ns := range []string{"lime", "empty"} {
+		if err := sw.Set(ctx, ns, ns == "lime", "admin", testAt); err != nil {
+			t.Fatalf("Set(%s) error: %v", ns, err)
+		}
+	}
+	if err := sw.Set(ctx, "off", false, "admin", testAt); err != nil {
+		t.Fatal(err)
+	}
+	a := insert(t, s, "ab", "cde", "fghi", testAt)
+	b := insert(t, s, "j", "k", "l", testAt.Add(time.Hour))
+	body := "longer body"
+	rev, err := memory.Change{Body: &body}.Revise(a, testAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Update(ctx, a.ID, a.Version, rev, dana, testAt.Add(2*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Retract(ctx, b.ID, "wrong", dana, testAt.Add(5*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	for i, exp := range []time.Time{testAt.Add(time.Hour), testAt.Add(48 * time.Hour)} {
+		tok := memory.Token{ID: string(rune('a' + i)), UserID: "u-dana", Label: "x", CreatedAt: testAt, ExpiresAt: exp}
+		if err := s.Create(ctx, tok, []byte{byte(i)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := s.Stats(ctx, testAt.Add(24*time.Hour))
+	if err != nil {
+		t.Fatalf("Stats() error: %v", err)
+	}
+	want := memory.Stats{
+		Spaces: []memory.SpaceStats{
+			{Namespace: "empty"},
+			{
+				Namespace: "lime", Enabled: true, Active: 1, Retracted: 1, Versions: 4, Newest: testAt.Add(2 * time.Hour),
+				Bytes: int64(len("ab") + len("cde") + len(body) + len("j") + len("k") + len("l")),
+			},
+			{Namespace: "off"},
+		},
+		ValidTokens: 1,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Stats() = %+v, want %+v", got, want)
 	}
 }

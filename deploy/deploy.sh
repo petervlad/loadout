@@ -318,6 +318,13 @@ fi
 mv -f /usr/local/bin/loadout.new /usr/local/bin/loadout
 
 install -m 0755 -o root -g root loadout-backup.sh /usr/local/lib/loadout/loadout-backup.sh
+# host-facts:begin
+# The service's sandbox hides /proc/cpuinfo, so the CPU model is written here
+# once per deploy for the server page. A system without the line gets an empty file.
+{ grep -m1 '^model name' /proc/cpuinfo || true; } | sed 's/^model name[[:space:]]*:[[:space:]]*/cpu_model=/' | tr -cd '[:print:]\n' > /usr/local/lib/loadout/host-facts.new
+chmod 0644 /usr/local/lib/loadout/host-facts.new
+mv -f /usr/local/lib/loadout/host-facts.new /usr/local/lib/loadout/host-facts
+# host-facts:end
 install -m 0644 -o root -g root loadout.service loadout-backup.service loadout-backup.timer /etc/systemd/system/
 if [ -f loadout.env ]; then
 	install -d -m 0755 -o root -g root /etc/loadout

@@ -29,6 +29,7 @@ func uiFuncs(now func() time.Time) template.FuncMap {
 		"invalid":  invalidAttrs,
 		"hue":      hue,
 		"plural":   plural,
+		"breaks":   breaksAtColons,
 		"role":     roleName,
 		"scope":    scopeName,
 		"kind":     kindName,
@@ -177,4 +178,10 @@ func invalidAttrs(field, id string) template.HTMLAttr {
 		return ""
 	}
 	return ` aria-invalid="true" aria-describedby="form-error" autofocus`
+}
+
+// breaksAtColons escapes s and lets a line break after each colon, so a
+// fingerprint wraps between bytes and never inside one.
+func breaksAtColons(s string) template.HTML {
+	return template.HTML(strings.ReplaceAll(template.HTMLEscapeString(s), ":", ":<wbr>")) //nolint:gosec // G203: s is escaped first
 }

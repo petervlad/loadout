@@ -483,3 +483,38 @@ Left as it is:
 - The author keeps the Retract button after a memory moves to the project, since the service allows it. A maintainer of the team does not, and the Move popover says so.
 - Authors show as their display name, else the email they had when they saved, like the wiki.
 - No pagination: lists stop at 50 and say so.
+
+## Team memory on the server page (October 2026)
+
+A "Team memory" panel on `/account/server` (admins only, like the rest of the page): a table with one row per namespace that has a switch row, with Switch (`pill-ok` "On" or plain "Off"), Active, Retracted, Versions, Newest write (a date, or "None"), Text (size) and Endpoint (`/mcp/t/<team>`), then one line with the count of valid memory tokens and the note that only counts and dates are shown. The panel is left out when memory is not configured, says so in words when no team has a switch yet or when counting failed. `memory.db` itself (size, write-ahead log) was already a "Database memory.db" row under Storage, so no second line was added. Looked at with the apple-design checklist and the rampstack design-standards and accessibility-audit skills, in the preview (a seeded `memory.db`), light and dark, at 1280 and 390 px, with a touch screen and without script.
+
+Decisions:
+
+- **Counts only.** The store query reads the lengths of the text, never the text, and no name or author. A web test runs the real store with a marker in every text field and checks it is not on the page.
+- **A table that scrolls inside itself at 390 px.** Eight numeric columns do not stack well, so the table sits in `.tbl-scroll` (`role="region"`, labelled by the heading, `tabindex="0"` so the keyboard can scroll it, with a focus ring). The page never scrolls sideways. Cells do not wrap, so a team name stays on one line.
+- **Words carry the state.** "On" and "Off" are text in a pill, so color is only a help. Numbers right-aligned with tabular figures, as the cost table.
+- Colour: no new tokens. `pill-ok`, `--line-soft` and `--muted` were checked in both themes. No script, inline style or handler was added.
+
+Left as it is:
+
+- A team name is escaped like any text, and a very long one scrolls in the box.
+- No sorting or paging: one row per namespace, ordered by name.
+
+## Server page: system, certificate and backups (October 2026)
+
+Follow-up to "Server page for admins". The page also shows the machine it runs on. Panels in this order, in pairs side by side from 1000 px up and stacked below: **Host** beside **System** (kernel and files), **Storage** beside **Backups**, the cloud pair when a provider is set up, **Certificates** beside **Process**, **Team memory**, then **Registry** beside **Login mail**. A **Site certificate** tile sits between Last backup and Running for. A panel whose part is off is left out, and a part that failed keeps its panel and says why in one sentence. The page was checked in light and dark, at 390, 900 and 1280 px, with scripts removed, in every state: all well, warnings (high load, reboot waiting, stale updates, a failed backup run, a database missing from the archive, a certificate this server does not trust, one about to end), everything failing, every new part off, an expired certificate and hostile text in names.
+
+Decisions:
+
+- **Words carry every state.** Pills and tiles say "Incomplete", "Failed", "Needed", "Not trusted". Tile tones reuse `--warn-text` and `--bad-text`, and pills `pill-ok`, `pill-warn` and `pill-bad`. No new token, no script, no inline style.
+- **Facts get two small additions.** `Code` sets a value in code type (the fingerprint) and `Badge` puts a pill beside a value (the end date). The fingerprint breaks after a colon only (`<wbr>`), so a line never ends in the middle of a byte at 390 px.
+- **A panel without a partner takes the whole row** (`.grid2 > :only-child`), and the tile row fills its width with `auto-fit`, so four tiles (certificate part off) are as wide as five.
+- **A section can hold a sentence and facts.** The Backups panel with no archive yet says so and still shows the last run, since a failed first run is exactly when an admin needs it.
+- **Failures keep the panel.** The System and Certificates rows each say why in the row.
+- **Footnotes say what is cached**: "kept for 10 minutes", "Read each time the page loads". The page has no refresh button, reloading is the refresh.
+- The cost table and the Team memory table share one `.table` style, and the memory table keeps its own scroll box at 390 px.
+
+Left as it is:
+
+- With a short panel beside a tall one the short one leaves empty space below it. Stretching the panel would only add an empty box.
+- The System panel on a Mac says "Not available on this system" for kernel, memory, load and uptime, since those come from Linux system calls.

@@ -1,7 +1,7 @@
 {{define "facts"}}<dl class="facts stats">{{range .}}
-<dt>{{.Label}}</dt><dd>{{if .Pill}}<span class="pill pill-{{.Pill}}">{{.Value}}</span>{{else}}<span class="val">{{.Value}}</span>{{end}}{{with .Note}}<span class="note">{{.}}</span>{{end}}</dd>{{end}}
+<dt>{{.Label}}</dt><dd>{{if .Pill}}<span class="pill pill-{{.Pill}}">{{.Value}}</span>{{else if .Code}}<code class="val">{{breaks .Value}}</code>{{else}}<span class="val">{{.Value}}</span>{{end}}{{if .Badge}}<span class="pill pill-{{.BadgeTone}}">{{.Badge}}</span>{{end}}{{with .Note}}<span class="note">{{.}}</span>{{end}}</dd>{{end}}
 </dl>{{end}}
-{{define "section"}}{{if .Facts}}{{template "facts" .Facts}}{{else}}<p class="panel-note">{{.Message}}</p>{{end}}{{with .Hint}}<p class="panel-foot">{{.}}</p>{{end}}{{end}}
+{{define "section"}}{{with .Message}}<p class="panel-note">{{.}}</p>{{end}}{{if .Facts}}{{template "facts" .Facts}}{{end}}{{with .Hint}}<p class="panel-foot">{{.}}</p>{{end}}{{end}}
 {{define "content"}}{{with .Page}}
 <div class="back"><a href="/account">{{template "icon-back"}}Account</a></div>
 <div class="page-head">
@@ -19,12 +19,23 @@
 {{template "section" .Host}}
 {{with .HostConsole}}<p class="panel-foot"><a href="{{.}}" rel="noopener noreferrer">Open the host's console</a>. It may open only from the network the provider allows, such as the company network or its VPN.</p>{{end}}
 </section>
+{{if .SystemOn}}<section class="panel" aria-labelledby="sys-h">
+<div class="panel-head"><h2 id="sys-h">System</h2></div>
+{{template "section" .System}}
+</section>
+{{end}}</div>
 
+<div class="grid2">
 <section class="panel" aria-labelledby="disk-h">
 <div class="panel-head"><h2 id="disk-h">Storage</h2></div>
 {{with .Disk}}<div class="diskbar">{{if .Shown}}<p id="disk-text"><span class="val">{{.Text}}</span></p>
 <meter class="meter" min="0" max="100" low="80" high="90" optimum="0" value="{{.Percent}}" aria-label="Disk used" aria-describedby="disk-text">{{.Percent}}%</meter>{{else}}<p>The disk could not be read. {{.Err}}</p>{{end}}</div>{{end}}
 {{template "facts" .Storage}}
+</section>
+
+<section class="panel" aria-labelledby="backup-h">
+<div class="panel-head"><h2 id="backup-h">Backups</h2></div>
+{{template "section" .Backups}}
 </section>
 </div>
 
@@ -37,7 +48,7 @@
 
 {{if or .Cloud.HasCost (eq .Cloud.State "error")}}<section class="panel" aria-labelledby="cost-h">
 <div class="panel-head"><h2 id="cost-h">Estimated monthly cost</h2></div>
-{{with .Cloud}}{{if .HasCost}}<table class="cost">
+{{with .Cloud}}{{if .HasCost}}<table class="table">
 <thead><tr><th scope="col">Item</th><th scope="col" class="amount">A month</th></tr></thead>
 <tbody>{{range .Cost}}
 <tr><th scope="row">{{.Label}}{{with .Detail}}<span class="desc">{{.}}</span>{{end}}</th><td class="amount">{{.Amount}}</td></tr>{{end}}
@@ -50,25 +61,38 @@
 {{end}}</div>
 
 {{end}}<div class="grid2">
-<section class="panel" aria-labelledby="backup-h">
-<div class="panel-head"><h2 id="backup-h">Backups</h2></div>
-{{template "section" .Backups}}
+{{if .CertsOn}}<section class="panel" aria-labelledby="cert-h">
+<div class="panel-head"><h2 id="cert-h">Certificates</h2></div>
+{{template "section" .Certs}}
 </section>
+{{end}}<section class="panel" aria-labelledby="proc-h">
+<div class="panel-head"><h2 id="proc-h">Process</h2></div>
+{{template "section" .Process}}
+</section>
+</div>
 
+{{with .Memory}}{{if .Shown}}<section class="panel" aria-labelledby="mem-h">
+<div class="panel-head"><h2 id="mem-h">Team memory</h2></div>
+{{with .Message}}<p class="panel-note">{{.}}</p>{{end}}{{if .Rows}}<div class="tbl-scroll" role="region" aria-labelledby="mem-h" tabindex="0">
+<table class="table mem-spaces">
+<thead><tr><th scope="col">Team</th><th scope="col">Switch</th><th scope="col" class="amount">Active</th><th scope="col" class="amount">Retracted</th><th scope="col" class="amount">Versions</th><th scope="col">Newest write</th><th scope="col" class="amount">Text</th><th scope="col">Endpoint</th></tr></thead>
+<tbody>{{range .Rows}}
+<tr><th scope="row">{{.Team}}</th><td>{{if .On}}<span class="pill pill-ok">On</span>{{else}}<span class="pill">Off</span>{{end}}</td><td class="amount">{{.Active}}</td><td class="amount">{{.Retracted}}</td><td class="amount">{{.Versions}}</td><td>{{if .Newest.IsZero}}None{{else}}<time datetime="{{stamp .Newest}}">{{.Newest.UTC.Format "2 Jan 2006"}}</time>{{end}}</td><td class="amount">{{.Text}}</td><td><code>{{.Endpoint}}</code></td></tr>{{end}}
+</tbody>
+</table>
+</div>{{end}}
+{{with .Tokens}}<p class="panel-foot">{{.}}. Counts and dates only: no memory text, name or author is shown here. The size is the text of the memories as they are now.</p>{{end}}
+</section>
+{{end}}{{end}}
+
+<div class="grid2">
 <section class="panel" aria-labelledby="count-h">
 <div class="panel-head"><h2 id="count-h">Registry</h2></div>
 {{template "section" .Counts}}
 </section>
-</div>
-
-<div class="grid2">
 <section class="panel" aria-labelledby="mail-h">
 <div class="panel-head"><h2 id="mail-h">Login mail</h2></div>
 {{template "section" .Mail}}
-</section>
-<section class="panel" aria-labelledby="proc-h">
-<div class="panel-head"><h2 id="proc-h">Process</h2></div>
-{{template "section" .Process}}
 </section>
 </div>
 {{end}}{{end}}

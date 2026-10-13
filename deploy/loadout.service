@@ -42,7 +42,16 @@ ProtectKernelModules=yes
 ProtectKernelLogs=yes
 ProtectControlGroups=yes
 ProtectProc=invisible
+# pid hides /proc/meminfo, cpuinfo, loadavg and uptime from the service. The
+# server page gets memory totals, load and uptime from sysinfo(2), and the CPU
+# model from /usr/local/lib/loadout/host-facts, which deploy.sh writes. Only
+# live "available memory" is lost. ProcSubset=all would bring it back, at the
+# price of a wider /proc view for a compromised service.
 ProcSubset=pid
+# The server page connects to 127.0.0.1 (a handshake with the web server in
+# front, to read the certificate it serves) and, with a cloud provider set up,
+# to that provider's API. An IPAddressDeny=any here needs 127.0.0.1 in
+# IPAddressAllow, or the Certificates panel fails.
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=yes
 RestrictRealtime=yes

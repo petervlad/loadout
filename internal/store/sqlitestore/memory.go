@@ -872,3 +872,48 @@ func (w switches) Enabled(ctx context.Context) ([]string, error) {
 	}
 	return out, rows.Err()
 }
+
+// Stats returns counts and dates for every namespace that has a switch row,
+// and the number of memory tokens that have not expired at now. It reads no
+// name, author or text, only their lengths.
+func (s *MemoryStore) Stats(ctx context.Context, now time.Time) (memory.Stats, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT sp.namespace, sp.enabled,
+			COALESCE(SUM(e.status = 'active'), 0),
+			COALESCE(SUM(e.status = 'retracted'), 0),
+			(SELECT COUNT(*) FROM entry_versions v JOIN entries x ON x.id = v.entry_id WHERE x.namespace = sp.namespace),
+			(SELECT MAX(v.at) FROM entry_versions v JOIN entries x ON x.id = v.entry_id
+				WHERE x.namespace = sp.namespace AND v.action IN ('save', 'update')),
+			COALESCE(SUM(length(CAST(e.name AS BLOB)) + length(CAST(e.description AS BLOB)) + length(CAST(e.body AS BLOB))), 0)
+		FROM memory_spaces sp LEFT JOIN entries e ON e.namespace = sp.namespace
+		GROUP BY sp.namespace ORDER BY sp.namespace`)
+	if err != nil {
+		return memory.Stats{}, fmt.Errorf("memory stats: %w", err)
+	}
+	defer rows.Close()
+	var out memory.Stats
+	for rows.Next() {
+		var (
+			sp     memory.SpaceStats
+			on     int
+			newest sql.NullString
+		)
+		if err := rows.Scan(&sp.Namespace, &on, &sp.Active, &sp.Retracted, &sp.Versions, &newest, &sp.Bytes); err != nil {
+			return memory.Stats{}, fmt.Errorf("memory stats: %w", err)
+		}
+		sp.Enabled = on != 0
+		if newest.Valid {
+			if sp.Newest, err = parseTime(newest.String); err != nil {
+				return memory.Stats{}, err
+			}
+		}
+		out.Spaces = append(out.Spaces, sp)
+	}
+	if err := rows.Err(); err != nil {
+		return memory.Stats{}, fmt.Errorf("memory stats: %w", err)
+	}
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM memory_tokens WHERE expires_at > ?`, formatTime(now)).Scan(&out.ValidTokens); err != nil {
+		return memory.Stats{}, fmt.Errorf("count memory tokens: %w", err)
+	}
+	return out, nil
+}

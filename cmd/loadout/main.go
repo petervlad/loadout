@@ -398,6 +398,8 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 type memoryServices struct {
 	Service *memory.Service
 	Tokens  *memory.Tokens
+	// Stats counts memory.db for the server page.
+	Stats *sqlitestore.MemoryStore
 }
 
 // newMemoryServices builds them over memory.db. roles answer a person's
@@ -411,7 +413,7 @@ func newMemoryServices(mem *sqlitestore.MemoryStore, store *sqlitestore.Store, r
 	if err != nil {
 		return memoryServices{}, err
 	}
-	return memoryServices{Service: svc, Tokens: tokens}, nil
+	return memoryServices{Service: svc, Tokens: tokens, Stats: mem}, nil
 }
 
 // resolvedExecutable is the running binary's path with links resolved,

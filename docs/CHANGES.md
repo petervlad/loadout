@@ -64,6 +64,19 @@ fixed. The [user guide](../) explains how to use each one.
   host removes a memory and its history for good and lists the backups that still hold it.
 - Feature: Team memory lives in its own `memory.db` next to `registry.db`, and the nightly
   backup covers both.
+- Feature: The admins' server page can show the cloud the server runs in. Hetzner is built
+  in and is chosen by its token as before. Another cloud is one small Go type and one line
+  of wiring, described in the developer docs. With none set up the page simply has no cloud
+  panels.
+- Feature: The server page shows the machine: operating system, kernel, CPUs, memory, load,
+  how long it has been up, a reboot waiting for an update and when the security updates
+  last ran.
+- Feature: The server page checks the site certificate. It shows the names, dates, issuer
+  and fingerprint of what the site serves and whether the server's own trusted certificates
+  accept it. A tile warns when it is about to end.
+- Feature: The server page shows team memory counts for each team, with no memory text.
+- Feature: The backups panel shows how the last run ended, whether the newest archive holds
+  both databases, and the copies saved before packages were deleted.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->

@@ -646,7 +646,7 @@ dl.facts ul.plain { margin: 6px 0 0; padding: 0; list-style: none; }
 /* Server page (admins): numbers use tabular figures so they line up. */
 
 .lead-sm { margin-top: 4px; font-size: 0.875rem; color: var(--text-2); }
-.tiles { margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tiles { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
 .tile { margin: 0; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
 .tile dt { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
 .tile dd { margin: 0; overflow-wrap: anywhere; }
@@ -657,6 +657,8 @@ dl.facts ul.plain { margin: 6px 0 0; padding: 0; list-style: none; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .grid2 > .stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .grid2 .panel { min-width: 0; }
+/* A panel without a partner takes the whole row. */
+.grid2 > :only-child { grid-column: 1 / -1; }
 dl.facts.stats { padding-top: 0; grid-template-columns: 130px minmax(0, 1fr); font-variant-numeric: tabular-nums; }
 dl.facts.stats dd { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
 dl.facts.stats .note { font-size: 0.8125rem; color: var(--muted); }
@@ -664,12 +666,21 @@ dl.facts.stats .note { font-size: 0.8125rem; color: var(--muted); }
 .panel-note strong { color: var(--text); font-weight: 600; }
 .panel-note code, .panel-foot code { overflow-wrap: anywhere; }
 .panel-foot { padding: 12px 20px 14px; border-top: 1px solid var(--line-soft); font-size: 0.75rem; line-height: 1.45; color: var(--muted); }
-table.cost { width: 100%; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
-.cost th, .cost td { padding: 9px 20px; border-top: 1px solid var(--line-soft); text-align: left; font-weight: 400; vertical-align: top; }
-.cost thead th { padding-top: 0; border-top: 0; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
-.cost .amount { text-align: right; white-space: nowrap; }
-.cost .desc { display: block; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
-.cost tfoot th, .cost tfoot td { border-top: 1px solid var(--line); font-weight: 600; }
+table.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.table th, .table td { padding: 9px 20px; border-top: 1px solid var(--line-soft); text-align: left; font-weight: 400; vertical-align: top; }
+.table thead th { padding-top: 0; border-top: 0; font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+.table .amount { text-align: right; white-space: nowrap; }
+.table .desc { display: block; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
+.table tfoot th, .table tfoot td { border-top: 1px solid var(--line); font-weight: 600; }
+/* Team memory on the server page: eight numeric columns scroll inside their
+   own box, so the page never scrolls sideways. */
+.tbl-scroll { overflow-x: auto; }
+.tbl-scroll:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.mem-spaces { min-width: 640px; }
+.mem-spaces th { white-space: nowrap; }
+.mem-spaces th[scope="row"] { font-weight: 600; }
+.mem-spaces td { white-space: nowrap; }
+.mem-spaces code { font-size: 0.8125rem; }
 .diskbar { padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .meter { display: block; width: 100%; height: 8px; border: 0; border-radius: 4px; background: var(--segment); -webkit-appearance: none; appearance: none; }
 .meter::-webkit-meter-bar { height: 8px; border: 0; border-radius: 4px; background: var(--segment); }
@@ -1106,7 +1117,7 @@ dl.facts.tight { padding: 0; grid-template-columns: 110px minmax(0, 1fr); }
   .tiles { gap: 10px; }
   .tile { padding: 12px 14px; }
   .tile .value { font-size: 1.1875rem; }
-  .cost th, .cost td, .panel-note, .panel-foot, .diskbar { padding-left: 16px; padding-right: 16px; }
+  .table th, .table td, .panel-note, .panel-foot, .diskbar { padding-left: 16px; padding-right: 16px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

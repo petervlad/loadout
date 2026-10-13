@@ -37,12 +37,20 @@ type serverView struct {
 	Host    sectionView
 	// HostConsole is the stated console link, drawn as a link.
 	HostConsole string
-	Disk        diskView
-	Storage     []fact
-	Backups     sectionView
-	Counts      sectionView
-	Mail        sectionView
-	Process     sectionView
+	// SystemOn is false when the machine is not read; the System panel is
+	// then left out.
+	SystemOn bool
+	System   sectionView
+	// CertsOn is false when the certificate is not checked.
+	CertsOn bool
+	Certs   sectionView
+	Disk    diskView
+	Storage []fact
+	Backups sectionView
+	Memory  memSpacesView
+	Counts  sectionView
+	Mail    sectionView
+	Process sectionView
 }
 
 // statTile is one number at the top of the page. Tone marks it "warn" or
@@ -51,10 +59,14 @@ type statTile struct {
 	Label, Value, Note, Tone string
 }
 
-// fact is one row of a panel's list; Pill shows the value as a pill of
-// that tone ("ok", "warn").
+// fact is one row of a panel's list. Pill shows the value as a pill of that
+// tone ("ok", "warn"). Code sets the value in code type, for ids and
+// fingerprints. Badge is a pill with words beside the value, of tone
+// BadgeTone.
 type fact struct {
 	Label, Value, Note, Pill string
+	Code                     bool
+	Badge, BadgeTone         string
 }
 
 // sectionView is a panel of facts, or a sentence when there are none.
@@ -93,6 +105,23 @@ type costRow struct {
 	Label, Detail, Amount string
 }
 
+// memSpacesView is the Team memory panel: one row a namespace, counts and
+// dates only. Shown is false when memory is not configured.
+type memSpacesView struct {
+	Shown   bool
+	Message string
+	Rows    []memSpaceRow
+	Tokens  string
+}
+
+type memSpaceRow struct {
+	Team, Endpoint              string
+	On                          bool
+	Active, Retracted, Versions int
+	Newest                      time.Time
+	Text                        string
+}
+
 func (h *handler) serverPage(w http.ResponseWriter, r *http.Request) {
 	u, ok := h.user(r)
 	if !ok {
@@ -120,9 +149,18 @@ func newServerView(rep serverstats.Report, now time.Time) serverView {
 	v := serverView{Checked: rep.At}
 	v.Cloud = newCloudView(rep.Cloud)
 	v.Host, v.HostConsole = hostSection(rep.Host), rep.Host.Stated.Console
-	v.Tiles = []statTile{firstTile(rep), diskTile(rep.Disk), backupTile(rep.Backups, now), uptimeTile(rep.Process)}
+	v.Tiles = []statTile{firstTile(rep), diskTile(rep.Disk), backupTile(rep.Backups, now)}
+	if rep.CertsOn {
+		v.Tiles = append(v.Tiles, certTile(rep.Certs, now))
+	}
+	v.Tiles = append(v.Tiles, uptimeTile(rep.Process))
+	v.SystemOn = rep.MachineOn
+	v.System = systemSection(rep.Machine, now)
+	v.CertsOn = rep.CertsOn
+	v.Certs = certSection(rep.Certs, now)
 	v.Disk, v.Storage = storageFacts(rep.Disk, rep.Counts)
 	v.Backups = backupSection(rep.Backups, now)
+	v.Memory = newMemoryView(rep.Memory)
 	v.Counts = countSection(rep.Counts)
 	v.Mail = mailSection(rep.Mail, now)
 	v.Process = processSection(rep.Process)
@@ -193,8 +231,11 @@ func backupTile(b serverstats.Backups, now time.Time) statTile {
 		t.Value, t.Note, t.Tone = "None yet", "No archive in the folder", "warn"
 	default:
 		t.Value, t.Note = ago(now, b.Latest), bytesText(b.LatestBytes)
-		if now.Sub(b.Latest) > backupWarnAge {
+		switch {
+		case now.Sub(b.Latest) > backupWarnAge:
 			t.Tone, t.Note = "warn", "Older than a day and a half"
+		case b.Last.Err == "" && !b.Last.Missing && !b.Last.OK && b.Last.Finished.After(b.Latest):
+			t.Tone, t.Note = "warn", "The last run failed"
 		}
 	}
 	return t
@@ -244,14 +285,10 @@ func hostSection(h serverstats.Host) sectionView {
 	if h.NameErr != "" {
 		name.Value, name.Note = "Unknown", h.NameErr
 	}
-	system := fact{Label: "System", Value: h.OS, Note: h.Arch + ", " + plural(h.CPUs, "CPU") + " seen by loadout"}
-	if h.OSErr != "" {
-		system.Value, system.Note = "Unknown", h.OSErr
-	}
-	facts = append(facts, name, system)
+	facts = append(facts, name)
 	add("Address", h.PublicURL)
 	add("Contact", st.Contact)
-	hint := "Provider, region, size, contact and console are stated in loadout.env, not measured. Host name and system are those of the machine or container that runs loadout."
+	hint := "Provider, region, size, contact and console are stated in loadout.env, not measured. The host name is that of the machine or container that runs loadout."
 	if st == (serverstats.HostFacts{}) {
 		hint = "Set LOADOUT_HOST_PROVIDER and the other LOADOUT_HOST_ variables in /etc/loadout/loadout.env to describe this host. " + hint
 	}
@@ -301,17 +338,74 @@ func backupSection(b serverstats.Backups, now time.Time) sectionView {
 		return sectionView{Message: "No backup folder is set. The service reads it from LOADOUT_BACKUP_DIR, which the systemd unit sets to /var/backups/loadout."}
 	case b.Err != "":
 		return sectionView{Message: "Cannot read " + b.Dir + ". " + b.Err}
-	case b.Count == 0:
-		return sectionView{Message: "No archive in " + b.Dir + " yet. The nightly timer writes the first one at about 03:15."}
+	}
+	const hint = "The archives are on the same disk as the registry. Copy them off the server to survive losing it."
+	if b.Count == 0 {
+		return sectionView{
+			Message: "No archive in " + b.Dir + " yet. The nightly timer writes the first one at about 03:15.",
+			Facts:   []fact{lastRunFact(b.Last, now)},
+			Hint:    hint,
+		}
 	}
 	return sectionView{
 		Facts: []fact{
 			{Label: "Latest", Value: ago(now, b.Latest), Note: b.LatestName + ", " + bytesText(b.LatestBytes)},
+			lastRunFact(b.Last, now),
+			contentsFact(b.Contents),
 			{Label: "Kept", Value: plural(b.Count, "archive"), Note: bytesText(b.Bytes) + " in all"},
+			deleteCopiesFact(b),
 			{Label: "Folder", Value: b.Dir},
 		},
-		Hint: "The archives are on the same disk as the registry. Copy them off the server to survive losing it.",
+		Hint: hint,
 	}
+}
+
+// lastRunFact is the result of the last run of the backup script.
+func lastRunFact(l serverstats.LastRun, now time.Time) fact {
+	f := fact{Label: "Last run"}
+	switch {
+	case l.Err != "":
+		f.Value, f.Note = unknown, l.Err
+	case l.Missing:
+		f.Value = "No run recorded yet"
+	case l.OK:
+		f.Value, f.Note = "Succeeded", ago(now, l.Finished)+", "+l.Finished.Format("2 Jan 2006, 15:04 UTC")
+	default:
+		f.Value, f.Pill = "Failed", "warn"
+		f.Note = fmt.Sprintf("Exit code %d, %s, %s. The journal of loadout-backup says why.", l.Exit, ago(now, l.Finished), l.Finished.Format("2 Jan 2006, 15:04 UTC"))
+	}
+	return f
+}
+
+// contentsFact says whether the newest archive holds the databases.
+func contentsFact(c serverstats.Contents) fact {
+	f := fact{Label: "Newest holds"}
+	switch {
+	case c.Checking:
+		f.Value, f.Note = "Checking", "Checking the newest archive. Reload in a minute."
+	case c.Err != "":
+		f.Value, f.Note = "Not listed", c.Err
+	case len(c.Missing) > 0:
+		f.Value, f.Pill, f.Note = "Incomplete", "warn", "Missing from the newest archive: "+strings.Join(c.Missing, " and ")+"."
+	default:
+		f.Value, f.Pill = "Both databases", "ok"
+	}
+	return f
+}
+
+// deleteCopiesFact counts the copies the server saves before it deletes a package.
+func deleteCopiesFact(b serverstats.Backups) fact {
+	n := fmt.Sprintf("%d copies", b.Copies)
+	if b.Copies == 1 {
+		n = "1 copy"
+	}
+	f := fact{Label: "Before deletes", Value: n}
+	if b.Copies > 0 {
+		f.Note = bytesText(b.CopiesBytes) + " in all, saved before packages were deleted"
+	} else {
+		f.Note = "Saved when a package is deleted on the web"
+	}
+	return f
 }
 
 func countSection(c serverstats.Counts) sectionView {
@@ -342,6 +436,32 @@ func countSection(c serverstats.Counts) sectionView {
 		{Label: "Signed in", Value: plural(ac.Sessions, "browser session"), Note: plural(rc.LoginTokens, "terminal login") + " from loadout login"},
 		{Label: "Machine tokens", Value: strconv.Itoa(rc.MachineTokens), Note: "for CI and shared machines"},
 	}}
+}
+
+// newMemoryView turns the memory numbers into the table. A namespace is
+// shown by its name, which an admin sees on every page; no memory text,
+// title or author is ever in the report.
+func newMemoryView(m serverstats.Memory) memSpacesView {
+	if !m.On {
+		return memSpacesView{}
+	}
+	v := memSpacesView{Shown: true}
+	if m.Err != "" {
+		v.Message = m.Err
+		return v
+	}
+	for _, sp := range m.Stats.Spaces {
+		v.Rows = append(v.Rows, memSpaceRow{
+			Team: sp.Namespace, Endpoint: "/mcp/t/" + sp.Namespace, On: sp.Enabled,
+			Active: sp.Active, Retracted: sp.Retracted, Versions: sp.Versions,
+			Newest: sp.Newest, Text: bytesText(sp.Bytes),
+		})
+	}
+	if len(v.Rows) == 0 {
+		v.Message = "No team has switched memory on or off yet."
+	}
+	v.Tokens = plural(m.Stats.ValidTokens, "valid memory token")
+	return v
 }
 
 // kindNoun names a kind in a count: "3 agents", "1 knowledge base".

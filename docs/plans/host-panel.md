@@ -30,7 +30,7 @@ The one rule holds: nothing here runs a model or needs an AI key. The plan also 
 | Provider, region or data centre, machine size, who to contact, a console or ticket link | operator, in `/etc/loadout/loadout.env` | a private or in-house host has no API we may call; these are plain text the operator writes once. |
 | Cost | operator only, if at all | No list prices or invoices to read. Left out unless the user asks (decision 3). |
 
-Rejected: a cloud metadata endpoint (`169.254.169.254`) or a provider API for hosts other than Hetzner. Both are new network calls, and the second needs a vendor token.
+Rejected as built-in parts: a cloud metadata endpoint or a provider API for hosts other than Hetzner. Both are new network calls, and the second needs a vendor token. An operator who wants one adds a provider of their own through the `serverstats.CloudProvider` seam, see "Adding a cloud provider" in `docs/DESIGN.md`.
 
 ## Design
 

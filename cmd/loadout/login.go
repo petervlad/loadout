@@ -59,7 +59,7 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		closers.add(queue)
 		queued = queue
 	}
-	collector, err := serverStats(log, stats.Stats, login.PublicURL, stats.DataDir, stats.Build.Raw(), store, queue)
+	collector, err := serverStats(log, stats.Stats, login.PublicURL, stats.DataDir, stats.Build.Raw(), store, mems.Stats, queue)
 	if err != nil {
 		return nil, err
 	}

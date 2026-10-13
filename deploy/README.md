@@ -179,7 +179,7 @@ loadout login --remote https://registry.example.com     # Alice, on her laptop
 
 ## Server page (optional)
 
-Registry admins see the host, disk, backups and counts on the website under Account, **Server details**. The disk, backup and count parts need nothing. To describe the host, add lines to your settings file and deploy it (or edit `/etc/loadout/loadout.env` on the host, root only, 0600, and restart). Every line is optional plain text; the console must be an `https` link:
+Registry admins see the host, the system, disk, backups, the site certificate, team memory and counts on the website under Account, **Server details**. These parts need nothing. The certificate part is on when `LOADOUT_PUBLIC_URL` is `https`, and it is one TLS connection from the server to itself on `127.0.0.1`, checked against the system's trusted certificates. To describe the host, add lines to your settings file and deploy it (or edit `/etc/loadout/loadout.env` on the host, root only, 0600, and restart). Every line is optional plain text; the console must be an `https` link:
 
 ```sh
 LOADOUT_HOST_PROVIDER=<for example Example Cloud>
@@ -205,9 +205,11 @@ LOADOUT_HETZNER_SERVER=<the server's id or name>
 
 Keep them in your `LOADOUT_ENV_FILE` (a deploy that installs a file replaces the one on the host). The token is only sent to `api.hetzner.cloud`, with GET requests.
 
+The service's sandbox hides `/proc/meminfo` and `/proc/cpuinfo`, so the page shows total memory, swap, what loadout itself uses and the load, and the CPU model comes from `/usr/local/lib/loadout/host-facts`, which each deploy writes. For another cloud, see "Adding a cloud provider" in `docs/DESIGN.md`.
+
 ## 7. Backups
 
-`loadout-backup.timer` runs nightly at about 03:15. It copies each SQLite database (`registry.db` for packages and accounts, `memory.db` for team memory) with `sqlite3 .backup` (consistent while the server runs), adds the other files from `/var/lib/loadout`, and writes `/var/backups/loadout/loadout-<UTC time>.tar.gz`. Archives older than 14 days are deleted.
+`loadout-backup.timer` runs nightly at about 03:15. It copies each SQLite database (`registry.db` for packages and accounts, `memory.db` for team memory) with `sqlite3 .backup` (consistent while the server runs), adds the other files from `/var/lib/loadout`, and writes `/var/backups/loadout/loadout-<UTC time>.tar.gz`. Archives older than 14 days are deleted. Every run, good or bad, writes `/var/backups/loadout/.last-run` (four lines: `finished=`, `result=ok` or `failed`, `exit=`, `archive=`), which the server page shows as "Last run". The leading dot keeps it out of the archive list.
 
 ```sh
 sudo systemctl start loadout-backup.service   # back up now

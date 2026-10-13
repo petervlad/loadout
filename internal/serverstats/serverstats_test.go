@@ -5,13 +5,17 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/petervlad/loadout/internal/account"
 	"github.com/petervlad/loadout/internal/mail"
+	"github.com/petervlad/loadout/internal/memory"
 	"github.com/petervlad/loadout/internal/registry"
+	"github.com/petervlad/loadout/internal/sitecert"
+	"github.com/petervlad/loadout/internal/vminfo"
 )
 
 type counters struct{ err error }
@@ -159,61 +163,79 @@ func TestUnreadableBackups(t *testing.T) {
 }
 
 func TestHost(t *testing.T) {
-	dir := t.TempDir()
-	rel := filepath.Join(dir, "os-release")
-	if err := os.WriteFile(rel, []byte("NAME=Ubuntu\nPRETTY_NAME=\"Ubuntu 24.04.1 LTS\"\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	stated := HostFacts{Provider: "Example Cloud", Region: "eu-1"}
 	c := New(Config{
-		Host: stated, PublicURL: "https://registry.example.com", OSRelease: rel,
+		Host: stated, PublicURL: "https://registry.example.com",
 		Hostname: func() (string, error) { return "loadout-1", nil },
 	})
 	h := c.Report(t.Context()).Host
-	if h.Stated != stated || h.Name != "loadout-1" || h.OS != "Ubuntu 24.04.1 LTS" || h.PublicURL != "https://registry.example.com" || h.CPUs < 1 || h.Arch == "" {
+	if h.Stated != stated || h.Name != "loadout-1" || h.PublicURL != "https://registry.example.com" || h.NameErr != "" {
 		t.Errorf("Host = %+v", h)
 	}
-	if h.NameErr != "" || h.OSErr != "" {
-		t.Errorf("Host errors = %q, %q, want none", h.NameErr, h.OSErr)
-	}
 
-	// Each fact fails on its own.
-	c = New(Config{
-		OSRelease: filepath.Join(dir, "missing"),
-		Hostname:  func() (string, error) { return "", errors.New("no") },
-	})
-	h = c.Report(t.Context()).Host
-	if h.Name != "" || h.NameErr == "" || h.OS != "" || h.OSErr == "" || h.CPUs < 1 {
-		t.Errorf("Host without facts = %+v", h)
-	}
-
-	// A file over the limit is read only in part.
-	big := filepath.Join(dir, "big")
-	content := strings.Repeat("# filler\n", maxOSRelease/8) + "PRETTY_NAME=late\n"
-	if err := os.WriteFile(big, []byte(content), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	h = New(Config{OSRelease: big}).Report(t.Context()).Host
-	if h.OS != "" || h.OSErr == "" {
-		t.Errorf("OS from a file over the limit = %q (%q), want none", h.OS, h.OSErr)
+	c = New(Config{Hostname: func() (string, error) { return "", errors.New("no") }})
+	if h = c.Report(t.Context()).Host; h.Name != "" || h.NameErr == "" {
+		t.Errorf("Host without a name = %+v", h)
 	}
 }
 
-func TestPrettyName(t *testing.T) {
-	tests := []struct{ name, in, want string }{
-		{"quoted", "PRETTY_NAME=\"Debian GNU/Linux 12\"\n", "Debian GNU/Linux 12"},
-		{"single quoted", "PRETTY_NAME='Alpine'\n", "Alpine"},
-		{"unquoted", "PRETTY_NAME=Arch\n", "Arch"},
-		{"fallback", "NAME=\"Fedora\"\nVERSION_ID=40\n", "Fedora 40"},
-		{"name only", "NAME=Fedora\n", "Fedora"},
-		{"comment", "# PRETTY_NAME=no\nNAME=Yes\n", "Yes"},
-		{"empty", "", ""},
+type memCounter struct{ err error }
+
+func (m memCounter) Stats(context.Context, time.Time) (memory.Stats, error) {
+	return memory.Stats{ValidTokens: 2, Spaces: []memory.SpaceStats{{Namespace: "lime", Enabled: true, Active: 3}}}, m.err
+}
+
+func TestReportMemory(t *testing.T) {
+	data := t.TempDir()
+	tests := []struct {
+		name string
+		mem  MemoryCounter
+		want Memory
+	}{
+		{"not configured", nil, Memory{}},
+		{"counted", memCounter{}, Memory{On: true, Stats: memory.Stats{ValidTokens: 2, Spaces: []memory.SpaceStats{{Namespace: "lime", Enabled: true, Active: 3}}}}},
+		{"failed", memCounter{err: errors.New("boom /secret/path")}, Memory{On: true, Err: "Team memory could not be counted."}},
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := prettyName(strings.NewReader(tc.in)); got != tc.want {
-				t.Errorf("prettyName() = %q, want %q", got, tc.want)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := New(Config{DataDir: data, Memory: tt.mem}).Report(t.Context()).Memory
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Report().Memory = %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+type machine struct{}
+
+func (machine) Read() vminfo.Machine {
+	return vminfo.Machine{OS: vminfo.OS{Name: "Ubuntu 24.04.1 LTS"}}
+}
+
+func TestReportMachine(t *testing.T) {
+	data := t.TempDir()
+	if r := New(Config{DataDir: data}).Report(t.Context()); r.MachineOn {
+		t.Errorf("without a reader: MachineOn = true, Machine = %+v", r.Machine)
+	}
+	r := New(Config{DataDir: data, Machine: machine{}}).Report(t.Context())
+	if !r.MachineOn || r.Machine.OS.Name != "Ubuntu 24.04.1 LTS" {
+		t.Errorf("Machine = %+v, on %v", r.Machine, r.MachineOn)
+	}
+}
+
+type certs struct{}
+
+func (certs) Check(context.Context) sitecert.Report {
+	return sitecert.Report{Served: sitecert.Served{Issuer: "Example Issuing CA", Trusted: true}}
+}
+
+func TestReportCerts(t *testing.T) {
+	data := t.TempDir()
+	if r := New(Config{DataDir: data}).Report(t.Context()); r.CertsOn {
+		t.Errorf("without a checker: CertsOn = true")
+	}
+	r := New(Config{DataDir: data, Certs: certs{}}).Report(t.Context())
+	if !r.CertsOn || r.Certs.Served.Issuer != "Example Issuing CA" {
+		t.Errorf("Certs = %+v, on %v", r.Certs, r.CertsOn)
 	}
 }
