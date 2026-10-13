@@ -14,7 +14,7 @@ import (
 	"github.com/petervlad/loadout/internal/registry"
 )
 
-const secret = "ldt_0123456789abcdef"
+const secret = "ldt_0123456789abcdef" // gitleaks:allow, a fake token for the test
 
 func encodeJSON(s string) string {
 	return Prefix + base64.RawURLEncoding.EncodeToString([]byte(s))

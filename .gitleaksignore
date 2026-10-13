@@ -1,0 +1,2 @@
+# A fake invite token in a unit test, not a secret.
+f7908c5b55a6f3608ee02a0ce65d0c42b044d5b1:internal/invite/invite_test.go:generic-api-key:17
