@@ -130,6 +130,9 @@ func (d Deps) planReview(ctx context.Context, c *client.Client, req reviewplan.R
 // uploads it when asked.
 func (d Deps) runReview(cmd *cobra.Command, run *reviewRun, r remote.Remote, f *runFlags) error {
 	plan := run.plan
+	if err := review.CheckRunnable(plan.To.Pack); err != nil {
+		return err
+	}
 	prompts, err := promptsFor(plan, f.prompts)
 	if err != nil {
 		return err

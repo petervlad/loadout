@@ -30,6 +30,9 @@ type ProposalService struct {
 	// owners may approve their own proposals as owner; nil keeps four
 	// eyes for everyone.
 	owners Owners
+	// namespaces lets Propose check what a package needs from its team's
+	// view. Without it a package that needs anything is refused.
+	namespaces NamespaceStore
 }
 
 // ProposalOption configures a ProposalService.
@@ -38,6 +41,12 @@ type ProposalOption func(*ProposalService)
 // WithAccess lets account tokens act on proposals, narrowed by reg to the
 // namespace of each proposal's package.
 func WithAccess(reg *Service) ProposalOption { return func(s *ProposalService) { s.access = reg } }
+
+// WithNamespaces lets Propose resolve a team's view of layers, for the
+// checks on what a package needs.
+func WithNamespaces(n NamespaceStore) ProposalOption {
+	return func(s *ProposalService) { s.namespaces = n }
+}
 
 // WithOwners lets owners approve their own proposals, o saying who owns a
 // namespace. Without it (a registry without accounts) nobody approves
@@ -110,6 +119,9 @@ func (s *ProposalService) Propose(ctx context.Context, pr Principal, data []byte
 		if old, err = s.replaceable(ctx, pr, p.ID(), in.Replaces); err != nil {
 			return Proposal{}, err
 		}
+	}
+	if err := (checker{store: s.releases, namespaces: s.namespaces}).check(ctx, p); err != nil {
+		return Proposal{}, err
 	}
 	rels, err := s.checkAboveLatest(ctx, p)
 	if err != nil {

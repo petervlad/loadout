@@ -7,6 +7,7 @@ import (
 
 	"github.com/petervlad/loadout/internal/api"
 	"github.com/petervlad/loadout/internal/client"
+	"github.com/petervlad/loadout/internal/install"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/remote"
 	"github.com/petervlad/loadout/internal/semver"
@@ -102,20 +103,36 @@ type registryAdapter struct {
 
 var _ update.Registry = registryAdapter{}
 
-func (a registryAdapter) Latest(ctx context.Context, id pack.ID) (semver.Version, error) {
+func (a registryAdapter) Releases(ctx context.Context, id pack.ID) ([]update.Release, error) {
 	rels, err := a.c.Releases(ctx, id)
 	// Only not_found reads as gone; a 403 (a team the person left) stays a
 	// failure. A package with no release is as good as deleted.
 	if errors.Is(err, api.ErrNotFound) {
-		return semver.Version{}, fmt.Errorf("%s: %w", id, update.ErrGone)
+		return nil, fmt.Errorf("%s: %w", id, update.ErrGone)
 	}
 	if err != nil {
-		return semver.Version{}, err
+		return nil, err
 	}
 	if len(rels) == 0 {
-		return semver.Version{}, fmt.Errorf("%s has no releases: %w", id, update.ErrGone)
+		return nil, fmt.Errorf("%s has no releases: %w", id, update.ErrGone)
 	}
-	return semver.Parse(rels[len(rels)-1].Version)
+	out := make([]update.Release, 0, len(rels))
+	for _, r := range rels {
+		v, err := semver.Parse(r.Version)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", id, err)
+		}
+		out = append(out, update.Release{Version: v, Kind: pack.Kind(releaseKind(r))})
+	}
+	return out, nil
+}
+
+func (a registryAdapter) Needs(ctx context.Context, p *pack.Pack) (update.Needed, error) {
+	opts, err := withNeeds(ctx, a.c, p, install.Options{}, nil, nil)
+	if err != nil {
+		return update.Needed{}, err
+	}
+	return update.Needed{Requires: opts.Requires, Agents: opts.Agents}, nil
 }
 
 func (a registryAdapter) Fetch(ctx context.Context, id pack.ID, v semver.Version) (*pack.Pack, error) {

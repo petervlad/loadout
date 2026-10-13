@@ -79,6 +79,24 @@ flowchart TB
   payments --> laptop
 ```
 
+A pipeline package depends on other packages across layers. The project
+writes a template (its slots and the edges between them). A team writes a
+binding that names the template and one of its own agents for each slot.
+On a laptop, loadout renders the binding into a conductor agent, which the
+person's own tool runs and which starts the team's agents in turn.
+
+```mermaid
+flowchart TB
+  template["acme/dev-loop (template, L0)<br/>slots and edges, no agents"]
+  binding["lime/dev-loop (binding, L1)<br/>uses acme/dev-loop@1, one agent per slot"]
+  agents["lime-planner, lime-dev, lime-code-review, lime-test (L1 agents)"]
+  conductor["lime-dev-loop (conductor)<br/>written by loadout install, run by Claude Code or Copilot CLI"]
+  template -- "uses (a major)" --> binding
+  agents -- "bind" --> binding
+  binding -- "install renders" --> conductor
+  conductor -- "starts each slot's agent, stops at gates" --> agents
+```
+
 ## One login, many teams
 
 `loadout login` gives one account token per registry. Each request names the

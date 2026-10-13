@@ -5,6 +5,7 @@
 package reviewplan
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -398,6 +399,10 @@ func (r *resolver) context(ctx context.Context) ([]api.Release, error) {
 			return nil, fmt.Errorf("registry listed %q: %w", rel.ID, err)
 		}
 		if id == r.id {
+			continue
+		}
+		// Nothing a reviewer would look for is missing: a pipeline never runs.
+		if !pack.Kind(cmp.Or(rel.Kind, string(pack.KindAgent))).CanRunInReview() {
 			continue
 		}
 		if o, taken := owner[id.Name()]; taken {

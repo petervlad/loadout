@@ -1,6 +1,6 @@
 ---
 name: loadout-setup
-description: Set up and use the loadout CLI, which copies a team's shared AI agents, skills and knowledge bases into Claude Code and GitHub Copilot. Use when the user asks to install loadout, sign in to a loadout registry, join a team, install, sync, update, check, uninstall or roll back team packages, choose how updates arrive, or when a loadout command fails.
+description: Set up and use the loadout CLI, which copies a team's shared AI agents, skills, knowledge bases and pipelines into Claude Code and GitHub Copilot. Use when the user asks to install loadout, run a team's pipeline or dev loop (start the conductor agent, such as <team>-dev-pipeline, as the session agent), sign in to a loadout registry, join a team, install, sync, update, check, uninstall or roll back team packages, choose how updates arrive, or when a loadout command fails.
 ---
 # Using loadout
 
@@ -125,6 +125,24 @@ loadout cleanup --tool vscode --apply   # moves old copies that remain (see the 
 - A clean `loadout cleanup` and an ok `loadout status` do not prove there are no doubles, so run `loadout cleanup --tool vscode --duplicates` once more at the end: it should say nothing to clean up (apart from loadout's own two copies of an agent).
 - `cleanup` prints every path and ends with a count per folder. The backup keeps the same layout under `~/.loadout/backup/<date>/` in hidden folders (`.claude`, `.agents`, `.copilot`), so look with `ls -a`.
 - `--tool vscode` covers `~/.copilot`, `~/.agents` and `~/.claude` in one run, so a person using both tools needs only that one.
+
+## Run a pipeline
+
+A pipeline is a loop (plan, dev, review, test) that a project writes once and a team fills with its own agents. What reaches a person's machine is a **conductor**, an agent loadout generates from the team's binding. The person runs it as their session's agent, and it starts each step's agent as a subagent and stops at each **gate** for the person to say go. loadout does not start it, and it never runs a model.
+
+```sh
+loadout install --all                    # writes the conductor, for example lime-dev-loop
+loadout status                           # shows "lime/dev-loop uses acme/dev-loop@1.0.0"
+```
+
+- A pipeline **template** (the project's `acme/dev-loop`) installs nothing. `install --all` skips it with a line saying so. The team's **binding** (`lime/dev-loop`) installs the conductor. Name the binding when installing one package: `loadout install lime/dev-loop`.
+- "needs the agent lime-test, which is not installed here" means a bound agent is not installed on this machine. Install it (`loadout install lime/lime-test`, or `install --all`), because the conductor starts it by name and would fail at that step.
+- On Copilot a warning that nothing can create the run folder means the first step's agent has no shell tool. Ask the person to give that agent the `shell` tool in its package, or to create the run folder by hand.
+- Tell the person to start a new session afterwards, then start the conductor as the session's agent, from the folder the binding's `work_folder` is relative to (a repository root, usually): `claude --agent lime-dev-loop` in Claude Code, or `/agent` and the conductor's name in Copilot CLI. Then give it the ticket key. Do not start it for the person unless they ask.
+- The conductor prints a `State:` line before it starts an agent, `GATE:` when it stops for the person (a step finished, a step has questions, a round limit is reached) and `STOP:` when something is wrong (a step's file is missing or has no allowed `Verdict:` line). At a gate the person reads the summary, adds notes if they like, and says `go`. A run is kept in the files of its run folder, so a closed session resumes by starting the conductor again with the same ticket. For a headless run with `claude -p`, where each gate ends the process and you resume the session with "go", set `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` so a slot that runs long is not cut off.
+- `loadout sync` renders the conductor again when its template has a new release in the major it uses, and prints a line when a newer major is out. Moving to it means editing `uses:` in the binding and publishing, which is for whoever owns the binding (see the `loadout-author` skill).
+- `loadout install --merge` does not work for a conductor, since it is generated: change the binding and publish instead. `loadout review` does not run a pipeline either.
+- An older loadout cannot install a pipeline and says the kind is not supported. Suggest updating it.
 
 ## Stay up to date
 

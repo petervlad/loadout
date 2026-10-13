@@ -61,7 +61,8 @@
       securityLevel: "strict",
       // Labels are SVG text, never HTML in a foreignObject.
       htmlLabels: false,
-      flowchart: { htmlLabels: false, useMaxWidth: true },
+      // wrappingWidth: agent names of about 24 characters stay on one line.
+      flowchart: { htmlLabels: false, useMaxWidth: true, wrappingWidth: 320 },
       maxTextSize: 50000,
       maxEdges: 500,
       suppressErrorRendering: true,

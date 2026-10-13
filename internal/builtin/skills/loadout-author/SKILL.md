@@ -1,10 +1,10 @@
 ---
 name: loadout-author
-description: Write and share team packages with loadout, the CLI that syncs AI agents, skills and knowledge bases into Claude Code and GitHub Copilot. Use when the user wants to create, import, try out, publish or propose a new version of an agent, skill or knowledge base for their team, or asks about loadout.yaml, agent.md, SKILL.md frontmatter, model hints (fast, balanced, deep), package limits, diagrams, --bump, or a folder that is behind a newer release (loadout rebase). Also for writing the team's wiki page.
+description: Write and share team packages with loadout, the CLI that syncs AI agents, skills, knowledge bases and pipelines into Claude Code and GitHub Copilot. Also explains what a loadout pipeline is, a project's template of steps (slots) and gates, which a team binds to its own agents and runs through a generated conductor agent. Use when the user wants to create, import, try out, publish or propose a new version of an agent, skill, knowledge base or pipeline for their team, or asks about loadout.yaml, agent.md, SKILL.md frontmatter, model hints (fast, balanced, deep), pipelines (templates, bindings, slots, gates, conductors, why a pipeline was refused), package limits, diagrams, --bump, or a folder that is behind a newer release (loadout rebase). Also for writing the team's wiki page.
 ---
 # Writing loadout packages
 
-A package is an agent, a skill or a knowledge base (KB) with an id `namespace/name` (for example `payments/planner`). loadout only moves the files; every package runs in each person's own AI tool. It never runs a model and never holds an AI key.
+A package is an agent, a skill, a knowledge base (KB) or a pipeline with an id `namespace/name` (for example `payments/planner`). loadout only moves the files; every package runs in each person's own AI tool. It never runs a model and never holds an AI key.
 
 ## First, look for local rules
 
@@ -24,6 +24,8 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 loadout new agent payments/planner            # creates ./planner
 loadout new skill payments/release-checklist
 loadout new kb payments/runbooks
+loadout new pipeline acme/dev-loop            # a template: slots and edges
+loadout new pipeline payments/dev-loop --uses acme/dev-loop@1   # a binding of it
 loadout new skill payments/notes --dir packages/notes
 ```
 
@@ -38,13 +40,13 @@ loadout import kb docs/runbooks --team payments --name runbooks --description "H
 
 Import lists everything it could not carry over. A tool loadout has no name for stops an agent's import; `--drop-unknown-tools` leaves it out. `--name` renames one input; one name per team whatever the kind.
 
-## The three kinds
+## The kinds
 
 Every package folder has `loadout.yaml`:
 
 ```yaml
 name: payments/planner
-kind: agent            # agent, skill or kb
+kind: agent            # agent, skill, kb or pipeline
 version: 0.1.0
 description: Turns a ticket into an implementation plan.
 ```
@@ -55,9 +57,23 @@ description: Turns a ticket into an implementation plan.
 - **skill**: `SKILL.md` with frontmatter `name` (equals the package name) and `description` (up to 1,024 characters; say when to load it), then the steps. Put long material in `references/`, scripts in `scripts/`, and link them relatively. Other frontmatter fields (`allowed-tools`, `metadata`) are kept as written.
 - **kb**: a folder of text documents, in folders if you like. loadout writes its `SKILL.md` (an index), so do not add one. The description in `loadout.yaml` is required: tools read it to decide when to look.
 
+- **pipeline**: `pipeline.yaml`. A project writes a template, a team writes a binding. See Pipelines below.
+
 Details, the tools table, model hints and every limit: [references/formats.md](references/formats.md).
 
 A skill must not point at files outside its own folder (`~/docs/x.md`, `../shared/y.md`): they do not exist on a teammate's machine. Copy them into `references/`.
+
+## Pipelines
+
+A pipeline writes a loop such as plan, dev, review and test down once, and lets each team fill it with its own agents. Words: a **slot** is a stage with a contract (what it reads, what it writes, which verdicts it may return) and names no agent. An **edge** moves from one slot to the next on a verdict, through a **gate** (a person decides) or automatically. A **binding** is a team's choice of agent for each slot. The **conductor** is the agent loadout generates from a binding. The person runs it as their session's agent, and it starts each slot's agent and follows the edges. A **handoff** (slot to slot) belongs to the pipeline. A **delegation** (an agent starting a helper inside its slot) belongs to the agent.
+
+- A project maintainer writes a template: `loadout new pipeline acme/dev-loop`, then edit `pipeline.yaml` into slots, verdicts and edges. It starts at 1.0.0.
+- A team maintainer writes a binding: `loadout new pipeline payments/dev-loop --uses acme/dev-loop@1`, fill `bind:` with one of the team's agents per slot, then publish. The conductor will be named `payments-dev-loop`.
+- Each slot's agent ends its round with one last line `Verdict: WORD` from the slot's list. **Never write `Next: run ...` or name any next agent in an agent.** The pipeline decides what follows. `publish` and `propose` warn about such a line.
+- The registry checks a pipeline when it is published or proposed. An empty slot, an agent the team cannot see, a missing major and a slot change inside a major are refused with a sentence that says what to change. A template may only add, remove or rename a slot, or change its verdicts, in a new major version.
+- Ask first, as for any publish. Show the person the filled `bind:` before `loadout publish`.
+
+The full format, every rule and every refusal with its fix: [references/pipelines.md](references/pipelines.md). To install and run a binding, see the `loadout-setup` skill.
 
 ## Text only
 

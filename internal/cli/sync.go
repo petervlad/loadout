@@ -97,7 +97,14 @@ func printSync(out io.Writer, results []update.Result) error {
 		case r.Outcome == update.OutcomeGone:
 			writeGone(out, r)
 		case r.Outcome == update.OutcomeModelsChanged:
-			fmt.Fprintf(out, "\n%s: your team changed which model it runs; apply with: loadout install %s --scope %s\n", r.Entry.ID, r.Entry.ID, r.Entry.Scope.Kind)
+			fmt.Fprintf(out, "\n%s: your team changed which model it runs. Apply it with: loadout install %s --scope %s\n", r.Entry.ID, r.Entry.ID, r.Entry.Scope.Kind)
+		case r.Outcome == update.OutcomeTemplateChanged:
+			fmt.Fprintf(out, "\n%s: your team published %s. Apply it with: loadout install %s --scope %s\n", r.Entry.ID, r.Template, r.Entry.ID, r.Entry.Scope.Kind)
+		}
+	}
+	for _, r := range results {
+		for _, n := range r.Notes {
+			fmt.Fprintf(out, "\n%s\n", n)
 		}
 	}
 	switch {

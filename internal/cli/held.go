@@ -36,6 +36,10 @@ func syncResult(r update.Result) string {
 		return "model settings held back by your edits"
 	case r.Outcome == update.OutcomeAvailable && len(r.Held) > 0:
 		return "update available, you edited " + plural(len(r.Held), "file", "files")
+	case r.Outcome == update.OutcomeBlocked && r.TemplateOnly():
+		return "pipeline template held back by your edits"
+	case r.Outcome == update.OutcomeTemplateChanged && len(r.Held) > 0:
+		return "pipeline template changed, you edited " + plural(len(r.Held), "file", "files")
 	case r.Outcome == update.OutcomeModelsChanged && len(r.Held) > 0:
 		return "model settings changed, you edited " + plural(len(r.Held), "file", "files")
 	}
@@ -47,6 +51,9 @@ func writeHeld(w io.Writer, r update.Result) {
 	e := r.Entry
 	next := r.Latest.String()
 	switch {
+	case r.TemplateOnly():
+		next = "the new template"
+		fmt.Fprintf(w, "\n%s: the new pipeline template %s is held back.\n", e.ID, r.Template)
 	case r.ModelsOnly():
 		next = "the new settings"
 		fmt.Fprintf(w, "\n%s: your team's new model settings are held back.\n", e.ID)
@@ -68,8 +75,9 @@ func writeHeld(w io.Writer, r update.Result) {
 	}
 	var steps [][2]string
 	// A merge keeps edits; files loadout did not write still refuse it,
-	// and new model settings have no release to merge.
-	if !r.ModelsOnly() && onlyEdits(r.Held) {
+	// new model settings have no release to merge, and a conductor is
+	// generated from its binding and template, so it is never merged.
+	if !r.ModelsOnly() && !r.TemplateOnly() && onlyEdits(r.Held) && len(e.Requires) == 0 {
 		steps = append(steps, [2]string{"Keep your edits and take " + next + ":", fmt.Sprintf("loadout install %s --merge%s", e.ID, scope)})
 	}
 	forceable := !slices.ContainsFunc(r.Held, func(b syncstate.Blocker) bool { return install.Reason(b.Reason).Blocking() })
@@ -81,7 +89,7 @@ func writeHeld(w io.Writer, r update.Result) {
 		steps = append(steps, [2]string{label, fmt.Sprintf("loadout install %s --force%s", e.ID, scope)})
 	}
 	steps = append(steps, [2]string{"Keep your version, stop updates:", fmt.Sprintf("loadout policy %s pin%s", e.ID, scope)})
-	if !r.ModelsOnly() {
+	if !r.ModelsOnly() && !r.TemplateOnly() {
 		steps = append(steps, [2]string{"See what changed:", fmt.Sprintf("loadout diff %s", e.ID)})
 	}
 	width := 0

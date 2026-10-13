@@ -71,6 +71,9 @@ type Unit struct {
 	// layer's skill replaces a farther one's whole folder.
 	Root  string
 	Files []File
+	// Warnings are things the person should know about what was rendered,
+	// as sentences. They do not stop the install.
+	Warnings []string
 }
 
 // RenderOptions change how a package renders.
@@ -81,6 +84,13 @@ type RenderOptions struct {
 	// Models is the resolved model table of the installing team. The empty
 	// table renders what loadout always did.
 	Models tier.Table
+	// Requires holds the release of each package p.Needs() names, at its
+	// major, resolved by the caller. Empty for kinds that need nothing.
+	Requires []*pack.Pack
+	// Agents are the definitions of the agents a pipeline binds, from the
+	// same view that resolved the binding. A conductor's tool list and its
+	// warnings come from them; an agent missing here is reported, not fatal.
+	Agents []agent.Definition
 }
 
 // Render renders p for a. It is the one place that looks at the package
@@ -111,6 +121,8 @@ func Render(a Renderer, p *pack.Pack, scope Scope, stamp Stamp, opts RenderOptio
 			return Unit{}, err
 		}
 		return RenderSkill(dir, s, stamp)
+	case pack.KindPipeline:
+		return renderPipeline(a, p, scope, stamp, opts)
 	}
 	return Unit{}, fmt.Errorf("render %s: %s cannot install a %s", p.ID(), a.Name(), p.Kind().Describe())
 }

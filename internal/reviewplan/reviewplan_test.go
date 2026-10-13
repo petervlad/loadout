@@ -33,6 +33,7 @@ type fakeRegistry struct {
 	releases  map[string][]string // id -> versions, lowest first
 	proposals []api.Proposal      // any status, any order
 	packages  []string            // the view's listing as "id@version", closest layer first
+	kinds     map[string]string   // kind of a listed package id, agent when absent
 	fetched   []string
 	failFetch string // "id@version" whose Fetch fails
 }
@@ -91,6 +92,7 @@ func (f *fakeRegistry) Packages(context.Context) ([]api.Release, error) {
 	for i, s := range f.packages {
 		id, v, _ := strings.Cut(s, "@")
 		out[i] = f.release(id, v)
+		out[i].Kind = f.kinds[id]
 	}
 	return out, nil
 }
@@ -465,6 +467,26 @@ func TestResolveContext(t *testing.T) {
 				t.Errorf("Notes = %q, want one containing %q", plan.Notes, tt.wantNote)
 			}
 		})
+	}
+}
+
+func TestContextLeavesOutPipelines(t *testing.T) {
+	reg := &fakeRegistry{
+		t:         t,
+		releases:  map[string][]string{"lime/planner": {"1.3.0"}},
+		proposals: []api.Proposal{proposal(propA, "1.4.0", 0, api.StatusOpen)},
+		packages:  []string{"lime/dev-loop@1.0.0", "acme/dev-loop-template@1.0.0", "lime/lime-kb@2.0.0"},
+		kinds:     map[string]string{"lime/dev-loop": "pipeline", "acme/dev-loop-template": "pipeline"},
+	}
+	plan, err := NewPlanner(reg, nil).Resolve(t.Context(), Request{Package: plannerID(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.ContextReleases) != 1 || plan.ContextReleases[0].ID != "lime/lime-kb" {
+		t.Errorf("ContextReleases = %+v, want only lime/lime-kb", plan.ContextReleases)
+	}
+	if notes := strings.Join(plan.Notes, "\n"); strings.Contains(notes, "dev-loop") {
+		t.Errorf("Notes = %q, want no note about a pipeline", plan.Notes)
 	}
 }
 

@@ -47,12 +47,23 @@ documents and their titles. Do not add a SKILL.md yourself.`,
 			return fmt.Sprintf("add Markdown or text documents to %s (folders are fine; loadout writes the %s index)", dir, skill.File)
 		},
 	},
+	{
+		kind: pack.KindPipeline,
+		long: `A pipeline template is the slots of a process and the edges between them.
+Without --uses this writes a small example template to edit. With --uses
+it writes a binding for your team: it fetches the template and lists every
+slot, which you fill with one of your agents before you publish.`,
+		example: "acme/dev-loop\n  loadout new pipeline lime/dev-loop --uses acme/dev-loop@1",
+		next: func(dir string) string {
+			return "edit " + filepath.Join(dir, pack.PipelineFile) + " to name your slots and edges"
+		},
+	},
 }
 
 func newNewCmd(d Deps) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "new",
-		Short: "Create a new package: an agent, a skill or a knowledge base",
+		Short: "Create a new package: an agent, a skill, a knowledge base or a pipeline",
 	}
 	for _, k := range newKinds {
 		cmd.AddCommand(newNewKindCmd(d, k))
@@ -61,7 +72,7 @@ func newNewCmd(d Deps) *cobra.Command {
 }
 
 func newNewKindCmd(d Deps, k newKind) *cobra.Command {
-	var dir string
+	var dir, uses, remoteName string
 	cmd := &cobra.Command{
 		Use:     string(k.kind) + " TEAM/NAME",
 		Short:   "Create a new " + k.kind.Describe() + " package folder",
@@ -79,13 +90,24 @@ func newNewKindCmd(d Deps, k newKind) *cobra.Command {
 			if !filepath.IsAbs(dir) {
 				dir = filepath.Join(d.WorkDir, dir)
 			}
+			if uses != "" {
+				return d.newBinding(cmd, id, dir, uses, remoteName)
+			}
 			if _, err := pack.Scaffold(dir, id, k.kind); err != nil {
 				return err
+			}
+			if k.kind == pack.KindPipeline {
+				fmt.Fprintf(cmd.OutOrStdout(), "created %s\n%s, then run: loadout publish %s\n", dir, k.next(dir), dir)
+				return nil
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "created %s\n%s, then run: loadout install %s\n", dir, k.next(dir), dir)
 			return nil
 		},
 	}
 	cmd.Flags().StringVar(&dir, "dir", "", "folder to create (default ./NAME)")
+	if k.kind == pack.KindPipeline {
+		cmd.Flags().StringVar(&uses, "uses", "", "template to bind, as NS/NAME@MAJOR, for example acme/dev-loop@1")
+		cmd.Flags().StringVar(&remoteName, "remote", "", "registry to fetch the template from (default: the team's registry, else the default remote)")
+	}
 	return cmd
 }

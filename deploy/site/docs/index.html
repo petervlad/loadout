@@ -281,6 +281,7 @@ td code { white-space: nowrap; }
 <li><a href="#team-memory">Team memory</a></li>
 <li><a href="#everyday-commands">Everyday commands</a></li>
 <li><a href="#write-packages">Write packages</a></li>
+<li><a href="#pipelines">Pipelines</a></li>
 <li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
 <li><a href="#for-team-leads-and-admins">For team leads and admins</a></li>
 <li><a href="#rules-and-limits">Rules and limits</a></li>
@@ -309,6 +310,7 @@ td code { white-space: nowrap; }
 <li><a href="#team-memory">Team memory</a></li>
 <li><a href="#everyday-commands">Everyday commands</a></li>
 <li><a href="#write-packages">Write packages</a></li>
+<li><a href="#pipelines">Pipelines</a></li>
 <li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
 <li><a href="#for-team-leads-and-admins">For team leads and admins</a></li>
 <li><a href="#rules-and-limits">Rules and limits</a></li>
@@ -332,7 +334,7 @@ td code { white-space: nowrap; }
 <h2 id="concepts">Concepts</h2>
 </summary><div class="chapter-body">
 <h3 id="packages">Packages</h3>
-<p>A package is one of three kinds:</p>
+<p>A package is one of four kinds:</p>
 <div class="table">
 <table>
 <thead>
@@ -357,6 +359,11 @@ td code { white-space: nowrap; }
 <td>knowledge base (<code>kb</code>)</td>
 <td>Markdown or text documents, in folders if you like</td>
 <td>a skill folder whose <code>SKILL.md</code> loadout writes: an index of the documents</td>
+</tr>
+<tr>
+<td>pipeline</td>
+<td><code>pipeline.yaml</code>: a project's template of slots and edges, or a team's binding of those slots to its agents</td>
+<td>nothing for a template, one generated conductor agent for a binding (see <a href="#pipelines">Pipelines</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -894,6 +901,7 @@ and return an ordered plan with the files to change and how to test it.</code></
 </table>
 </div>
 <p>Leave the <code>tools</code> line out to allow every tool. An empty list, <code>tools: []</code>, is refused, because both tools would read it as "every tool" too.</p>
+<p><strong>Do not name the next agent.</strong> An agent that ends with a line such as <code>Next: run lime-code-review</code> hands the work on by itself. Handoffs belong in a pipeline, so end the agent with a <code>Verdict:</code> line and let the pipeline decide what comes next (see <a href="#pipelines">Pipelines</a>). <code>loadout publish</code> and <code>loadout propose</code> warn about such lines and still go through. A later version will refuse them. Telling an agent it may delegate to a subagent is fine.</p>
 <p><strong>Model.</strong> A hint, never a vendor model name: <code>fast</code>, <code>balanced</code> or <code>deep</code>. Leave it out to use whatever the person has chosen in their tool. What each hint runs is up to the project, per tool (see <a href="#models-for-agents">Models for agents</a>); without any settings it is:</p>
 <div class="table">
 <table>
@@ -1059,6 +1067,147 @@ warning: running proposal 3f2a9c01b7de by alice@example.com with full access to 
 <p>Your tool runs a teammate's package with the access it normally has: it can read and change files, run commands and reach the web, and its answers may quote your files. Read the proposal first with <code>review show</code>, or add <code>--safe</code> to refuse anything that would need your approval. Copilot CLI refuses every tool call in safe mode, so it answers from the prompt alone; loadout says so before the run and in the report.</p>
 <p>The report is written to <code>review-ID.md</code> (<code>--out</code> picks another file) and, when the version under review is an open proposal, attached to it so teammates see the answers side by side on the website; <code>--no-upload</code> keeps it on this machine. Claude Code runs by default; <code>--tool copilot</code> uses the Copilot CLI. <code>--runs 3</code> runs each prompt three times, <code>--prompt</code> runs your own prompts instead (needed when both versions are releases), <code>--model</code> asks for a model, <code>--timeout</code> limits each run.</p>
 <p><code>loadout review compare ID</code> still works: it compares the latest release with that proposal and attaches the report only with <code>--upload</code>. It takes the same <code>--safe</code> and <code>--no-context</code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="pipelines">Pipelines</h2>
+</summary><div class="chapter-body">
+<p>A pipeline is how a project writes down a loop such as plan, dev, review and test once, and how each team runs it with its own agents. loadout still moves only files and never runs a model. The loop itself runs in your own AI tool, on your own subscription.</p>
+<h3 id="the-words">The words</h3>
+<ul>
+<li>A <strong>pipeline</strong> is a package that names an ordered set of slots and the edges between them, written once by the project. A loop is a pipeline with an edge that goes back.</li>
+<li>A <strong>slot</strong> is a named stage with a contract: what it reads, what it writes and which verdicts it may return. A slot names no agent.</li>
+<li>An <strong>edge</strong> is the move from one slot to the next on a given verdict. It goes through a <strong>gate</strong> (control goes back to a person, who decides whether the next slot starts) or runs automatically.</li>
+<li>A <strong>binding</strong> is a team's choice of which of its agents fills each slot.</li>
+<li>The <strong>conductor</strong> is the agent loadout generates from a pipeline and a binding. It starts each slot's agent and follows the edges.</li>
+<li>A <strong>handoff</strong> is control moving from one slot to the next. Only the pipeline decides a handoff, never the agent in the slot. A <strong>delegation</strong> is different: an agent starting a helper that does one job and returns to it, inside the same slot.</li>
+</ul>
+<p>There are two shapes of one package kind, both written in <code>pipeline.yaml</code>. A <strong>template</strong> has <code>slots:</code> and <code>edges:</code>. A <strong>binding</strong> has <code>uses:</code> and <code>bind:</code>. A file with both, or with neither, is refused. A template installs nothing by itself. Only a binding installs, and what it installs is the conductor.</p>
+<h3 id="write-a-template">Write a template</h3>
+<p>A project maintainer writes the template once:</p>
+<pre class="sh"><code>loadout new pipeline acme/dev-loop      # creates ./dev-loop at version 1.0.0</code></pre>
+<p>The scaffold is a small example with two slots and three edges. Edit it into your loop:</p>
+<pre class="yaml"><code>start: plan
+slots:
+  plan:
+    brief: Turn the ticket into plan.md.
+    writes: plan.md
+    reads: [ticket]
+    verdicts: [READY]
+  dev:
+    brief: Implement the plan on a branch.
+    writes: dev.md
+    reads: [plan.md, ticket]
+    verdicts: [DONE, SPEC CONFLICT]
+edges:
+  - {from: plan, on: READY,         to: dev,  via: gate}
+  - {from: dev,  on: DONE,          to: end,  via: gate}
+  - {from: dev,  on: SPEC CONFLICT, to: plan, via: gate, max_rounds: 2}</code></pre>
+<p>The rules:</p>
+<ul>
+<li>A slot has a one-line <code>brief</code>, one file it <code>writes</code> (and optional extra outputs in <code>also</code>), what it <code>reads</code> (files of other slots, or the word <code>ticket</code>) and its <code>verdicts</code>.</li>
+<li>A verdict is upper-case words with single spaces, such as <code>DONE</code> or <code>CHANGES REQUESTED</code>. <code>QUESTIONS</code> and <code>end</code> are reserved. Every slot may return <code>QUESTIONS</code> without listing it.</li>
+<li>Every verdict of every slot has exactly one edge. An edge goes to another slot or to <code>end</code>, and is <code>gate</code> or <code>auto</code>.</li>
+<li><code>max_rounds</code> (1 to 10) is allowed only on an edge that goes back to an earlier slot.</li>
+<li>At most 12 slots, 8 verdicts per slot and 64 edges. File names are single path segments.</li>
+</ul>
+<p>A new template starts at <code>1.0.0</code>, because a binding names a template by major version and majors begin at 1.</p>
+<h3 id="create-a-binding">Create a binding</h3>
+<p>A team maintainer binds the slots to the team's own agents:</p>
+<pre class="sh"><code>loadout new pipeline lime/dev-loop --uses acme/dev-loop@1</code></pre>
+<p>This fetches the template through the team's layers and writes a binding with every slot listed and left empty, and the template's edges as comments. Fill it in:</p>
+<pre class="yaml"><code>uses: acme/dev-loop@1
+bind:
+  plan: lime-planner
+  dev: lime-dev
+work_folder: explorations/
+# model: deep          # the conductor&#39;s model hint, balanced when unset
+# gate:                # auto edges you want as gates
+#   - {from: dev, on: DONE}</code></pre>
+<ul>
+<li><code>uses</code> names a template and a <strong>major</strong> only (<code>@1</code>, never <code>@1.2.0</code>). The conductor follows the newest release of that major.</li>
+<li><code>bind</code> names one agent for every slot. The agents must be published in your team's layers (your team, or the project above it).</li>
+<li><code>work_folder</code> is where runs live. It resolves against the folder your session starts in, and <code>~/</code> paths are allowed.</li>
+<li><code>model</code> is the conductor's own hint, <code>balanced</code> unless you set it.</li>
+<li><code>gate</code> turns an automatic edge into a gate. There is no way to turn a gate into an automatic edge. A project that decided a human must look keeps that decision in every team.</li>
+</ul>
+<p>Then <code>loadout publish dev-loop</code>. The conductor is named after the team and the binding, so <code>lime/dev-loop</code> becomes the agent <code>lime-dev-loop</code>.</p>
+<h3 id="what-publish-refuses">What publish refuses</h3>
+<p>A pipeline is checked when it is published or proposed, so a broken one never reaches a teammate. The registry lists all the problems at once. They read like this:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>It says</th>
+<th>What it means and what to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slot test has no agent: name one under bind</code></td>
+<td>A slot is still empty. Name one of your agents for it.</td>
+</tr>
+<tr>
+<td><code>The agent lime-test is not published in lime, acme (the layers lime sees). Publish it there first.</code></td>
+<td>You bound an agent your team cannot read. Publish it in your team or the project, or bind another one. An agent in a sibling team does not count.</td>
+</tr>
+<tr>
+<td><code>bind names slot "verify", which acme/dev-loop@1 does not have</code></td>
+<td>A slot name is misspelt, or the template has no such slot.</td>
+</tr>
+<tr>
+<td><code>lime/dev-loop needs acme/dev-loop@2, but acme/dev-loop has no release with major 2.</code></td>
+<td>The major in <code>uses</code> does not exist yet. Use one that does.</td>
+</tr>
+<tr>
+<td><code>lime/dev-loop needs acme/dev-loop@1, but acme is not one of the layers lime sees</code></td>
+<td>The template must be in your team or a project above it.</td>
+</tr>
+<tr>
+<td><code>the conductor of lime/dev-loop is called lime-dev-loop, which is also one of the agents it binds</code></td>
+<td>Rename the binding or the agent.</td>
+</tr>
+<tr>
+<td><code>slot test was removed or renamed. That is a major change: publish 2.0.0.</code></td>
+<td>Inside one major a template keeps its slots and each slot keeps its verdicts. Add, remove or rename a slot, or change a slot's verdicts, and you publish the next major.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Changing a brief, the files, the edges or <code>via</code> is fine inside a major. Renaming a slot's file is allowed too, but runs that already wrote the old file lose their place, so tell your teams.</p>
+<h3 id="run-it">Run it</h3>
+<p>Install your team's packages as usual:</p>
+<pre class="sh"><code>loadout install --all</code></pre>
+<p>The template is skipped with a line (<code>skipped acme/dev-loop: a pipeline template installs through a team's binding</code>) and the binding writes the conductor into each AI tool that is present. If a bound agent is not installed on your machine, install warns about it, and the conductor would fail at that slot.</p>
+<p>Start the conductor as the session's agent, from the folder <code>work_folder</code> is relative to:</p>
+<pre class="sh"><code>claude --agent lime-dev-loop</code></pre>
+<p>In Copilot CLI, pick it with <code>/agent</code>. Then say which ticket to work on, for example <code>PROJ-1234</code>.</p>
+<p>The conductor starts each slot's agent as a subagent, with the slot's contract in the prompt: the files to read, the file to write, the verdicts allowed and the rule to end the round with one <code>Verdict: WORD</code> line. It never does a slot's work itself and never edits a file. Each ticket gets a run folder, <code>&lt;work_folder&gt;/PROJ-1234-&lt;slug&gt;/</code>, and every slot appends a numbered <code>## Round N</code> to its own file there.</p>
+<p>What you see:</p>
+<ul>
+<li><code>State: ...</code> is a fixed line the conductor prints before it starts an agent (also straight after an automatic edge), before every <code>GATE:</code> or <code>STOP:</code> line and at the end of a run, such as <code>State: plan round 1, last verdict READY, next: start lime-dev</code>. It tells you what the conductor worked out about where the run stands.</li>
+<li><code>GATE: plan returned READY, say go to continue</code> means it stopped for you. Read the summary above it, add notes if you like, and say <code>go</code>. Your notes go into the next slot's prompt. Only your own message passes a gate: the conductor stops there even when your tool runs in autopilot or non-interactive mode. It never commits, pushes or opens a pull request itself, also after the run. It tells you what is left.</li>
+<li><code>STOP: slot dev has no valid output: ...</code> means something is wrong. A slot's file is missing, or its last line is not an allowed <code>Verdict:</code>. The conductor never guesses a verdict and follows no edge. Fix the file or run the slot again.</li>
+</ul>
+<p><strong>Questions.</strong> Any slot can end a round with <code>Verdict: QUESTIONS</code> and the questions in its own file. The conductor shows them as written, ends with <code>GATE: slot plan has questions, answer to continue</code> and waits. Your answer starts the same agent again, and it reads its earlier file for the rest. So the grill with a planner still happens in your session.</p>
+<p><strong>Resuming.</strong> Nothing is stored apart from the slot files. Close the session, open it later with the same ticket, and the conductor reads the run folder, replays the edges from the first slot and says where the run stands in its <code>State:</code> line. If you edit or delete a slot file, you change where the run stands.</p>
+<p><strong>Round caps.</strong> An edge with <code>max_rounds: 2</code> may be followed twice. The third time the conductor does not follow it. It states both positions (what the later slot asks for, what the earlier slot did and why) and ends with <code>GATE: round cap reached on review, decide how to continue</code>. You decide.</p>
+<p><strong>Do not name the next agent.</strong> An agent in a pipeline ends its round with a <code>Verdict:</code> line and nothing more. It must not say which agent comes next, because the same agent can fill slots in other pipelines and the pipeline alone decides. <code>loadout publish</code> and <code>loadout propose</code> warn about an agent that names its successor (see <a href="#agents">Agents</a>). Delegating a job to a helper is fine.</p>
+<h3 id="template-updates">Template updates</h3>
+<p><code>loadout sync</code> keeps the conductor current. When the newest release in your pinned major changes (a new brief, another edge), the conductor is generated again, following the package's policy like a model change: <code>auto</code> installs it, <code>notify</code> reports it, <code>pin</code> leaves it. Edits you made to the conductor hold it back as for any package.</p>
+<p>When a higher major exists, sync prints one line and changes nothing:</p>
+<pre class="text"><code>acme/dev-loop 2.0.0 is out. lime/dev-loop uses major 1. Move it with `uses: acme/dev-loop@2` and publish.</code></pre>
+<h3 id="the-package-page">The package page</h3>
+<p>A pipeline's page on the registry draws it. Gate edges are dashed, automatic edges are solid and back edges say how many rounds they allow. Below the drawing, tables list the slots and the edges. For a binding each bound agent links to its page, with a warning for a slot that has no agent or an agent your team cannot see. A template's page shows the command that makes a binding.</p>
+<h3 id="known-limits">Known limits</h3>
+<ul>
+<li>Copilot CLI sometimes skips the <code>State:</code> line. The conductor still works, but you see less of what it worked out.</li>
+<li>In a headless run (<code>claude -p --agent ...</code>), Claude Code stops agents that still run in the background 10 minutes after the conductor's last turn. The conductor starts each slot in the foreground, but if a slot is cut off anyway, run with <code>CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0</code>.</li>
+<li>On Copilot, an agent without a shell tool cannot create the run folder. If the first slot's agent has no shell tool, install warns about it. Give that agent the <code>shell</code> tool, or create the folder yourself.</li>
+<li>Approving a proposal does not check what a pipeline needs a second time. This only matters if the template's major was removed between the proposal and the approval.</li>
+<li><code>loadout review</code> does not run a pipeline, because a conductor would start a whole run in a throwaway folder. Use <code>loadout review show ID</code> and the package page to read a proposal.</li>
+<li><code>loadout install --merge</code> does not work for a conductor. Change the binding and publish instead.</li>
+<li>An older loadout cannot install a pipeline. It installs everything else and says the kind is not supported.</li>
+</ul>
 </div></details>
 <details class="chapter"><summary>
 <h2 id="bring-your-existing-agents-and-skills">Bring your existing agents and skills</h2>
@@ -1291,6 +1440,12 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <td>2 MB</td>
 <td>64 MB</td>
 </tr>
+<tr>
+<td>pipeline</td>
+<td>4</td>
+<td>64 KB</td>
+<td>128 KB</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1339,7 +1494,7 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 </tr>
 <tr>
 <td><code>loadout list [--kind K] [--layer L] [--sort S] [--wide] [--remote R]</code></td>
-<td>Packages you can install, with kind and layer; <code>--kind agent|skill|kb</code>, <code>--layer</code> a namespace name, <code>--sort layer|name|kind|updated</code>, <code>--wide</code> for full descriptions</td>
+<td>Packages you can install, with kind and layer; <code>--kind agent|skill|kb|pipeline</code>, <code>--layer</code> a namespace name, <code>--sort layer|name|kind|updated</code>, <code>--wide</code> for full descriptions</td>
 </tr>
 <tr>
 <td><code>loadout layers</code></td>
@@ -1386,8 +1541,12 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <td>Go back to an older version and pin it</td>
 </tr>
 <tr>
-<td><code>loadout new agent|skill|kb TEAM/NAME [--dir D]</code></td>
+<td><code>loadout new agent|skill|kb|pipeline TEAM/NAME [--dir D]</code></td>
 <td>Create a package folder</td>
+</tr>
+<tr>
+<td><code>loadout new pipeline TEAM/NAME --uses NS/NAME@MAJOR [--remote R]</code></td>
+<td>Create a binding of a template, every slot left empty (without <code>--uses</code>, a new template)</td>
 </tr>
 <tr>
 <td><code>loadout import agent FILE... --team T</code></td>

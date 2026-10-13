@@ -98,6 +98,7 @@ checkout always holds the latest content).`,
 			}
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "published %s@%s to %s\n", rel.ID, rel.Version, r.Name)
+			writeFindings(out, p)
 			if o.Replaces != "" {
 				fmt.Fprintf(out, "your proposal %s stays open and is now %s %s; withdraw it with: loadout review withdraw %s\n",
 					o.Replaces, standingAfter(cmd.Context(), c, o.Replaces, rel.Version), rel.Version, o.Replaces)
@@ -361,4 +362,11 @@ func standingAfter(ctx context.Context, c *client.Client, id, version string) st
 		return "blocked by"
 	}
 	return "behind"
+}
+
+// writeFindings prints the lint warnings of p. They never fail the command.
+func writeFindings(out io.Writer, p *pack.Pack) {
+	for _, f := range p.Lint() {
+		fmt.Fprintln(out, f)
+	}
 }

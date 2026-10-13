@@ -72,7 +72,7 @@ func startRegistryAt(t *testing.T, admin *person, build string, opts ...server.O
 		}
 	})
 	svc := registry.NewService(store, store, store, time.Now, log)
-	props := registry.NewProposalService(store, store, time.Now, log)
+	props := registry.NewProposalService(store, store, time.Now, log, registry.WithNamespaces(store))
 	b := buildinfo.Current(build, nil, false)
 	opts = append([]server.Option{server.WithProposals(props), server.WithCLI(advertised(b), server.MinimumCLI())}, opts...)
 	srv := httptest.NewServer(server.New(svc, log, b.Raw(), opts...))

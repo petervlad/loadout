@@ -1,6 +1,6 @@
 ---
 name: loadout-review
-description: Review a teammate's proposed version of a loadout package (agent, skill or knowledge base) by running both versions in the person's own AI tool and reading the report. Use when the user asks to review, try, compare, approve, reject or withdraw a loadout proposal, runs loadout review, asks what a review report says, or asks about a proposal that is behind a newer release.
+description: Review a teammate's proposed version of a loadout package (agent, skill, knowledge base or pipeline) by running both versions in the person's own AI tool and reading the report. Use when the user asks to review, try, compare, approve, reject or withdraw a loadout proposal, runs loadout review, asks what a review report says, asks about a proposal that is behind a newer release, or asks how to review a pipeline.
 ---
 # Reviewing a loadout proposal
 
@@ -30,6 +30,16 @@ loadout review report 3f2a9c01b7de       # a review someone attached
 ```
 
 A proposal is **behind** when a newer release came out after it was made: `review list` says "open, behind 3.0.0", the web page shows a **Behind 3.0.0** pill, and `review show` says what it was made from, who published the newer release ("3.0.0 by Dana"), and diffs from what it was made from. Approving it as it is would release it without that release's changes. Tell the person.
+
+## A pipeline proposal
+
+A pipeline is a package of kind `pipeline` with one file, `pipeline.yaml`. It is either a project's **template** (slots, verdicts and the edges between them) or a team's **binding** (which of the team's agents fills each slot). A conductor agent is generated from a binding and starts a whole run, so `loadout review PACKAGE` refuses a pipeline, with a sentence that says to read its changes instead. Do not look for a flag to get past it. Review a pipeline by reading:
+
+- `loadout review show ID` for the note and the diff, and the package's page on the registry for the diagram (gate edges dashed, automatic edges solid, back edges with their round limit) and the tables of slots, edges and bound agents.
+- In a template, a slot that was added, removed or renamed, or a verdict that was added or removed, is a **major** change. The registry refuses it inside a major version, so a proposal that does it must also bump the major. Teams then move on purpose with `uses: ...@2`. Changing an edge from `gate` to `auto` removes a place where a person decides: ask the author why, and tell the person.
+- In a binding, check that every slot has an agent, that the agents are the ones the team means, and that `gate:` entries only add gates. A binding cannot turn a gate into an automatic edge.
+- The registry already checked, when the proposal was made, that the slots are bound, that the agents exist in the team's layers and that the template major exists. Approving does not check again.
+- An agent that ends with a line naming the next agent (`Next: run lime-code-review`) was warned about at propose time. Suggest ending with a `Verdict:` line instead.
 
 ## Run both versions
 

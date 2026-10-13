@@ -94,3 +94,9 @@ func mustParse(t *testing.T, s string) Version {
 	}
 	return v
 }
+
+func TestMajor(t *testing.T) {
+	if got := New(3, 2, 1).Major(); got != 3 {
+		t.Errorf("New(3, 2, 1).Major() = %d, want 3", got)
+	}
+}

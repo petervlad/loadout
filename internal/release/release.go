@@ -86,6 +86,36 @@ func Next(ctx context.Context, reg Registry, id pack.ID, local semver.Version, p
 	return base.Bump(part), nil
 }
 
+// Fetcher lists releases and downloads one, as a registry client does.
+type Fetcher interface {
+	Registry
+	Fetch(ctx context.Context, id pack.ID, version string) (*pack.Pack, error)
+}
+
+// Resolve fetches the highest release of req.ID whose major is req.Major:
+// the template a pipeline binding is rendered from.
+func Resolve(ctx context.Context, reg Fetcher, req pack.Requirement) (*pack.Pack, error) {
+	rels, err := reg.Releases(ctx, req.ID)
+	if err != nil && !errors.Is(err, api.ErrNotFound) {
+		return nil, err
+	}
+	var best semver.Version
+	found := false
+	for _, rel := range rels {
+		v, err := semver.Parse(rel.Version)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", req.ID, err)
+		}
+		if v.Major() == req.Major && (!found || v.Compare(best) > 0) {
+			best, found = v, true
+		}
+	}
+	if !found {
+		return nil, fmt.Errorf("%s has no release with major %d: %w", req.ID, req.Major, api.ErrNotFound)
+	}
+	return reg.Fetch(ctx, req.ID, best.String())
+}
+
 // Plan is what a rollback does.
 type Plan struct {
 	// Version is the version to go back to.

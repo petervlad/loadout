@@ -163,9 +163,13 @@ loadout policy TEAM/NAME auto`,
 			}
 			out := cmd.OutOrStdout()
 			for _, e := range plan.Rollback {
-				if _, err := d.Installer.Install(ctx, p, install.Options{
+				opts, err := withNeeds(ctx, c, p, install.Options{
 					Scope: e.Scope, Targets: e.Targets(), Source: r.URL, Remote: r.Name, Policy: lock.PolicyPin, Depth: e.Depth,
-				}); err != nil {
+				}, nil, nil)
+				if err != nil {
+					return err
+				}
+				if _, err := d.Installer.Install(ctx, p, opts); err != nil {
 					return err
 				}
 				fmt.Fprintf(out, "rolled back %s to %s (%s scope) and pinned it\n", id, plan.Version, e.Scope.Kind)

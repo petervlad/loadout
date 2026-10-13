@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -249,5 +250,31 @@ func TestSetupHostSkills(t *testing.T) {
 	s.mustRun("setup", "--host-skills")
 	if !exists(filepath.Join(s.home, ".claude", "skills", "loadout-host-setup", "SKILL.md")) {
 		t.Error("setup --host-skills did not bring the skill back")
+	}
+}
+
+// TestInstallKeepsLoadoutSkillsInStep: install brings loadout's own skills
+// back in step, as sync does, so a person who only installs a package (a
+// pipeline, say) also gets the skills that explain it.
+func TestInstallKeepsLoadoutSkillsInStep(t *testing.T) {
+	_, base, alice := accountRegistry(t)
+	p := &person{session: newSession(t)}
+	if out, errOut, code := loginAs(t, p, alice, "--remote", base); code != 0 {
+		t.Fatalf("login: exit %d\n%s\n%s", code, out, errOut)
+	}
+	// The lock says an older CLI installed loadout-author: another digest.
+	lockPath := filepath.Join(p.home, ".loadout", "lock.yaml")
+	old := regexp.MustCompile(`(id: loadout/loadout-author\n\s+version: \S+\n\s+digest: )\S+`)
+	lockFile := readFile(t, lockPath)
+	if !old.MatchString(lockFile) {
+		t.Fatalf("no loadout-author entry in the lock:\n%s", lockFile)
+	}
+	const stale = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+	if err := os.WriteFile(lockPath, []byte(old.ReplaceAllString(lockFile, "${1}"+stale)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := p.must("", "install", "lime/planner")
+	if strings.Contains(readFile(t, lockPath), stale) {
+		t.Errorf("install did not bring loadout-author in step: %q", out)
 	}
 }

@@ -91,6 +91,7 @@ type Adapter struct{}
 var (
 	_ target.Adapter    = (*Adapter)(nil)
 	_ target.ModelGuide = (*Adapter)(nil)
+	_ target.Delegator  = (*Adapter)(nil)
 )
 
 // New returns a Copilot adapter.
@@ -136,6 +137,13 @@ type frontmatter struct {
 	Model           string    `yaml:"model,omitempty"`
 	Models          []string  `yaml:"models,omitempty,flow"`
 	ReasoningEffort string    `yaml:"reasoning-effort,omitempty"`
+}
+
+// StartAgent says how a conductor starts a custom agent: Copilot runs the
+// agent as a subagent when the delegation prompt names it. Its edit tool
+// cannot make folders, so the target.FolderMaker interface is not implemented.
+func (*Adapter) StartAgent(name string) string {
+	return "Ask the custom agent by its exact name: write \"Use the `" + name + "` agent to ...\" in the delegation prompt, and wait for it to finish."
 }
 
 // SkillsDir returns where Copilot reads skills: ~/.copilot/skills for the

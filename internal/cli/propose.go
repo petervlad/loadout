@@ -117,6 +117,7 @@ A folder that is itself named delete is proposed as ./delete.`,
 			}
 			out := cmd.OutOrStdout()
 			fmt.Fprintf(out, "proposed %s@%s to %s as %s with %d prompt(s)\n", prop.Package, prop.Version, r.Name, prop.ID, len(prop.Prompts))
+			writeFindings(out, p)
 			writeProposed(out, o, prop)
 			fmt.Fprintf(out, "a teammate reviews it with: loadout review show %s\n", prop.ID)
 			return nil

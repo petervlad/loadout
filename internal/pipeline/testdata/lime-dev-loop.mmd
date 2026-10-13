@@ -1,0 +1,18 @@
+flowchart TD
+  begin([start])
+  s0["plan<br/>lime-planner"]
+  s1["dev<br/>lime-dev"]
+  s2["review<br/>lime-code-review"]
+  s3["test<br/>lime-test"]
+  done([end])
+  begin --> s0
+  s0 -.->|"READY"| s1
+  s1 -.->|"DONE"| s2
+  s1 -.->|"SPEC CONFLICT"| s0
+  s2 -.->|"APPROVE"| s3
+  s2 -.->|"CHANGES REQUESTED, max 2 rounds"| s1
+  s2 -.->|"REPLAN"| s0
+  s2 -.->|"BLOCKED"| done
+  s3 -.->|"PASS"| done
+  s3 -.->|"FAIL"| s1
+  s3 -.->|"INCONCLUSIVE"| done

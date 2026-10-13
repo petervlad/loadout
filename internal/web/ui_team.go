@@ -292,6 +292,8 @@ type packageView struct {
 	CanAsk  bool
 	AskPath string
 	Open    *requestNote
+	// Pipeline is set for a pipeline package.
+	Pipeline *pipelineView
 }
 
 // fileRow is one file of a package. Title is a knowledge base document's
@@ -359,7 +361,10 @@ func (h *handler) packagePage(w http.ResponseWriter, r *http.Request, t team) {
 		Files:       filesOf(p),
 		Install:     "loadout install " + id.String(),
 	}
-	if !rl.latest() {
+	if ok, _ := p.Standalone(); !ok {
+		// A template cannot be installed; its page offers the command that binds it.
+		v.Install = ""
+	} else if !rl.latest() {
 		v.Install += "@" + v.Version
 	}
 	if v.CanDelete = h.canDelete(t, id); v.CanDelete {
@@ -371,6 +376,14 @@ func (h *handler) packagePage(w http.ResponseWriter, r *http.Request, t team) {
 			h.fail(w, r, err)
 			return
 		}
+	}
+	if v.Pipeline, err = h.pipelineOf(r.Context(), t, p, rl); err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	if v.Pipeline != nil && v.Pipeline.Diagram != nil {
+		// The diagram frame is on this origin, as on the file pages.
+		w.Header().Set("Content-Security-Policy", filePageCSP)
 	}
 	h.renderTeam(w, r, http.StatusOK, "package.html", "packages", t, uiView{
 		Title:  id.String(),

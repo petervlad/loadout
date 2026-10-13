@@ -23,18 +23,28 @@ func Scaffold(dir string, id ID, kind Kind) (*Pack, error) {
 	if !ok {
 		return nil, fmt.Errorf("scaffold: kind %q is not supported: want %s", kind, joinKinds())
 	}
+	files, err := spec.scaffold(id)
+	if err != nil {
+		return nil, fmt.Errorf("scaffold %s: %w", kind, err)
+	}
+	return ScaffoldWith(dir, id, kind, files)
+}
+
+// ScaffoldWith is Scaffold with the content files given by the caller, for
+// a kind whose starting point depends on something the caller fetched.
+func ScaffoldWith(dir string, id ID, kind Kind, files map[string][]byte) (*Pack, error) {
+	version := kinds[kind].start
+	if version == (semver.Version{}) {
+		version = semver.New(0, 1, 0)
+	}
 	manifest, err := MarshalManifest(Manifest{
 		ID:          id,
 		Kind:        kind,
-		Version:     semver.New(0, 1, 0),
+		Version:     version,
 		Description: "Describe what " + id.Name() + " is for in one sentence.",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("scaffold manifest: %w", err)
-	}
-	files, err := spec.scaffold(id)
-	if err != nil {
-		return nil, fmt.Errorf("scaffold %s: %w", kind, err)
 	}
 	files[ManifestFile] = manifest
 	if _, err := FromFiles(files); err != nil {

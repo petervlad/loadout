@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/petervlad/loadout/internal/agent"
 	"github.com/petervlad/loadout/internal/lock"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/target"
@@ -100,6 +101,13 @@ type Options struct {
 	// Models is the installing team's resolved model table; the empty
 	// table renders the built-in defaults.
 	Models tier.Table
+	// Requires holds the release of each package p.Needs() names, at its
+	// major, resolved by the caller (the template of a pipeline binding).
+	Requires []*pack.Pack
+	// Agents holds the definitions of the agents p.Needs() names, so a
+	// conductor can be rendered for what they can do. A missing one is not
+	// an error here.
+	Agents []agent.Definition
 }
 
 // Result describes a finished install.
@@ -111,6 +119,10 @@ type Result struct {
 	// TookOver lists packages from farther layers whose files this install
 	// replaced; their lock entries now record those files as shadowed.
 	TookOver []pack.ID
+	// Warnings are things the person should know about what was written:
+	// a tool that cannot do what the package asks, or an agent the package
+	// needs that is not installed in the scope.
+	Warnings []string
 }
 
 // ShadowedBy returns the closer packages that own files this install did
@@ -144,13 +156,16 @@ func (in *Installer) Install(ctx context.Context, p *pack.Pack, opts Options) (R
 	if opts.Policy != "" && !opts.Policy.Valid() {
 		return Result{}, fmt.Errorf("unknown policy %q: want auto, notify or pin", opts.Policy)
 	}
+	if ok, why := p.Standalone(); !ok {
+		return Result{}, fmt.Errorf("%s: %s: %w", p.ID(), why, target.ErrNotStandalone)
+	}
 	renderers, err := in.selectRenderers(p.Manifest().Targets, opts.Targets)
 	if err != nil {
 		return Result{}, err
 	}
 
 	stamp := target.Stamp{ID: p.ID(), Version: p.Version(), Digest: p.Digest()}
-	rendered, err := render(renderers, p, opts.Scope, stamp, opts.Models)
+	rendered, warnings, err := render(renderers, p, opts.Scope, stamp, opts)
 	if err != nil {
 		return Result{}, err
 	}
@@ -166,6 +181,7 @@ func (in *Installer) Install(ctx context.Context, p *pack.Pack, opts Options) (R
 	err = in.locks.Update(ctx, func(l *lock.Lock) error {
 		var err error
 		res, err = in.installLocked(ctx, l, files, p, opts, rendered)
+		res.Warnings = slices.Concat(warnings, missingAgents(l, p, opts.Scope))
 		return err
 	})
 	if err != nil {
@@ -196,6 +212,7 @@ func (in *Installer) installLocked(ctx context.Context, l *lock.Lock, files tree
 		Files:    records(write),
 		Shadowed: shadows,
 		Models:   opts.Models.Digest(),
+		Requires: requirements(opts.Requires),
 	}
 
 	// Same files with the same content: a new model table that does not
@@ -203,7 +220,7 @@ func (in *Installer) installLocked(ctx context.Context, l *lock.Lock, files tree
 	// the lock entry.
 	if hadPrev && prev.Digest == p.Digest() && sameFiles(prev.Files, entry.Files) && slices.Equal(prev.Shadowed, entry.Shadowed) && intact(files, prev.Files) {
 		in.log.Info("already installed", "id", entry.ID, "version", entry.Version, "scope", entry.Scope, "policy", entry.Policy)
-		if prev.Policy != entry.Policy || prev.Source != entry.Source || prev.Remote != entry.Remote || prev.Depth != entry.Depth || prev.Models != entry.Models {
+		if prev.Policy != entry.Policy || prev.Source != entry.Source || prev.Remote != entry.Remote || prev.Depth != entry.Depth || prev.Models != entry.Models || !slices.Equal(prev.Requires, entry.Requires) {
 			l.Put(entry)
 		}
 		return Result{Entry: entry, Unchanged: true}, nil
@@ -255,18 +272,20 @@ func (in *Installer) installLocked(ctx context.Context, l *lock.Lock, files tree
 
 // render renders p for every renderer. A file two tools read at the same
 // path (a skill in a repository) is written once, for both.
-func render(renderers []Renderer, p *pack.Pack, scope target.Scope, stamp target.Stamp, models tier.Table) ([]renderedFile, error) {
+func render(renderers []Renderer, p *pack.Pack, scope target.Scope, stamp target.Stamp, opts Options) ([]renderedFile, []string, error) {
 	var out []renderedFile
+	var warnings []string
 	index := map[string]int{}
 	for _, r := range renderers {
-		u, err := target.Render(r, p, scope, stamp, target.RenderOptions{Models: models})
+		u, err := target.Render(r, p, scope, stamp, target.RenderOptions{Models: opts.Models, Requires: opts.Requires, Agents: opts.Agents})
 		if err != nil {
-			return nil, fmt.Errorf("render %s for %s: %w", p.ID(), r.Name(), err)
+			return nil, nil, fmt.Errorf("render %s for %s: %w", p.ID(), r.Name(), err)
 		}
+		warnings = append(warnings, u.Warnings...)
 		for _, f := range u.Files {
 			if i, dup := index[f.Path]; dup {
 				if !bytes.Equal(out[i].file.Data, f.Data) {
-					return nil, fmt.Errorf("render %s: %s and %s write different content to %s", p.ID(), out[i].target, r.Name(), f.Path)
+					return nil, nil, fmt.Errorf("render %s: %s and %s write different content to %s", p.ID(), out[i].target, r.Name(), f.Path)
 				}
 				out[i].target += "," + r.Name()
 				continue
@@ -275,7 +294,28 @@ func render(renderers []Renderer, p *pack.Pack, scope target.Scope, stamp target
 			out = append(out, renderedFile{target: r.Name(), unit: u.Root, file: f})
 		}
 	}
-	return out, nil
+	return out, warnings, nil
+}
+
+// requirements records the releases a package was rendered from.
+func requirements(required []*pack.Pack) []lock.Requirement {
+	var out []lock.Requirement
+	for _, r := range required {
+		out = append(out, lock.Requirement{ID: r.ID(), Version: r.Version(), Digest: r.Digest()})
+	}
+	return out
+}
+
+// missingAgents warns about each agent p needs that no entry of that name
+// records in scope. It reads the lock only, so it knows no kind.
+func missingAgents(l *lock.Lock, p *pack.Pack, scope target.Scope) []string {
+	var out []string
+	for _, name := range p.Needs().Agents {
+		if !slices.ContainsFunc(l.Entries(), func(e lock.Entry) bool { return e.Scope == scope && e.ID.Name() == name }) {
+			out = append(out, fmt.Sprintf("%s needs the agent %s, which is not installed here. Install it with loadout install, or loadout install --all.", p.ID(), name))
+		}
+	}
+	return out
 }
 
 // splitShadowed separates the files this install writes from those a
@@ -469,7 +509,7 @@ func (in *Installer) Rerenders(_ context.Context, p *pack.Pack, opts Options) (b
 		return false, err
 	}
 	stamp := target.Stamp{ID: p.ID(), Version: p.Version(), Digest: p.Digest()}
-	rendered, err := render(renderers, p, opts.Scope, stamp, opts.Models)
+	rendered, _, err := render(renderers, p, opts.Scope, stamp, opts)
 	if err != nil {
 		return false, err
 	}

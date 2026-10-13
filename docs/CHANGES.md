@@ -77,6 +77,36 @@ fixed. The [user guide](../) explains how to use each one.
 - Feature: The server page shows team memory counts for each team, with no memory text.
 - Feature: The backups panel shows how the last run ended, whether the newest archive holds
   both databases, and the copies saved before packages were deleted.
+- Feature: A new kind of package, the **pipeline**, writes down a loop such as plan,
+  dev, review and test once. A project publishes a template of slots and the edges
+  between them, and each edge is either a gate, where a person decides, or automatic.
+  The new **Pipelines** tab lists them, and a pipeline's page draws it with its slots,
+  edges and round limits.
+- Feature: A team publishes a **binding** that names one of its agents for each slot.
+  `loadout install` turns it into a conductor agent. Start your AI tool with that agent
+  (`claude --agent payments-dev-loop` in Claude Code, `/agent` in Copilot CLI) and it
+  starts each step's agent, stops at each gate, passes a step's questions to you, and
+  picks a ticket up again from the files in its run folder. It stops at every gate even in
+  autopilot, starts only the pipeline's own agents, and never commits or pushes.
+- Feature: `loadout new pipeline TEAM/NAME` creates an example template. With
+  `--uses PROJECT/NAME@MAJOR` it creates a binding with every slot left empty, ready to
+  fill in.
+- Feature: Publishing or proposing a pipeline is checked first. The registry refuses a
+  binding with an empty slot or an agent your team cannot see, and a new template version
+  that adds, removes or renames a slot or changes its verdicts without a new major
+  version. Each refusal says what to change.
+- Feature: `loadout sync` makes a conductor again when its template has a new release
+  in the major version it uses, following the package's update policy, and prints a line
+  when a newer major version is out. `loadout status` shows which template a conductor
+  was made from.
+- Feature: `loadout publish` and `loadout propose` warn about an agent that ends with a
+  line naming the next agent, such as `Next: run payments-review`. Handoffs belong in a
+  pipeline, so the agent should end with a `Verdict:` line instead.
+- Feature: loadout's own skills now explain pipelines, so your AI chat can help you write a
+  template or a binding, install one and start it, review a proposal for one, and read
+  the registry's refusals.
+- Feature: An older loadout cannot install a pipeline. It installs everything else and
+  says that the kind is not supported.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->

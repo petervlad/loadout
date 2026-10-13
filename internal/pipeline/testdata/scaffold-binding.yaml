@@ -1,0 +1,23 @@
+uses: acme/dev-loop@1
+# Name one of your agents for each slot.
+bind:
+  plan:
+  dev:
+  review:
+  test:
+work_folder: explorations/
+# model: deep          # the conductor's model hint, balanced when unset
+# gate:                 # auto edges you want as gates, for example:
+#   - {from: dev, on: DONE}
+#
+# Edges of acme/dev-loop@1 (a binding may only turn auto into gate):
+#   plan on READY -> dev (gate)
+#   dev on DONE -> review (auto)
+#   dev on SPEC CONFLICT -> plan (gate)
+#   review on APPROVE -> test (gate)
+#   review on CHANGES REQUESTED -> dev (gate, max 2 rounds)
+#   review on REPLAN -> plan (gate)
+#   review on BLOCKED -> end (gate)
+#   test on PASS -> end (gate)
+#   test on FAIL -> dev (gate)
+#   test on INCONCLUSIVE -> end (gate)

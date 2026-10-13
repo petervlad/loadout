@@ -87,6 +87,16 @@ same lines the file holds conflict markers for you to resolve.`,
 					return err
 				}
 				p, opts.Source = loaded, dir
+				if len(p.Needs().Packages) > 0 || len(p.Needs().Agents) > 0 {
+					// A folder binding still renders from its registry's template.
+					c, _, err := d.connectFor(remoteName, p.ID().Team(), "")
+					if err != nil {
+						return err
+					}
+					if opts, err = withNeeds(cmd.Context(), c, p, opts, nil, nil); err != nil {
+						return err
+					}
+				}
 			} else {
 				ref, version, _ := strings.Cut(args[0], "@")
 				id, err := pack.ParseID(ref)
@@ -101,6 +111,9 @@ same lines the file holds conflict markers for you to resolve.`,
 					return err
 				}
 				if p, err = c.Fetch(cmd.Context(), id, version); err != nil {
+					return err
+				}
+				if opts, err = withNeeds(cmd.Context(), c, p, opts, nil, nil); err != nil {
 					return err
 				}
 				layers, err := fetchLayers(cmd.Context(), c)
@@ -126,13 +139,15 @@ same lines the file holds conflict markers for you to resolve.`,
 			return nil
 		},
 	}
-	// Every form of install ends by making the AI tools' team memory match
-	// the registries, once.
+	// Every form of install ends by bringing loadout's own skills up to this
+	// CLI, as sync does, so a person who only installs still gets the skills
+	// that explain what they installed; then the team memory, once.
 	installPackages := cmd.RunE
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if err := installPackages(cmd, args); err != nil {
 			return err
 		}
+		d.ensureBuiltins(cmd, false)
 		d.ensureMemory(cmd)
 		return nil
 	}
@@ -205,6 +220,21 @@ func (d Deps) installAll(cmd *cobra.Command, remoteName string, base install.Opt
 	}
 
 	var failed []error
+	// A package that needs agents installs after all the others, so the
+	// agents are there when install looks for them.
+	type later struct {
+		p    *pack.Pack
+		opts install.Options
+	}
+	var deferred []later
+	installOne := func(p *pack.Pack, opts install.Options) {
+		res, err := d.Installer.Install(ctx, p, opts)
+		if err != nil {
+			failed = append(failed, fmt.Errorf("%s: %w", p.ID(), err))
+			return
+		}
+		printInstall(out, opts.Scope, res)
+	}
 	for _, j := range jobs {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -212,6 +242,10 @@ func (d Deps) installAll(cmd *cobra.Command, remoteName string, base install.Opt
 		p, err := c.Fetch(ctx, j.id, "latest")
 		if err != nil {
 			failed = append(failed, fmt.Errorf("%s: %w", j.id, err))
+			continue
+		}
+		if ok, why := p.Standalone(); !ok {
+			fmt.Fprintf(out, "skipped %s: %s\n", j.id, why)
 			continue
 		}
 		opts := base
@@ -227,12 +261,21 @@ func (d Deps) installAll(cmd *cobra.Command, remoteName string, base install.Opt
 				continue
 			}
 		}
-		res, err := d.Installer.Install(ctx, p, opts)
-		if err != nil {
+		if opts, err = withNeeds(ctx, c.In(viewOf(cfg, r.Name, j.id.Team())), p, opts, rels, all.depth); err != nil {
 			failed = append(failed, fmt.Errorf("%s: %w", j.id, err))
 			continue
 		}
-		printInstall(out, opts.Scope, res)
+		if deferNeeding(p) {
+			deferred = append(deferred, later{p, opts})
+			continue
+		}
+		installOne(p, opts)
+	}
+	for _, l := range deferred {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		installOne(l.p, l.opts)
 	}
 	if len(failed) > 0 {
 		return fmt.Errorf("%d of %d packages failed:\n%w", len(failed), len(jobs), errors.Join(failed...))
@@ -246,6 +289,7 @@ func printInstall(out io.Writer, s target.Scope, res install.Result) {
 	switch {
 	case res.Unchanged:
 		fmt.Fprintf(out, "%s@%s is already installed (%s scope), nothing to do\n", e.ID, e.Version, s.Kind)
+		writeWarnings(out, res.Warnings)
 		return
 	case e.FullyShadowed():
 		fmt.Fprintf(out, "skipped %s@%s: shadowed by %s (closer layer)\n", e.ID, e.Version, joinIDs(res.ShadowedBy()))
@@ -273,6 +317,14 @@ func printInstall(out io.Writer, s target.Scope, res install.Result) {
 	}
 	if len(res.TookOver) > 0 {
 		fmt.Fprintf(out, "  replaces %s (farther layer)\n", joinIDs(res.TookOver))
+	}
+	writeWarnings(out, res.Warnings)
+}
+
+// writeWarnings prints what an install wants the person to know.
+func writeWarnings(out io.Writer, warnings []string) {
+	for _, w := range warnings {
+		fmt.Fprintf(out, "  warning: %s\n", w)
 	}
 }
 

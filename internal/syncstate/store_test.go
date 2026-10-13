@@ -3,6 +3,7 @@ package syncstate
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/semver"
+	"github.com/petervlad/loadout/internal/strictyaml"
 	"github.com/petervlad/loadout/internal/target"
 	"github.com/petervlad/loadout/internal/textdiff"
 )
@@ -238,5 +240,80 @@ func TestMergedRoundTrip(t *testing.T) {
 	}
 	if !st.DropMerged(got.Key()) || len(st.AllMerged()) != 0 {
 		t.Error("DropMerged() did not remove the record")
+	}
+}
+
+// v010Behind is Behind as v0.1.0 decodes it, strictly.
+type v010Behind struct {
+	ID      pack.ID        `yaml:"id"`
+	Scope   target.Scope   `yaml:"scope"`
+	Version semver.Version `yaml:"version"`
+	Latest  semver.Version `yaml:"latest"`
+	Models  string         `yaml:"models,omitempty"`
+	Held    []Blocker      `yaml:"held,omitempty"`
+	Since   time.Time      `yaml:"since"`
+	Checked time.Time      `yaml:"checked"`
+	Told    bool           `yaml:"told,omitempty"`
+}
+
+func TestStateWithATemplateStaysReadableByV010(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "syncstate.yaml")
+	s := NewStore(path, "/home/a")
+	b := behind(t, "dev-loop", user("/home/a"))
+	b.Latest, b.Template = b.Version, "acme/dev-loop@1.1.0"
+	if err := s.Update(t.Context(), func(st *State) error { st.Put(b); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var old struct {
+		Version int          `yaml:"version"`
+		Behind  []v010Behind `yaml:"behind"`
+	}
+	if err := strictyaml.Decode(data, &old); err != nil || len(old.Behind) != 1 {
+		t.Errorf("v0.1.0 decoding of the state = %+v, %v; want one record and no error", old, err)
+	}
+	st, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, ok := st.Find(b.Key()); !ok || got.Template != b.Template {
+		t.Errorf("Find() = %+v, %v; want the template %q back", got, ok, b.Template)
+	}
+}
+
+func TestDamagedTemplatesFileIsIgnoredWithOneWarning(t *testing.T) {
+	for name, content := range map[string]string{
+		"damaged":       "entries: [not, valid",
+		"unknown field": "version: 1\nsurprise: yes\n",
+		"wrong version": "version: 9\nentries: []\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			var logs strings.Builder
+			s := NewStore(filepath.Join(t.TempDir(), "syncstate.yaml"), "/home/a").WithLog(slog.New(slog.NewTextHandler(&logs, nil)))
+			b := behind(t, "dev-loop", user("/home/a"))
+			b.Template = "acme/dev-loop@1.1.0"
+			if err := s.Update(t.Context(), func(st *State) error { st.Put(b); return nil }); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(s.TemplatesPath(), []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			var st State
+			for range 3 {
+				var err error
+				if st, err = s.Load(); err != nil {
+					t.Fatalf("Load() error: %v", err)
+				}
+			}
+			if got, ok := st.Find(b.Key()); !ok || got.Template != "" {
+				t.Errorf("Find() = %+v, %v; want the record without its template", got, ok)
+			}
+			if n := strings.Count(logs.String(), "level=WARN"); n != 1 {
+				t.Errorf("%d warnings, want 1:\n%s", n, logs.String())
+			}
+		})
 	}
 }

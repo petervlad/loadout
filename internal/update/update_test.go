@@ -22,21 +22,30 @@ type fakeRegistry struct {
 	models   tier.Table
 	tierErr  error
 	fetched  *[]string
-	// latestErr makes Latest fail for a package, by id.
+	// latestErr makes Releases fail for a package, by id.
 	latestErr map[string]error
+	// releases overrides latest for a package with several releases.
+	releases map[string][]Release
 }
 
 func (r fakeRegistry) Tiers(context.Context) (tier.Table, error) { return r.models, r.tierErr }
 
-func (r fakeRegistry) Latest(_ context.Context, id pack.ID) (semver.Version, error) {
+func (r fakeRegistry) Releases(_ context.Context, id pack.ID) ([]Release, error) {
 	if err := r.latestErr[id.String()]; err != nil {
-		return semver.Version{}, err
+		return nil, err
+	}
+	if rels, ok := r.releases[id.String()]; ok {
+		return rels, nil
 	}
 	v, ok := r.latest[id.String()]
 	if !ok {
-		return semver.Version{}, errors.New("not found")
+		return nil, errors.New("not found")
 	}
-	return v, nil
+	return []Release{{Version: v, Kind: pack.KindAgent}}, nil
+}
+
+func (r fakeRegistry) Needs(context.Context, *pack.Pack) (Needed, error) {
+	return Needed{}, nil
 }
 
 func (r fakeRegistry) Fetch(_ context.Context, id pack.ID, v semver.Version) (*pack.Pack, error) {

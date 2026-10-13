@@ -79,5 +79,6 @@ runbooks/
 | --- | --- | --- | --- |
 | agent | 16 | 512 KB | 1 MB |
 | skill, knowledge base | 5,000 | 2 MB | 64 MB |
+| pipeline | 4 | 64 KB | 128 KB |
 
 An upload is at most 32 MB compressed. Every file counts, `loadout.yaml` included.

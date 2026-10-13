@@ -3,6 +3,7 @@ package lock
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/semver"
+	"github.com/petervlad/loadout/internal/strictyaml"
 	"github.com/petervlad/loadout/internal/target"
 )
 
@@ -310,5 +312,116 @@ func TestSkillUnitRoundTripsAndStaysOptional(t *testing.T) {
 	}
 	if n := strings.Count(string(data), "unit:"); n != 2 {
 		t.Errorf("lock has %d unit fields, want 2 (omitted for agent files):\n%s", n, data)
+	}
+}
+
+func TestRequiresRoundTripInTheirOwnFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "lock.yaml")
+	s := NewStore(path, "/home/a")
+	plain := testEntry(t, "planner", user("/home/a"))
+	rendered := testEntry(t, "planner", project("/src/b"))
+	rendered.Requires = []Requirement{{ID: plain.ID, Version: plain.Version, Digest: plain.Digest}}
+	err := s.Update(t.Context(), func(l *Lock) error {
+		l.Put(plain)
+		l.Put(rendered)
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff([]Entry{plain, rendered}, got.Entries(), cmpOpts, cmpopts.EquateEmpty()); diff != "" {
+		t.Errorf("round trip mismatch (-want +got):\n%s", diff)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "requires") {
+		t.Errorf("lock.yaml mentions requires, which older CLIs refuse:\n%s", data)
+	}
+
+	// Dropping the requires of the entry removes them from the file too.
+	rendered.Requires = nil
+	if err := s.Update(t.Context(), func(l *Lock) error { l.Put(rendered); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.Load()
+	if e, _ := got.Find(rendered.ID, rendered.Scope); len(e.Requires) != 0 {
+		t.Errorf("Requires after clearing = %+v, want none", e.Requires)
+	}
+}
+
+// v010Entry is the Entry of v0.1.0 (internal/lock/lock.go at that tag), which
+// decodes the lock strictly: a field it does not know makes the lock
+// "damaged" for that CLI.
+type v010Entry struct {
+	ID       pack.ID        `yaml:"id"`
+	Version  semver.Version `yaml:"version"`
+	Digest   pack.Digest    `yaml:"digest"`
+	Source   string         `yaml:"source"`
+	Remote   string         `yaml:"remote,omitempty"`
+	Policy   Policy         `yaml:"policy"`
+	Scope    target.Scope   `yaml:"scope"`
+	Depth    int            `yaml:"depth,omitempty"`
+	Files    []FileRecord   `yaml:"files"`
+	Shadowed []Shadow       `yaml:"shadowed,omitempty"`
+	Models   string         `yaml:"models,omitempty"`
+}
+
+func TestLockWithRequiresStaysReadableByV010(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "lock.yaml")
+	e := testEntry(t, "planner", user("/home/a"))
+	e.Requires = []Requirement{{ID: e.ID, Version: e.Version, Digest: e.Digest}}
+	if err := NewStore(path, "/home/a").Update(t.Context(), func(l *Lock) error { l.Put(e); return nil }); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var old struct {
+		Version int         `yaml:"version"`
+		Entries []v010Entry `yaml:"entries"`
+	}
+	if err := strictyaml.Decode(data, &old); err != nil || len(old.Entries) != 1 {
+		t.Errorf("v0.1.0 decoding of the lock = %+v, %v; want one entry and no error", old, err)
+	}
+}
+
+func TestDamagedRequiresFileIsIgnoredWithOneWarning(t *testing.T) {
+	for name, content := range map[string]string{
+		"damaged":       "entries: [not, valid",
+		"unknown field": "version: 1\nsurprise: yes\n",
+		"wrong version": "version: 9\nentries: []\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "lock.yaml")
+			var logs strings.Builder
+			s := NewStore(path, "/home/a").WithLog(slog.New(slog.NewTextHandler(&logs, nil)))
+			e := testEntry(t, "planner", user("/home/a"))
+			e.Requires = []Requirement{{ID: e.ID, Version: e.Version, Digest: e.Digest}}
+			if err := s.Update(t.Context(), func(l *Lock) error { l.Put(e); return nil }); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(s.RequiresPath(), []byte(content), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			for range 3 {
+				l, err := s.Load()
+				if err != nil {
+					t.Fatalf("Load() error: %v, want the file ignored", err)
+				}
+				if got, _ := l.Find(e.ID, e.Scope); len(got.Requires) != 0 || len(got.Files) != 1 {
+					t.Errorf("entry = %+v, want its files and no requires", got)
+				}
+			}
+			if n := strings.Count(logs.String(), "level=WARN"); n != 1 || !strings.Contains(logs.String(), "next sync renders them again") {
+				t.Errorf("log has %d warnings, want exactly one:\n%s", n, logs.String())
+			}
+		})
 	}
 }

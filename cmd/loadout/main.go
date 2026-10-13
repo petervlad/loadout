@@ -147,7 +147,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 	}
 
 	claudeAdapter, copilotAdapter := claudecode.New(), copilot.New()
-	installer := install.New(lock.NewStore(cfg.LockPath(), cfg.Home), log, claudeAdapter, copilotAdapter)
+	installer := install.New(lock.NewStore(cfg.LockPath(), cfg.Home).WithLog(log), log, claudeAdapter, copilotAdapter)
 	var tools []review.Tool
 	for _, t := range []review.Tool{
 		{Name: claudecode.Name, Renderer: claudeAdapter},
@@ -159,7 +159,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		}
 	}
 	// What sync learned between runs, for status and the session hooks.
-	memory := syncstate.NewStore(filepath.Join(cfg.StateDir, "syncstate.yaml"), cfg.Home)
+	memory := syncstate.NewStore(filepath.Join(cfg.StateDir, "syncstate.yaml"), cfg.Home).WithLog(log)
 	releases := release.New(installer)
 	detector := detect.New(claudeAdapter, copilotAdapter)
 	builtins, err := builtin.New(installer, detector, builtin.Options{
@@ -351,7 +351,7 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 			return cli.Registry{}, nil, errors.Join(err, closers.Close())
 		}
 		svc := registry.NewService(store, store, store, time.Now, log, registry.WithMemberships(roles), registry.WithOwnerHints(roles))
-		props := registry.NewProposalService(store, store, time.Now, log, registry.WithAccess(svc), registry.WithOwners(roles))
+		props := registry.NewProposalService(store, store, time.Now, log, registry.WithAccess(svc), registry.WithOwners(roles), registry.WithNamespaces(store))
 		wikis := registry.NewWikiService(store, store, time.Now, log)
 		// The host's own deletes (`loadout package delete`) leave a record
 		// like every other delete, and need no copy: the deploy skill backs

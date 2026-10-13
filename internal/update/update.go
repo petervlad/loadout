@@ -10,8 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
+	"github.com/petervlad/loadout/internal/agent"
+	"github.com/petervlad/loadout/internal/api"
 	"github.com/petervlad/loadout/internal/install"
 	"github.com/petervlad/loadout/internal/lock"
 	"github.com/petervlad/loadout/internal/pack"
@@ -26,14 +29,30 @@ var ErrGone = errors.New("package is no longer on its registry")
 
 // Registry is what update needs from one remote registry.
 type Registry interface {
-	// Latest returns the highest published version of id, or ErrGone when
-	// the registry has no release of it any more.
-	Latest(ctx context.Context, id pack.ID) (semver.Version, error)
+	// Releases lists the published releases of id. A package the registry
+	// does not know, or one with no release left, wraps ErrGone.
+	Releases(ctx context.Context, id pack.ID) ([]Release, error)
+	// Needs resolves what p needs to render: the highest release of each
+	// package it names at the pinned major, and the definitions of the
+	// agents it names that the team's view has.
+	Needs(ctx context.Context, p *pack.Pack) (Needed, error)
 	// Fetch downloads and verifies one version.
 	Fetch(ctx context.Context, id pack.ID, version semver.Version) (*pack.Pack, error)
 	// Tiers returns the team's resolved model table; the empty table for
 	// a registry that has none.
 	Tiers(ctx context.Context) (tier.Table, error)
+}
+
+// Release is one published version of a package.
+type Release struct {
+	Version semver.Version
+	Kind    pack.Kind
+}
+
+// Needed is what a package renders from besides its own files.
+type Needed struct {
+	Requires []*pack.Pack
+	Agents   []agent.Definition
 }
 
 // Source is the registry an install updates from, and the remote it is.
@@ -80,6 +99,9 @@ type Notification struct {
 	// ModelsChanged is set when only the model settings changed; Latest
 	// is then Current.
 	ModelsChanged bool
+	// Template is the template release a conductor would be rendered from
+	// ("acme/dev-loop@1.1.0") when only that is new; Latest is then Current.
+	Template string
 	// Held lists the files that keep the update out (slash paths, relative
 	// to the scope root); empty when nothing is in the way.
 	Held []string
@@ -118,6 +140,12 @@ const (
 	// OutcomeModelsChanged reports such a change without applying it
 	// (policy notify); installing the package again applies it.
 	OutcomeModelsChanged Outcome = "model settings changed"
+	// OutcomeTemplateUpdated means a conductor was rendered again from a
+	// newer release of its template (policy auto).
+	OutcomeTemplateUpdated Outcome = "pipeline template updated"
+	// OutcomeTemplateChanged reports such a release without applying it
+	// (policy notify); installing the binding again applies it.
+	OutcomeTemplateChanged Outcome = "pipeline template changed"
 )
 
 // Result is the outcome for one install.
@@ -128,6 +156,12 @@ type Result struct {
 	// Models is the digest of the team's model table, for the model
 	// outcomes; empty otherwise.
 	Models string
+	// Template is the template release a conductor is behind or was
+	// rendered from again, for the template outcomes; empty otherwise.
+	Template string
+	// Notes are lines to print after the table: a newer template major
+	// exists, or the pinned major is gone from the registry.
+	Notes []string
 	// Held lists the files that keep the update out: every conflict for
 	// OutcomeBlocked, and the edited files of a notify install whose
 	// update (OutcomeAvailable, OutcomeModelsChanged) an install would
@@ -143,14 +177,19 @@ type Result struct {
 // new model settings are out and not applied.
 func (r Result) Behind() bool {
 	switch r.Outcome {
-	case OutcomeAvailable, OutcomeBlocked, OutcomeModelsChanged:
+	case OutcomeAvailable, OutcomeBlocked, OutcomeModelsChanged, OutcomeTemplateChanged:
 		return true
 	}
 	return false
 }
 
 // ModelsOnly reports whether only the team's model settings are new.
-func (r Result) ModelsOnly() bool { return r.Latest.Compare(r.Entry.Version) == 0 }
+func (r Result) ModelsOnly() bool { return r.Latest.Compare(r.Entry.Version) == 0 && r.Template == "" }
+
+// TemplateOnly reports whether only the template of a conductor is new.
+func (r Result) TemplateOnly() bool {
+	return r.Latest.Compare(r.Entry.Version) == 0 && r.Template != ""
+}
 
 // HeldPaths returns the paths of the files in the way.
 func (r Result) HeldPaths() []string {
@@ -253,7 +292,7 @@ func (s *Service) open(ctx context.Context, e lock.Entry) source {
 }
 
 func (s *Service) syncOne(ctx context.Context, src source, e lock.Entry) Result {
-	latest, err := src.Registry.Latest(ctx, e.ID)
+	rels, err := src.Registry.Releases(ctx, e.ID)
 	if errors.Is(err, ErrGone) {
 		s.log.Info("sync checked", "id", e.ID, "scope", e.Scope, "current", e.Version, "outcome", OutcomeGone)
 		return Result{Entry: e, Outcome: OutcomeGone, remote: cmp.Or(src.Remote, e.Remote)}
@@ -261,11 +300,22 @@ func (s *Service) syncOne(ctx context.Context, src source, e lock.Entry) Result 
 	if err != nil {
 		return s.failed(e, fmt.Errorf("check %s: %w", e.ID, err))
 	}
+	latest, kind, ok := newest(rels)
+	if !ok {
+		return s.failed(e, fmt.Errorf("check %s: %s has no releases", e.ID, e.ID))
+	}
+	var tpl template
+	if kind.HasNeeds() {
+		if tpl, err = s.checkTemplate(ctx, src, e); err != nil {
+			return s.failed(e, err)
+		}
+	}
 	res := Result{Entry: e, Latest: latest}
 	if latest.Compare(e.Version) <= 0 {
-		res = s.checkModels(ctx, src, e)
+		res = s.checkRender(ctx, src, e, tpl)
 		res.remote = cmp.Or(src.Remote, e.Remote)
-		s.log.Info("sync checked", "id", e.ID, "scope", e.Scope, "current", e.Version, "models", src.models.Digest(), "outcome", res.Outcome, "held", len(res.Held))
+		res.Notes = tpl.notes
+		s.log.Info("sync checked", "id", e.ID, "scope", e.Scope, "current", e.Version, "models", src.models.Digest(), "template", res.Template, "outcome", res.Outcome, "held", len(res.Held))
 		return res
 	}
 
@@ -281,8 +331,22 @@ func (s *Service) syncOne(ctx context.Context, src source, e lock.Entry) Result 
 		res.Held = s.edited(ctx, e)
 	}
 	res.remote = cmp.Or(src.Remote, e.Remote)
+	if res.Outcome != OutcomeFailed {
+		res.Notes = tpl.notes
+	}
 	s.log.Info("sync checked", "id", e.ID, "scope", e.Scope, "current", e.Version, "latest", latest, "outcome", res.Outcome, "held", len(res.Held))
 	return res
+}
+
+// newest returns the highest version in rels and its kind.
+func newest(rels []Release) (semver.Version, pack.Kind, bool) {
+	var best Release
+	for i, r := range rels {
+		if i == 0 || r.Version.Compare(best.Version) > 0 {
+			best = r
+		}
+	}
+	return best.Version, best.Kind, len(rels) > 0
 }
 
 // edited returns the files of a notify install the person edited, which
@@ -301,21 +365,29 @@ func (s *Service) edited(ctx context.Context, e lock.Entry) []syncstate.Blocker 
 	return out
 }
 
-// checkModels handles an install that is up to date: when the team's model
-// table changed since it was written, auto writes it again, notify says
-// so, and pin leaves it. A change that does not touch the package's files
-// (a skill, an agent without a hint) is only recorded.
-func (s *Service) checkModels(ctx context.Context, src source, e lock.Entry) Result {
+// checkRender handles an install that is up to date: when the team's model
+// table or the template a conductor renders from changed since it was
+// written, auto writes it again, notify says so, and pin leaves it. A
+// change that does not touch the package's files (a skill, an agent
+// without a hint) is only recorded.
+func (s *Service) checkRender(ctx context.Context, src source, e lock.Entry, tpl template) Result {
 	res := Result{Entry: e, Latest: e.Version, Outcome: OutcomeUpToDate}
-	if e.Models == src.models.Digest() || e.FullyShadowed() || e.Policy == lock.PolicyPin {
+	models := e.Models != src.models.Digest()
+	if (!models && !tpl.changed()) || e.FullyShadowed() || e.Policy == lock.PolicyPin {
 		return res
 	}
-	res.Models = src.models.Digest()
+	if models {
+		res.Models = src.models.Digest()
+	}
+	res.Template = tpl.release
 	p, err := src.Registry.Fetch(ctx, e.ID, e.Version)
 	if err != nil {
 		return s.failed(e, fmt.Errorf("download %s@%s: %w", e.ID, e.Version, err))
 	}
-	opts := s.options(src, e)
+	opts, err := s.options(ctx, src, e, p)
+	if err != nil {
+		return s.failed(e, err)
+	}
 	if e.Policy != lock.PolicyAuto {
 		changed, err := s.installer.Rerenders(ctx, p, opts)
 		if err != nil {
@@ -323,6 +395,9 @@ func (s *Service) checkModels(ctx context.Context, src source, e lock.Entry) Res
 		}
 		if changed {
 			res.Outcome = OutcomeModelsChanged
+			if res.Template != "" {
+				res.Outcome = OutcomeTemplateChanged
+			}
 			res.Held = s.edited(ctx, e)
 			return res
 		}
@@ -332,15 +407,18 @@ func (s *Service) checkModels(ctx context.Context, src source, e lock.Entry) Res
 		// When no file would change (a skill, a knowledge base) the install
 		// only records the table's digest: the edits hold nothing back.
 		if changed, rerr := s.installer.Rerenders(ctx, p, opts); rerr == nil && !changed {
-			return res
+			return Result{Entry: e, Latest: e.Version, Outcome: OutcomeUpToDate}
 		}
-		return Result{Entry: e, Latest: e.Version, Outcome: OutcomeBlocked, Models: res.Models, Held: syncstate.Blockers(e.Scope.Root, ce), Err: err}
+		return Result{Entry: e, Latest: e.Version, Outcome: OutcomeBlocked, Models: res.Models, Template: res.Template, Held: syncstate.Blockers(e.Scope.Root, ce), Err: err}
 	}
 	if err != nil {
 		return s.failed(e, fmt.Errorf("install %s@%s: %w", e.ID, e.Version, err))
 	}
 	if !r.Unchanged {
 		res.Outcome = OutcomeRerendered
+		if res.Template != "" {
+			res.Outcome = OutcomeTemplateUpdated
+		}
 	}
 	return res
 }
@@ -350,7 +428,11 @@ func (s *Service) apply(ctx context.Context, src source, e lock.Entry, latest se
 	if err != nil {
 		return s.failed(e, fmt.Errorf("download %s@%s: %w", e.ID, latest, err))
 	}
-	_, err = s.installer.Install(ctx, p, s.options(src, e))
+	opts, err := s.options(ctx, src, e, p)
+	if err != nil {
+		return s.failed(e, err)
+	}
+	_, err = s.installer.Install(ctx, p, opts)
 	if ce, ok := errors.AsType[*install.ConflictError](err); ok {
 		return Result{Entry: e, Latest: latest, Outcome: OutcomeBlocked, Held: syncstate.Blockers(e.Scope.Root, ce), Err: err}
 	}
@@ -360,11 +442,12 @@ func (s *Service) apply(ctx context.Context, src source, e lock.Entry, latest se
 	return Result{Entry: e, Latest: latest, Outcome: OutcomeUpdated}
 }
 
-// options installs e again from src with the team's current models. The
-// same depth keeps layer precedence: files a closer layer owns stay
-// shadowed and are never overwritten by an update.
-func (s *Service) options(src source, e lock.Entry) install.Options {
-	return install.Options{
+// options installs e again from src with the team's current models, and
+// with the templates and agents p renders from. The same depth keeps layer
+// precedence: files a closer layer owns stay shadowed and are never
+// overwritten by an update.
+func (s *Service) options(ctx context.Context, src source, e lock.Entry, p *pack.Pack) (install.Options, error) {
+	opts := install.Options{
 		Scope:   e.Scope,
 		Targets: e.Targets(),
 		Source:  cmp.Or(src.URL, e.Source),
@@ -373,6 +456,81 @@ func (s *Service) options(src source, e lock.Entry) install.Options {
 		Depth:   e.Depth,
 		Models:  src.models,
 	}
+	if needs := p.Needs(); len(needs.Packages) > 0 || len(needs.Agents) > 0 {
+		n, err := src.Registry.Needs(ctx, p)
+		if err != nil {
+			return opts, fmt.Errorf("resolve what %s@%s renders from: %w", e.ID, p.Version(), err)
+		}
+		opts.Requires, opts.Agents = n.Requires, n.Agents
+	}
+	return opts, nil
+}
+
+// template is what a conductor's install knows about the template it
+// renders from.
+type template struct {
+	// release is the template release a new render would use
+	// ("acme/dev-loop@1.1.0"), empty when the recorded one is current.
+	release string
+	notes   []string
+}
+
+func (t template) changed() bool { return t.release != "" }
+
+// checkTemplate compares the template releases e was rendered from with the
+// registry: a newer release in the pinned major makes the conductor stale
+// (template.release), a newer major or a vanished pinned major is a note.
+// An entry with no recorded requirements (its side file was missing or
+// damaged) is stale too, so one sync renders it again.
+func (s *Service) checkTemplate(ctx context.Context, src source, e lock.Entry) (template, error) {
+	type pinned struct {
+		id       pack.ID
+		major    int
+		recorded semver.Version
+		known    bool
+	}
+	var pins []pinned
+	for _, r := range e.Requires {
+		pins = append(pins, pinned{r.ID, r.Version.Major(), r.Version, true})
+	}
+	if len(pins) == 0 {
+		p, err := src.Registry.Fetch(ctx, e.ID, e.Version)
+		if err != nil {
+			return template{}, fmt.Errorf("download %s@%s: %w", e.ID, e.Version, err)
+		}
+		for _, r := range p.Needs().Packages {
+			pins = append(pins, pinned{id: r.ID, major: r.Major})
+		}
+	}
+	var t template
+	var fresh []string
+	for _, pin := range pins {
+		rels, err := src.Registry.Releases(ctx, pin.id)
+		if err != nil && !errors.Is(err, api.ErrNotFound) {
+			return t, fmt.Errorf("check %s: %w", pin.id, err)
+		}
+		var best semver.Version
+		found, higher := false, semver.Version{}
+		for _, r := range rels {
+			switch {
+			case r.Version.Major() == pin.major && (!found || r.Version.Compare(best) > 0):
+				best, found = r.Version, true
+			case r.Version.Major() > pin.major && r.Version.Compare(higher) > 0:
+				higher = r.Version
+			}
+		}
+		if higher.Major() > pin.major {
+			t.notes = append(t.notes, fmt.Sprintf("%s %s is out. %s uses major %d. Move it with `uses: %s@%d` and publish.", pin.id, higher, e.ID, pin.major, pin.id, higher.Major()))
+		}
+		switch {
+		case !found:
+			t.notes = append(t.notes, fmt.Sprintf("%s uses %s@%d, which the registry no longer lists. The conductor you have keeps working. Point `uses:` at a major that exists and publish.", e.ID, pin.id, pin.major))
+		case !pin.known || best.Compare(pin.recorded) > 0:
+			fresh = append(fresh, fmt.Sprintf("%s@%s", pin.id, best))
+		}
+	}
+	t.release = strings.Join(fresh, ", ")
+	return t, nil
 }
 
 // failed records a failure. It is returned to the caller, who shows it, so
@@ -395,10 +553,10 @@ func (s *Service) tell(ctx context.Context, prev *syncstate.State, results []Res
 		}
 		b := syncstate.Behind{
 			ID: r.Entry.ID, Scope: r.Entry.Scope, Version: r.Entry.Version, Latest: r.Latest,
-			Models: r.Models, Held: r.Held, Since: now, Checked: now,
+			Models: r.Models, Template: r.Template, Held: r.Held, Since: now, Checked: now,
 		}
 		old, had := prev.Find(b.Key())
-		same := had && old.Latest.Compare(b.Latest) == 0 && old.Models == b.Models
+		same := had && old.Latest.Compare(b.Latest) == 0 && old.Models == b.Models && old.Template == b.Template
 		if same {
 			b.Since = old.Since
 		}
@@ -417,7 +575,7 @@ func (s *Service) tell(ctx context.Context, prev *syncstate.State, results []Res
 func (s *Service) notify(ctx context.Context, r Result) bool {
 	n := Notification{
 		ID: r.Entry.ID, Current: r.Entry.Version, Latest: r.Latest, Remote: cmp.Or(r.remote, r.Entry.Remote),
-		ModelsChanged: r.ModelsOnly(), Held: r.HeldPaths(),
+		ModelsChanged: r.ModelsOnly(), Template: r.Template, Held: r.HeldPaths(),
 	}
 	if s.notifier == nil {
 		return false // no channel: the news stays pending for one set up later

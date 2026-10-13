@@ -822,6 +822,21 @@ table.table { width: 100%; border-collapse: collapse; font-size: 0.875rem; font-
 /* draw.io diagrams keep their author's colors, so their canvas stays
    light in both themes, with the page's hairline around it. */
 .diagram-canvas .diagram-frame { background: var(--diagram-canvas); }
+/* Pipelines: slot and edge tables read as tables on a wide screen and as
+   labelled lists on a phone, where the header row is gone. */
+.cell-label { display: none; }
+table.list.pipe { table-layout: auto; }
+.pipe td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
+.pipe code { font-family: var(--mono); font-size: 0.8125rem; }
+.pipe .brief { min-width: 240px; color: var(--text-2); }
+.pipe .verdicts .pill { margin: 0 4px 4px 0; }
+.pipe-bad, .pipe-bad td { background: var(--warn-bg); color: var(--warn-text); }
+.pipe-bad td a, .pipe-bad td .muted { color: inherit; }
+.pipe-warn { padding: 14px 20px; background: var(--warn-bg); color: var(--warn-text); font-size: 0.875rem; line-height: 1.45; }
+.pipe-warn h2 { font-size: 0.9375rem; font-weight: 600; margin-bottom: 4px; }
+.pipe-warn ul { margin: 0; padding-left: 18px; }
+.pipe-uses { padding: 12px 20px; font-size: 0.875rem; color: var(--text-2); }
+.pipe-uses code { font-family: var(--mono); font-size: 0.8125rem; }
 .page-tabs { display: flex; flex-wrap: wrap; gap: 2px; margin: 16px 20px 0; padding: 2px; background: var(--segment); border-radius: 9px; width: fit-content; max-width: calc(100% - 40px); }
 .page-tabs a { display: inline-flex; align-items: center; min-height: 30px; padding: 0 12px; border-radius: 7px; color: var(--text); font-size: 0.8125rem; }
 .page-tabs a:hover { text-decoration: none; background: var(--sidebar-hover); }
@@ -1075,6 +1090,12 @@ dl.facts.tight { padding: 0; grid-template-columns: 110px minmax(0, 1fr); }
   .pkg-head { flex-wrap: wrap; }
   .pkg-head .grow { flex-basis: 100%; }
   .releases .opt-phone { display: none; }
+  .cell-label { display: inline; margin-right: 6px; font-size: 0.75rem; color: var(--muted); }
+  .pipe-bad .cell-label { color: inherit; }
+  .pipe td.brief { min-width: 0; }
+  .pipe code { overflow-wrap: anywhere; }
+  .pipe-warn, .pipe-uses { padding-left: 16px; padding-right: 16px; }
+
   .releases td.end { margin-left: auto; }
   .file-nav { flex-direction: column; }
   .file-step { max-width: none; align-self: stretch; }

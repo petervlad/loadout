@@ -7,9 +7,10 @@
 </div>
 <a class="btn" href="{{.Base}}/download">{{template "icon-download"}}Download {{.Version}}<span class="vh"> of {{.ID}} as a zip</span></a>
 </div>
-<div class="copyrow pad-x"><code class="cmd" id="install">{{.Install}}</code>{{template "copy" "install"}}</div>
+{{if .Install}}<div class="copyrow pad-x"><code class="cmd" id="install">{{.Install}}</code>{{template "copy" "install"}}</div>{{end}}
 </div>
 {{if ne .Version .Latest}}<p class="panel version-note" role="note">You are looking at {{.Version}}. The newest is <a href="{{.Path}}">{{.Latest}}</a>.</p>{{end}}
+{{with .Pipeline}}{{template "pipeline" .}}{{end}}
 <div class="panel">
 <table class="list releases">
 <colgroup><col class="w140"><col><col class="w160"><col class="w120"><col class="w60"></colgroup>
@@ -53,3 +54,64 @@
 <div class="buttons">{{if and .CanAsk (not .Open)}}<a class="btn" href="{{.AskPath}}">Ask to delete…<span class="vh"> {{.ID}}</span></a>{{end}}{{if .CanDelete}}<a class="btn btn-danger" href="{{.DeletePath}}">Delete package…<span class="vh"> {{.ID}}</span></a>{{end}}</div></div>
 </section>{{end}}
 {{end}}{{end}}
+{{define "pipeline"}}
+{{if .Problems}}<section class="panel pipe-warn" aria-labelledby="pipe-warn-h" role="group">
+<h2 id="pipe-warn-h">{{if eq (len .Problems) 1}}This binding has a problem{{else}}This binding has {{len .Problems}} problems{{end}}</h2>
+<ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul>
+</section>{{end}}
+{{if .Binding}}<div class="panel pipe-uses">
+<p>Uses {{if .UsesLink}}<a href="{{.UsesLink}}"><code>{{.Uses}}</code></a>, release <span class="num">{{.UsesVersion}}</span>{{else}}<code>{{.Uses}}</code>{{end}}.{{with .Gates}} Gates you added: {{range $i, $g := .}}{{if $i}}, {{end}}<code>{{$g}}</code>{{end}}.{{end}}</p>
+</div>{{end}}
+{{with .Diagram}}<section class="panel" aria-labelledby="pipe-diagram-h">
+<div class="panel-head"><div class="grow"><h2 id="pipe-diagram-h">Steps</h2><p>Dashed arrows wait for a person. Solid arrows go on by themselves.</p></div></div>
+<figure class="diagram diagram-file" data-frame="{{.Frame}}" data-title="{{.Title}}">
+<pre class="diagram-src"><code>{{.Source}}</code></pre>
+<figcaption class="diagram-note js-hide">The diagram needs JavaScript. The tables below say the same.</figcaption>
+</figure>
+</section>{{end}}
+{{if .Binding}}<section class="panel" aria-labelledby="pipe-bind-h">
+<div class="panel-head"><h2 id="pipe-bind-h">Agent for each slot</h2></div>
+<table class="list pipe pipe-bind">
+<thead><tr><th scope="col">Slot</th><th scope="col">Agent</th></tr></thead>
+<tbody>{{range .Slots}}
+<tr{{if .State}} class="pipe-bad"{{end}}>
+<td class="name"><code>{{.Name}}</code></td>
+<td>{{if eq .State "unbound"}}<span class="pill pill-warn">No agent</span> <span class="muted">Name one under bind.</span>{{else if eq .State "missing"}}<code>{{.Agent}}</code> <span class="pill pill-warn">Not in this view</span>{{else if .Link}}<a class="name" href="{{.Link}}"><code>{{.Agent}}</code></a>{{else}}<code>{{.Agent}}</code>{{end}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+</section>{{else}}<section class="panel" aria-labelledby="pipe-slots-h">
+<div class="panel-head"><h2 id="pipe-slots-h">Slots</h2><span class="grow"></span><span class="muted">{{plural (len .Slots) "slot"}}</span></div>
+<table class="list pipe pipe-slots">
+<thead><tr><th scope="col">Slot</th><th scope="col">Reads</th><th scope="col">Writes</th><th scope="col">Verdicts</th><th scope="col">Brief</th></tr></thead>
+<tbody>{{range .Slots}}
+<tr>
+<td class="name"><code>{{.Name}}</code>{{if .Start}} <span class="pill">Start</span>{{end}}</td>
+<td><span class="cell-label">Reads</span>{{range $i, $f := .Reads}}{{if $i}}, {{end}}<code>{{$f}}</code>{{else}}<span class="muted">Nothing</span>{{end}}</td>
+<td><span class="cell-label">Writes</span><code>{{.Writes}}</code>{{range .Also}}, <code>{{.}}</code>{{end}}</td>
+<td class="verdicts"><span class="cell-label">Verdicts</span>{{range .Verdicts}}<span class="pill pill-kind">{{.}}</span> {{end}}</td>
+<td class="wide brief">{{.Brief}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+</section>{{end}}
+<section class="panel" aria-labelledby="pipe-edges-h">
+<div class="panel-head"><div class="grow"><h2 id="pipe-edges-h">Moves between slots</h2><p>A gate waits for a person to say go. A move marked auto goes on by itself.</p></div></div>
+<table class="list pipe pipe-edges">
+<thead><tr><th scope="col">From</th><th scope="col">On</th><th scope="col">To</th><th scope="col">Then</th><th scope="col">Rounds</th></tr></thead>
+<tbody>{{range .Edges}}
+<tr>
+<td><span class="cell-label">From</span><code>{{.From}}</code></td>
+<td><span class="cell-label">On</span><span class="pill pill-kind">{{.On}}</span></td>
+<td><span class="cell-label">To</span><code>{{.To}}</code></td>
+<td><span class="cell-label">Then</span>{{if .Gate}}<span class="pill pill-own">Gate</span>{{else}}<span class="pill">Auto</span>{{end}}</td>
+<td class="muted">{{if .Rounds}}<span class="cell-label">Rounds</span>At most {{plural .Rounds "round"}}{{end}}</td>
+</tr>{{end}}
+</tbody>
+</table>
+</section>
+{{if .Use}}<section class="panel pipe-use" aria-labelledby="pipe-use-h">
+<div class="panel-head"><div class="grow"><h2 id="pipe-use-h">Use this pipeline</h2><p>This writes a binding for your team with every slot left empty. Name one of your agents for each slot, then publish it.</p></div></div>
+<div class="copyrow pad-x"><code class="cmd" id="use-pipeline">{{.Use}}</code>{{template "copy" "use-pipeline"}}</div>
+</section>{{end}}
+{{end}}

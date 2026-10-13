@@ -68,6 +68,9 @@ func (v Version) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.major, v.minor, v.patch)
 }
 
+// Major returns the major component.
+func (v Version) Major() int { return v.major }
+
 // Bump returns the next version, resetting the lower components.
 func (v Version) Bump(p Part) Version {
 	switch p {

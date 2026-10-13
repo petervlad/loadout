@@ -63,6 +63,12 @@ type apiResponse struct {
 func text(x update.Notification) (title, message string) {
 	held := len(x.Held)
 	switch {
+	case x.Template != "" && held > 0:
+		return fmt.Sprintf("%s: pipeline template held back", x.ID),
+			fmt.Sprintf("Your team published %s, and you edited %s, so loadout kept yours. Run loadout status.", x.Template, files(held))
+	case x.Template != "":
+		return fmt.Sprintf("%s: pipeline template changed", x.ID),
+			fmt.Sprintf("Your team published %s. Apply with: loadout install %s (remote %s)", x.Template, x.ID, x.Remote)
 	case x.ModelsChanged && held > 0:
 		return fmt.Sprintf("%s: model settings held back", x.ID),
 			fmt.Sprintf("Your team changed which model %s runs, and you edited %s, so loadout kept yours. Run loadout status.", x.ID, files(held))

@@ -55,3 +55,37 @@ _Avoid_: Dedupe, similarity check
 **Memory import**:
 Offering the memory files on a person's own machine to a team memory. The person confirms every memory, files about a person are never offered, and anything that looks like a secret stays on the machine.
 _Avoid_: Memory sync, upload
+
+## Pipelines
+
+**Pipeline**:
+A package that names an ordered set of slots and the edges between them, written once at the project level. A loop is a pipeline with an edge that goes back.
+_Avoid_: loop, workflow, flow
+
+**Slot**:
+A named stage of a pipeline with a contract: what it reads, what it writes and which verdicts it may return. It names no agent.
+_Avoid_: step, stage agent, blank
+
+**Binding**:
+A team's choice of which of its agents fills each slot of a pipeline.
+_Avoid_: mapping, fill-in, implementation
+
+**Edge**:
+The move from one slot to the next on a given verdict, either through a gate or automatically.
+_Avoid_: transition, route
+
+**Gate**:
+An edge where control goes back to a person, who decides whether the next slot starts.
+_Avoid_: checkpoint, approval
+
+**Conductor**:
+The agent generated from a pipeline and a binding that starts each slot's agent and follows the edges.
+_Avoid_: orchestrator, router, runner
+
+**Handoff**:
+Control moving from one slot to the next. Only the pipeline decides a handoff, never the agent in the slot.
+_Avoid_: callback, footer, next step
+
+**Delegation**:
+An agent starting a helper that does one job and returns to it, inside the same slot.
+_Avoid_: handoff, sub-call

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -51,6 +52,7 @@ news.`,
 			if err := w.Flush(); err != nil {
 				return err
 			}
+			writeUses(out, statuses)
 			if d.Notices != nil {
 				ns, err := d.Notices.List(cmd.Context(), notice.Filter{})
 				if err != nil {
@@ -138,4 +140,25 @@ func rollUp(l statusLine) string {
 		return string(install.StateShadowed) + " by " + l.by
 	}
 	return string(install.StateOK)
+}
+
+// writeUses says which release of another package each rendered install
+// (a conductor) comes from, once per package and release.
+func writeUses(out io.Writer, statuses []install.Status) {
+	seen := map[string]bool{}
+	first := true
+	for _, st := range statuses {
+		for _, r := range st.Entry.Requires {
+			line := fmt.Sprintf("%s uses %s@%s", st.Entry.ID, r.ID, r.Version)
+			if seen[line] {
+				continue
+			}
+			seen[line] = true
+			if first {
+				fmt.Fprintln(out)
+				first = false
+			}
+			fmt.Fprintln(out, line)
+		}
+	}
 }

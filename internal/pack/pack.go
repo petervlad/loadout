@@ -3,9 +3,10 @@
 // A package is a folder with a manifest, loadout.yaml (id, kind, version,
 // description, targets), and the content of its kind (see kinds.go):
 //
-//	agent   agent.md, the agent in canonical form (package agent)
-//	skill   SKILL.md and optional supporting files in folders (package skill)
-//	kb      documents in folders, installed as a skill (package kb)
+//	agent     agent.md, the agent in canonical form (package agent)
+//	skill     SKILL.md and optional supporting files in folders (package skill)
+//	kb        documents in folders, installed as a skill (package kb)
+//	pipeline  pipeline.yaml, a template of slots or a team's binding (package pipeline)
 //
 // Files are UTF-8 text and may sit in folders; CheckPath says which paths
 // are allowed.
@@ -23,6 +24,7 @@ import (
 
 	"github.com/petervlad/loadout/internal/agent"
 	"github.com/petervlad/loadout/internal/kb"
+	"github.com/petervlad/loadout/internal/pipeline"
 	"github.com/petervlad/loadout/internal/semver"
 	"github.com/petervlad/loadout/internal/skill"
 	"github.com/petervlad/loadout/internal/strictyaml"
@@ -32,6 +34,7 @@ import (
 const (
 	ManifestFile = "loadout.yaml"
 	AgentFile    = "agent.md"
+	PipelineFile = "pipeline.yaml"
 )
 
 // Manifest is the content of loadout.yaml.
@@ -55,6 +58,8 @@ type Pack struct {
 	agent *agent.Definition
 	skill *skill.Skill
 	kb    *kb.Base
+	// pipeline is a *pipeline.Template or *pipeline.Binding.
+	pipeline pipeline.Package
 }
 
 // Manifest returns the package manifest.
@@ -89,6 +94,10 @@ func (p *Pack) Skill() (*skill.Skill, bool) { return p.skill, p.skill != nil }
 
 // KB returns the knowledge base of a kb package.
 func (p *Pack) KB() (*kb.Base, bool) { return p.kb, p.kb != nil }
+
+// Pipeline returns the template or binding of a pipeline package. It is
+// immutable, so it is shared.
+func (p *Pack) Pipeline() (pipeline.Package, bool) { return p.pipeline, p.pipeline != nil }
 
 // Digest returns the content digest.
 func (p *Pack) Digest() Digest { return p.digest }

@@ -72,6 +72,10 @@ func (r MergeResult) Conflicted() []string {
 // other replaces them.
 var ErrMergeForce = errors.New("--merge keeps your edits and --force replaces them; choose one")
 
+// ErrMergeGenerated refuses --merge for a package rendered from another one
+// (a conductor): the base would need the recorded template fetched again.
+var ErrMergeGenerated = errors.New("a conductor is generated, edit the binding instead of the installed file")
+
 // MergeLabels are the names Merge writes in conflict markers.
 func MergeLabels(installed, next semver.Version) textdiff.Labels {
 	return textdiff.Labels{
@@ -99,6 +103,9 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
 	if opts.Force {
 		return MergeResult{}, ErrMergeForce
 	}
+	if len(next.Needs().Packages) > 0 {
+		return MergeResult{}, fmt.Errorf("%s: %w", next.ID(), ErrMergeGenerated)
+	}
 	if err := checkScope(opts.Scope); err != nil {
 		return MergeResult{}, err
 	}
@@ -109,7 +116,7 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
 	if err != nil {
 		return MergeResult{}, err
 	}
-	rendered, err := render(renderers, next, opts.Scope, stampOf(next), opts.Models)
+	rendered, _, err := render(renderers, next, opts.Scope, stampOf(next), opts)
 	if err != nil {
 		return MergeResult{}, err
 	}
@@ -228,7 +235,9 @@ func (m merger) bases(prev lock.Entry) (map[string][]byte, error) {
 	}
 	out := map[string][]byte{}
 	for _, t := range tables {
-		rendered, err := render(m.renderers, m.base, m.opts.Scope, stampOf(m.base), t)
+		opts := m.opts
+		opts.Models = t
+		rendered, _, err := render(m.renderers, m.base, m.opts.Scope, stampOf(m.base), opts)
 		if err != nil {
 			return nil, err
 		}

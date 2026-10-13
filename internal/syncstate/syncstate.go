@@ -48,6 +48,11 @@ type Behind struct {
 	Latest semver.Version `yaml:"latest"`
 	// Models is the digest of the team's model table, for a model change.
 	Models string `yaml:"models,omitempty"`
+	// Template is the template release ("acme/dev-loop@1.1.0") a conductor
+	// is behind on; empty for every other kind of change. It is kept out of
+	// syncstate.yaml, in the Store's templates file, so older CLIs still
+	// read the state.
+	Template string `yaml:"-"`
 	// Held lists the files in the way; empty when the update is only
 	// available.
 	Held []Blocker `yaml:"held,omitempty"`
@@ -66,7 +71,7 @@ func (b Behind) Key() Key { return Key{ID: b.ID, Scope: b.Scope} }
 func (b Behind) IsHeld() bool { return len(b.Held) > 0 }
 
 // ModelsOnly reports whether only the team's model settings changed.
-func (b Behind) ModelsOnly() bool { return b.Latest.Compare(b.Version) == 0 }
+func (b Behind) ModelsOnly() bool { return b.Latest.Compare(b.Version) == 0 && b.Template == "" }
 
 // HeldPaths returns the paths of the files in the way.
 func (b Behind) HeldPaths() []string {

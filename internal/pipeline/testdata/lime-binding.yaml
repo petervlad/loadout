@@ -1,0 +1,9 @@
+uses: acme/dev-loop@1
+bind:
+  plan: lime-planner
+  dev: lime-dev
+  review: lime-code-review
+  test: lime-test
+work_folder: explorations/
+gate:
+  - {from: dev, on: DONE}

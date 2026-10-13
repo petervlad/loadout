@@ -212,3 +212,42 @@ func TestPlanRollbackRefuses(t *testing.T) {
 		t.Errorf("PlanRollback(none) error = %v, want ErrNotInstalled", err)
 	}
 }
+
+// fetchingRegistry also serves a bundle for every version it lists.
+type fetchingRegistry struct {
+	fakeRegistry
+	fetched string
+}
+
+func (f *fetchingRegistry) Fetch(_ context.Context, _ pack.ID, version string) (*pack.Pack, error) {
+	f.fetched = version
+	return nil, nil
+}
+
+func TestResolveTakesTheHighestOfTheMajor(t *testing.T) {
+	id := mustID(t, "acme/dev-loop")
+	tests := []struct {
+		name     string
+		versions []string
+		major    int
+		want     string
+		wantErr  error
+	}{
+		{"highest of the major", []string{"1.0.0", "1.2.0", "1.10.0", "2.0.0"}, 1, "1.10.0", nil},
+		{"an older major", []string{"1.0.0", "2.0.0", "2.1.0"}, 1, "1.0.0", nil},
+		{"no such major", []string{"1.0.0"}, 2, "", api.ErrNotFound},
+		{"no releases", nil, 1, "", api.ErrNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			reg := &fetchingRegistry{fakeRegistry{versions: tc.versions}, ""}
+			_, err := Resolve(t.Context(), reg, pack.Requirement{ID: id, Major: tc.major})
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Resolve() error = %v, want %v", err, tc.wantErr)
+			}
+			if reg.fetched != tc.want {
+				t.Errorf("fetched %q, want %q", reg.fetched, tc.want)
+			}
+		})
+	}
+}

@@ -7,6 +7,8 @@ import (
 
 	"github.com/petervlad/loadout/internal/agent"
 	"github.com/petervlad/loadout/internal/kb"
+	"github.com/petervlad/loadout/internal/pipeline"
+	"github.com/petervlad/loadout/internal/semver"
 	"github.com/petervlad/loadout/internal/skill"
 )
 
@@ -22,6 +24,9 @@ const (
 	// KindKB is a knowledge base: documents, installed as a skill whose
 	// SKILL.md loadout generates.
 	KindKB Kind = "kb"
+	// KindPipeline is a pipeline: pipeline.yaml, a template of slots and
+	// edges or a team's binding of those slots to agents.
+	KindPipeline Kind = "pipeline"
 )
 
 // kindSpec is everything that differs between kinds. Adding a kind is one
@@ -39,6 +44,24 @@ type kindSpec struct {
 	scaffold func(id ID) (map[string][]byte, error)
 	// limits bound the package, manifest included.
 	limits Limits
+	// start is the version a new package begins at; zero means 0.1.0.
+	start semver.Version
+	// lint returns warnings that do not stop a publish; nil: no checks.
+	lint func(p *Pack) []Finding
+	// needs lists what must exist for the package to work; nil: nothing.
+	needs func(p *Pack) Needs
+	// standalone is false when the package installs nothing by itself;
+	// the reason is one sentence for the person. Nil: it does.
+	standalone func(p *Pack) (bool, string)
+	// noReview is true when loadout review must not run the package: a
+	// pipeline's conductor would start a whole run in the throwaway folder.
+	noReview bool
+	// checkNeeds checks the package against the releases of the packages
+	// it needs (one per Needs().Packages entry). Nil means nothing to check.
+	checkNeeds func(p *Pack, required []*Pack) error
+	// compatible checks that next may follow prev inside one major; nil:
+	// any change is allowed.
+	compatible func(prev, next *Pack) error
 }
 
 // An agent is one prompt, so it stays small. Skills and knowledge bases
@@ -47,16 +70,24 @@ type kindSpec struct {
 var (
 	agentLimits   = Limits{MaxFiles: 16, MaxFileSize: 512 << 10, MaxTotal: 1 << 20}
 	contentLimits = Limits{MaxFiles: 5000, MaxFileSize: 2 << 20, MaxTotal: 64 << 20}
+	// A pipeline is one small YAML file.
+	pipelineLimits = Limits{MaxFiles: 4, MaxFileSize: 64 << 10, MaxTotal: 128 << 10}
 )
 
 var kinds = map[Kind]kindSpec{
-	KindAgent: {main: AgentFile, what: "agent", article: "an", parse: parseAgent, scaffold: scaffoldAgent, limits: agentLimits},
+	KindAgent: {main: AgentFile, what: "agent", article: "an", parse: parseAgent, scaffold: scaffoldAgent, limits: agentLimits, lint: lintAgent},
 	KindSkill: {main: skill.File, what: "skill", article: "a", parse: parseSkill, scaffold: scaffoldSkill, limits: contentLimits},
 	KindKB:    {what: "KB", article: "a", parse: parseKB, scaffold: scaffoldKB, limits: contentLimits},
+	KindPipeline: {
+		main: PipelineFile, what: "pipeline", article: "a", parse: parsePipeline, scaffold: scaffoldPipeline, limits: pipelineLimits,
+		// A binding names a template by major, and majors start at 1.
+		start:    semver.New(1, 0, 0),
+		noReview: true, needs: pipelineNeeds, checkNeeds: pipelineCheck, standalone: pipelineStandalone, compatible: pipelineCompatible,
+	},
 }
 
 // Kinds returns every kind, in a stable order.
-func Kinds() []Kind { return []Kind{KindAgent, KindSkill, KindKB} }
+func Kinds() []Kind { return []Kind{KindAgent, KindSkill, KindKB, KindPipeline} }
 
 // Valid reports whether k is a known kind.
 func (k Kind) Valid() bool {
@@ -84,6 +115,19 @@ func (k Kind) WithArticle() string {
 	}
 	return "a " + string(k)
 }
+
+// CanRunInReview reports whether loadout review may run packages of kind k.
+// Unknown kinds can, as they did before the question existed.
+func (k Kind) CanRunInReview() bool { return !kinds[k].noReview }
+
+// ChecksCompatibility reports whether a package of kind k is held to a rule
+// inside one major version (see Compatible).
+func (k Kind) ChecksCompatibility() bool { return kinds[k].compatible != nil }
+
+// HasNeeds reports whether a package of kind k can need other packages or
+// agents to render (a pipeline binding), so sync knows which installs to
+// compare with their template.
+func (k Kind) HasNeeds() bool { return kinds[k].needs != nil }
 
 // Limits returns the size limits of a package of kind k.
 func (k Kind) Limits() Limits { return kinds[k].limits }
@@ -176,4 +220,26 @@ func scaffoldKB(id ID) (map[string][]byte, error) {
 	return map[string][]byte{
 		"README.md": []byte("# " + id.Name() + "\n\nWhat this knowledge base covers. Add Markdown or text documents next to this one, in folders if you like.\n"),
 	}, nil
+}
+
+func parsePipeline(p *Pack, content map[string][]byte) error {
+	for _, name := range slices.Sorted(maps.Keys(content)) {
+		if name != PipelineFile {
+			return fmt.Errorf("unexpected file %q: a pipeline package contains only %s and %s", name, ManifestFile, PipelineFile)
+		}
+	}
+	data, ok := content[PipelineFile]
+	if !ok {
+		return fmt.Errorf("missing %s", PipelineFile)
+	}
+	pl, err := pipeline.Parse(data)
+	if err != nil {
+		return fmt.Errorf("%s: %w", PipelineFile, err)
+	}
+	p.pipeline = pl
+	return nil
+}
+
+func scaffoldPipeline(ID) (map[string][]byte, error) {
+	return map[string][]byte{PipelineFile: pipeline.ScaffoldTemplate()}, nil
 }

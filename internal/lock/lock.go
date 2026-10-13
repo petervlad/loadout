@@ -75,6 +75,18 @@ type Entry struct {
 	// tables, which is the same thing. sync compares it with the team's
 	// current table.
 	Models string `yaml:"models,omitempty"`
+	// Requires records the releases of the packages the files were rendered
+	// from (the template a conductor comes from). Empty for most kinds.
+	// sync compares it with the registry. It is kept out of lock.yaml, in
+	// the Store's requires file, so older CLIs still read the lock.
+	Requires []Requirement `yaml:"-"`
+}
+
+// Requirement is one release a package was rendered from.
+type Requirement struct {
+	ID      pack.ID        `yaml:"id"`
+	Version semver.Version `yaml:"version"`
+	Digest  pack.Digest    `yaml:"digest"`
 }
 
 // Shadow is one file a closer layer's package owns instead.
@@ -116,6 +128,7 @@ func (e Entry) FullyShadowed() bool { return len(e.Files) == 0 && len(e.Shadowed
 func (e Entry) clone() Entry {
 	e.Files = slices.Clone(e.Files)
 	e.Shadowed = slices.Clone(e.Shadowed)
+	e.Requires = slices.Clone(e.Requires)
 	return e
 }
 

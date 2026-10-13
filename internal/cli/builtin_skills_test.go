@@ -54,7 +54,7 @@ func TestBuiltinSkillsNameRealCommands(t *testing.T) {
 					continue
 				}
 				for _, flag := range proseFlags(string(data)) {
-					if !anyCommandHas(root, flag) {
+					if !anyCommandHas(root, flag) && !otherToolFlag(string(data), flag) {
 						t.Errorf("%s mentions --%s, which no loadout command has", where, flag)
 					}
 				}
@@ -80,6 +80,9 @@ func TestHonestyCheckCatchesMistakes(t *testing.T) {
 	if len(failed) != 5 {
 		t.Errorf("caught %d of 5 bad commands: %q", len(failed), failed)
 	}
+	if !otherToolFlag("Run `claude --agent lime-dev-loop`.", "agent") || otherToolFlag("Run `loadout install --agent x`.", "agent") || otherToolFlag("`claude --agent a` and `loadout install --agent x`", "agent") {
+		t.Error("--agent must pass after claude or copilot only")
+	}
 	wrapped := "```sh\nsudo -u loadout loadout admin grant --email a@b --data /d\nssh admin@h sudo -u loadout loadout user pasword --email a@b\nsudo systemd-run --pipe --uid=loadout --property=EnvironmentFile=/etc/loadout/loadout.env /usr/local/bin/loadout mail test --nope x\nfly ssh console --pty -C \"/usr/local/bin/loadout admin grant --emial a@b\"\n```\n"
 	lines := commandLines(wrapped)
 	var bad []string
@@ -100,6 +103,26 @@ func TestHonestyCheckCatchesMistakes(t *testing.T) {
 			t.Errorf("%q: %v", line, err)
 		}
 	}
+}
+
+// otherToolFlags are flags of the AI tools that a skill tells the person to
+// type, such as claude --agent NAME, which no loadout command has.
+var otherToolFlags = []string{"agent"}
+
+// otherToolFlag reports whether every use of --flag in md follows a
+// claude or copilot command, so a loadout command cannot borrow the list.
+func otherToolFlag(md, flag string) bool {
+	if !slices.Contains(otherToolFlags, flag) {
+		return false
+	}
+	uses := regexp.MustCompile(`(\S+)\s+--` + flag + `\b`)
+	all := uses.FindAllStringSubmatch(md, -1)
+	for _, m := range all {
+		if !strings.Contains(m[0], "claude") && !strings.Contains(m[0], "copilot") {
+			return false
+		}
+	}
+	return len(all) > 0
 }
 
 func commandTree() *cobra.Command {

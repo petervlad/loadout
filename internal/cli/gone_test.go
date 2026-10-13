@@ -78,12 +78,12 @@ func TestRegistryAdapterLatestGone(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = registryAdapter{c: c, team: "lime"}.Latest(t.Context(), id)
+			_, err = registryAdapter{c: c, team: "lime"}.Releases(t.Context(), id)
 			if err == nil {
-				t.Fatal("Latest() succeeded, want an error")
+				t.Fatal("Releases() succeeded, want an error")
 			}
 			if got := errors.Is(err, update.ErrGone); got != tt.wantGone {
-				t.Errorf("Latest() error = %v; gone = %v, want %v", err, got, tt.wantGone)
+				t.Errorf("Releases() error = %v, gone = %v, want %v", err, got, tt.wantGone)
 			}
 		})
 	}

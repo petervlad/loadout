@@ -184,6 +184,9 @@ func TestCompareSetupErrors(t *testing.T) {
 		{"unknown tool", func(o *review.Options) { o.Tool = "cursor" }, &fakeRunner{}, "unknown tool"},
 		{"tool missing", func(*review.Options) {}, &fakeRunner{version: errors.New("executable file not found")}, "not available"},
 		{"too many runs", func(o *review.Options) { o.Runs = review.MaxRuns + 1 }, &fakeRunner{}, "runs"},
+		{"a pipeline", func(o *review.Options) {
+			o.Candidate = pipelineBinding(t)
+		}, &fakeRunner{}, "loadout review show"},
 		{"no prompts", func(o *review.Options) { o.Prompts = nil }, &fakeRunner{}, "no prompts"},
 		{"no mode", func(o *review.Options) { o.Mode = "" }, &fakeRunner{}, "mode"},
 		{"unknown mode", func(o *review.Options) { o.Mode = "yolo" }, &fakeRunner{}, "mode"},
@@ -346,4 +349,16 @@ func TestCompareSkill(t *testing.T) {
 			}
 		})
 	}
+}
+
+func pipelineBinding(t *testing.T) *pack.Pack {
+	t.Helper()
+	p, err := pack.FromFiles(map[string][]byte{
+		pack.ManifestFile: []byte("name: lime/dev-loop\nkind: pipeline\nversion: 1.0.0\ndescription: d\n"),
+		pack.PipelineFile: []byte("uses: acme/dev-loop@1\nbind:\n  plan: a\nwork_folder: explorations/\n"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

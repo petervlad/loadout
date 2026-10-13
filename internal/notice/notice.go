@@ -73,6 +73,9 @@ type Notice struct {
 	Latest    semver.Version
 	// Models is set when only the team's model settings are new.
 	Models bool
+	// Template is the template release ("acme/dev-loop@1.1.0") a conductor
+	// is behind on, when that is all that is new.
+	Template string
 	// Files are the files still in the way, as the person knows them:
 	// "planner.md (claude)", "SKILL.md (claude, copilot)".
 	Files []string
@@ -92,6 +95,9 @@ func (n Notice) Sentence() string {
 	if n.Models {
 		what = "model settings"
 	}
+	if n.Template != "" {
+		what = "template " + n.Template
+	}
 	switch n.Kind {
 	case Unresolved:
 		return fmt.Sprintf("%s merged: resolve the conflicts in %s", n.Latest, list(n.Files))
@@ -102,7 +108,7 @@ func (n Notice) Sentence() string {
 		return fmt.Sprintf("%s held back: %s in the way", what, list(n.Files))
 	case Available:
 		verb := "available"
-		if n.Models {
+		if n.Models || n.Template != "" {
 			verb = "changed"
 		}
 		return fmt.Sprintf("%s %s: %s", what, verb, n.Command())
@@ -127,6 +133,9 @@ func (n Notice) Command() string {
 func (n Notice) Name() string {
 	if n.Models {
 		return n.ID.String() + " model settings"
+	}
+	if n.Template != "" {
+		return n.ID.String() + " template"
 	}
 	return n.ID.String() + " " + n.Latest.String()
 }
@@ -328,6 +337,9 @@ func (s *Service) RecordMerge(ctx context.Context, m syncstate.Merged) error {
 
 // behind reports whether e is still behind what b recorded.
 func behind(e lock.Entry, b syncstate.Behind) bool {
+	if b.Template != "" {
+		return !slices.ContainsFunc(e.Requires, func(r lock.Requirement) bool { return r.ID.String()+"@"+r.Version.String() == b.Template })
+	}
 	if b.ModelsOnly() {
 		return e.Version.Compare(b.Version) == 0 && e.Models != b.Models
 	}
@@ -341,7 +353,7 @@ func behind(e lock.Entry, b syncstate.Behind) bool {
 func (s *Service) notice(ctx context.Context, e lock.Entry, b syncstate.Behind) (Notice, error) {
 	n := Notice{
 		Kind: Available, ID: e.ID, Scope: e.Scope, Installed: e.Version, Latest: b.Latest,
-		Models: b.ModelsOnly(), Builtin: e.Source == builtin.Source, Checked: b.Checked,
+		Models: b.ModelsOnly(), Template: b.Template, Builtin: e.Source == builtin.Source, Checked: b.Checked,
 	}
 	var edited, other []string
 	for _, h := range b.Held {

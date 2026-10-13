@@ -252,6 +252,10 @@ func (s *Service) Publish(ctx context.Context, pr Principal, data []byte) (Relea
 		return Release{}, err
 	}
 
+	if err := (checker{store: s.store, namespaces: s.namespaces}).check(ctx, p); err != nil {
+		return Release{}, err
+	}
+
 	// Checked early for a clear message; PutRelease checks again atomically.
 	existing, err := s.store.Releases(ctx, p.ID())
 	if err != nil && !errors.Is(err, ErrNotFound) {

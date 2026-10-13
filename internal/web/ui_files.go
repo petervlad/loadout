@@ -324,6 +324,10 @@ func (h *handler) drawFrame(w http.ResponseWriter, r *http.Request, t team) {
 		h.notFound(w, r, t.user)
 		return
 	}
+	if r.URL.Query().Has(pipelineQuery) {
+		h.pipelineFrame(w, r, t, rl, p)
+		return
+	}
 	_, files, err := bundle.Scan(rl.data, func(name string) bool { return name == p })
 	if err != nil {
 		h.fail(w, r, err)

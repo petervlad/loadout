@@ -52,6 +52,9 @@ var (
 	_ target.Adapter       = (*Adapter)(nil)
 	_ target.ModelDefaults = (*Adapter)(nil)
 	_ target.ModelGuide    = (*Adapter)(nil)
+	_ target.Delegator     = (*Adapter)(nil)
+	_ target.AgentLimiter  = (*Adapter)(nil)
+	_ target.FolderMaker   = (*Adapter)(nil)
 )
 
 // New returns a Claude Code adapter.
@@ -95,10 +98,34 @@ func (*Adapter) SkillsDir(target.ScopeKind) (string, error) {
 
 // RenderAgent returns the subagent file for def. Both scopes use the same path
 // relative to their root.
-func (*Adapter) RenderAgent(def agent.Definition, run tier.Choice, _ target.Scope, stamp target.Stamp) (target.File, error) {
+func (a *Adapter) RenderAgent(def agent.Definition, run tier.Choice, scope target.Scope, stamp target.Stamp) (target.File, error) {
+	return a.RenderLimited(def, nil, run, scope, stamp)
+}
+
+// StartAgent says how a conductor starts a custom agent: the Agent tool with
+// subagent_type set to its name.
+func (*Adapter) StartAgent(name string) string {
+	return "Use the Agent tool, set subagent_type to exactly `" + name + "`, and set run_in_background to false."
+}
+
+// EditCreatesFolders is true: the Write tool makes parent folders.
+func (*Adapter) EditCreatesFolders() bool { return true }
+
+// RenderLimited renders def with its agent tool limited to helpers, which
+// Claude Code writes as Agent(a, b). A subagent can only start agents on its
+// session agent's list, so a conductor must list every agent it may need.
+// Nil helpers leave the tool unlimited.
+func (*Adapter) RenderLimited(def agent.Definition, helpers []string, run tier.Choice, _ target.Scope, stamp target.Stamp) (target.File, error) {
 	tools, err := mapTools(def.Tools)
 	if err != nil {
 		return target.File{}, err
+	}
+	if helpers != nil {
+		for i, t := range tools {
+			if t == "Agent" {
+				tools[i] = "Agent(" + strings.Join(helpers, ", ") + ")"
+			}
+		}
 	}
 	data, err := target.Markdown(def.Name, frontmatter{
 		Name:        def.Name,

@@ -208,6 +208,16 @@ type Options struct {
 	ProposalID string
 }
 
+// CheckRunnable refuses a package that must not run in a review, such as a
+// pipeline whose conductor would start a whole run in the review folder. A
+// caller asks before it prints anything about a run.
+func CheckRunnable(p *pack.Pack) error {
+	if p.Kind().CanRunInReview() {
+		return nil
+	}
+	return fmt.Errorf("%s is %s, and running it would start a whole run in the review folder. Read its changes instead: loadout review show ID", p.ID(), p.Kind().WithArticle())
+}
+
 func (o Options) check() error {
 	switch {
 	case !o.Mode.Valid():
@@ -221,7 +231,7 @@ func (o Options) check() error {
 	case o.Timeout <= 0:
 		return fmt.Errorf("compare: timeout %s: want a positive duration", o.Timeout)
 	}
-	return nil
+	return CheckRunnable(o.Candidate)
 }
 
 // Compare renders both versions with the context beside them, runs every
