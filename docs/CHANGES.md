@@ -5,6 +5,22 @@ fixed. The [user guide](../) explains how to use each one.
 
 ## October 2026
 
+### 13 October 2026
+<!-- through 6b305e2 -->
+
+
+- Feature: `loadout cleanup` lists the old agents, skills and knowledge bases an
+  earlier setup left in your tool folders, and `--apply` moves them into
+  `~/.loadout/backup/`. `--duplicates` also finds copies of names your registry does not
+  offer, and `--tool vscode` covers the folders VS Code reads.
+- Feature: `loadout install --adopt` moves aside the files and links an older setup left
+  in the way, then installs. A link is moved, never the folder it points to.
+- Feature: `loadout user add --email E --password-file F` adds an account on a
+  simple-login registry, with `--admin` for an admin. An account that exists keeps its
+  password.
+- Feature: The built-in setup skill walks through a messy machine, including agents that
+  show twice in VS Code and the `chat.agentFilesLocations` setting that fixes it.
+
 ### 12 October 2026
 <!-- through 9a4ea7f -->
 

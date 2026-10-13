@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/petervlad/loadout/internal/account"
+	"github.com/petervlad/loadout/internal/registry"
 )
 
 func TestSimpleLogin(t *testing.T) {
@@ -39,5 +40,37 @@ func TestSimpleLogin(t *testing.T) {
 	}
 	if _, err := f.svc.SimpleLogin(t.Context(), "nopass@example.com", ""); !errors.Is(err, account.ErrBadLogin) {
 		t.Errorf("user without a password: err = %v, want ErrBadLogin", err)
+	}
+}
+
+func TestAddUser(t *testing.T) {
+	f := newFixture(t)
+	ctx := t.Context()
+	const pw = "a long enough password"
+
+	if err := f.svc.AddUser(ctx, account.UserActor("someone"), "olga@example.com", pw, false); !errors.Is(err, registry.ErrForbidden) {
+		t.Errorf("AddUser(non-operator) error = %v, want ErrForbidden", err)
+	}
+	if err := f.svc.AddUser(ctx, account.Operator(), "olga@example.com", "", false); err == nil {
+		t.Error("AddUser(no password) succeeded, want an error")
+	}
+	if err := f.svc.AddUser(ctx, account.Operator(), "olga@example.com", pw, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.SimpleLogin(ctx, "olga@example.com", pw); err != nil {
+		t.Errorf("SimpleLogin() after AddUser error: %v", err)
+	}
+	if _, err := f.svc.SimpleLogin(ctx, "olga@example.com", "wrong"); !errors.Is(err, account.ErrBadLogin) {
+		t.Errorf("SimpleLogin(wrong) error = %v, want ErrBadLogin", err)
+	}
+	u, _ := f.store.UserByEmail(ctx, "olga@example.com")
+	if !u.IsAdmin {
+		t.Error("the --admin flag was not applied")
+	}
+	if err := f.svc.AddUser(ctx, account.Operator(), "olga@example.com", "another long password", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.svc.SimpleLogin(ctx, "olga@example.com", pw); err != nil {
+		t.Errorf("an existing account lost its password: %v", err)
 	}
 }

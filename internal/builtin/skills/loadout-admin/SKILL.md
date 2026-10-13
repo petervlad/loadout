@@ -46,6 +46,18 @@ loadout member invite --namespace acme --email dana@example.com --team payments=
 
 `member invite` adds a person to a project and some of its teams in one step: all roles are given or none, a role they have is raised and never lowered, and it prints a sign-in link (mailed too when the registry sends mail). The link holds no secret.
 
+## Accounts on a registry with simple login
+
+A registry started with `LOADOUT_LOGIN=simple` has email and password sign-in, no Google and no sign-up page. Accounts are made on the registry host, as the operator, not over the website. The password goes through standard input or a file, never on the command line, and the person should change a shared one:
+
+```sh
+echo 'PASSWORD' | loadout user add --data /var/lib/loadout --email NAME@company.com --password-file -
+loadout member add --data /var/lib/loadout --namespace PROJECT --email NAME@company.com --role member
+loadout member add --data /var/lib/loadout --namespace TEAM --email NAME@company.com --role member
+```
+
+Add the person to the project (L0) and to their team (L1). `loadout user add` keeps the password of an account that exists. Ask first, and never print or repeat a password back.
+
 ## Teams and review
 
 ```sh

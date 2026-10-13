@@ -15,6 +15,7 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 - Ask the person before anything other people will see: publishing, proposing, approving, rejecting or withdrawing a proposal, adding, inviting, changing or removing members, changing a namespace, making or revoking tokens.
 - Never read, print, copy or pass a token or an invite. The person runs `loadout login` themselves. Never open `~/.loadout/credentials.yaml`.
 - Never add `--force` to overwrite a file the person edited without asking them first. loadout refuses on purpose.
+- `--adopt` and `loadout cleanup --apply` move files and links an older setup left into `~/.loadout/backup/`. Nothing is deleted. They are not `--force`, but they change the person's tool folders, so run `loadout cleanup` without `--apply` first, show the list and ask.
 - `loadout review` runs a teammate's package with the tool's full access; say so and offer `--safe`.
 - loadout never calls a model. Do not look for an AI key or suggest one.
 
@@ -51,6 +52,7 @@ loadout login --remote https://registry.example.com
 - Added to a new team later, or a new team missing from `loadout list`: run `loadout login` again.
 - The login token works for 90 days; `loadout login` again renews it.
 - A registry without accounts uses invites instead. The person saves the invite to a file and runs `loadout team join < invite.txt`. Do not read or print the invite: it holds a token.
+- A registry inside a company network may use its own certificate authority. If the first login fails with "x509: certificate signed by unknown authority", the local skill or the team lead gives a CA file, and the person runs `loadout login --remote https://HOST --ca-file ca.crt`. loadout remembers it for that registry.
 - `loadout logout` signs out of a registry; `loadout team leave payments` leaves one team on this machine.
 
 ## Install packages
@@ -62,12 +64,55 @@ loadout install --all                    # everything the person can read
 loadout install payments/planner             # one package
 loadout install payments/planner@1.2.0       # one version
 loadout install payments/planner --target claude
+loadout install payments/planner --adopt     # an older setup has files or links in the way
 loadout install payments/planner --scope project   # into the git repository, for everyone who clones it
 ```
 
 - Packages go into the tools whose folder exists: `~/.claude` (Claude Code) and `~/.copilot` (Copilot). `--target claude,copilot` chooses.
 - Layers: a team (L1) shadows its project (L0) when both ship a package with the same name. `loadout layers` shows each team's layers.
 - Tell the person to start a new session in their tool afterwards: tools read agents and skills when a session starts.
+
+## A machine an older setup filled
+
+Many people already have agents and skills from a dotfiles repo or an install script, as links or copies in `~/.claude`, `~/.copilot` or `~/.agents`. A plain install then stops ("not written by loadout", "is a symlink to a folder"), or it works and the AI tool lists everything twice, or an old copy wins. Check first, before installing:
+
+```sh
+loadout cleanup --tool copilot     # list only: old copies that have the name of a package the registry offers
+loadout cleanup --tool claude
+loadout cleanup --tool vscode
+```
+
+Pick the tool the person uses, or run more than one. What each tool reads, and what goes wrong:
+
+| Tool | Folders it reads | Typical mess |
+| --- | --- | --- |
+| Claude Code | `~/.claude/agents`, `~/.claude/skills` | An old copy with the same name blocks the install. |
+| Copilot (CLI, desktop app) | `~/.copilot/agents`, `~/.copilot/skills`, `~/.agents/skills`. The desktop app also lists `~/.claude` | The same skill in `~/.agents/skills` and `~/.copilot/skills`. |
+| VS Code Copilot Chat | `~/.copilot`, `~/.agents/skills` and `~/.claude` (not `~/.agents/agents`) | Every agent twice, once from `~/.copilot/agents` and once from an old `~/.claude/agents`. `~/.agents/skills` is read before `~/.copilot/skills`, so a stale skill wins. |
+
+Then, with the person's yes:
+
+```sh
+loadout install --all --adopt        # installs, and moves what is in the way into ~/.loadout/backup/<date>/
+loadout cleanup --tool vscode --apply   # moves old copies that remain (see the warning below)
+```
+
+- `--adopt` also moves the same-named copy in `~/.agents` that Copilot reads. A link is moved, never what it points to, so the person's repositories are untouched. To undo, move the entries back from `~/.loadout/backup/<date>/`.
+- `--tool copilot` leaves `~/.claude` alone. `--tool vscode` moves old copies out of `~/.claude` too, which Claude Code reads. Use `vscode` only when the packages are installed for Claude Code as well (a plain `loadout install` writes both), or the person does not need those old copies.
+- With `--target copilot` an old `~/.claude/agents/NAME.md` is not in the way and stays. In VS Code it then appears twice. Either install for both tools, or run the VS Code cleanup.
+- `loadout cleanup` matches by package name only. An old setup often left more: other teams' agents and skills the person's registry does not offer. They show up two or three times, once per folder the tool reads. Find them with `loadout cleanup --tool vscode --duplicates` (list only). It keeps one copy of each name (a loadout copy first, else `~/.copilot`, then `~/.agents`, then `~/.claude`) and lists the rest. Tell the person what it found, ask, then add `--apply`. A name that exists in only one folder is never touched.
+- loadout's own copies are never moved. Installed for both Claude Code and Copilot, an agent sits in `~/.claude/agents` and `~/.copilot/agents`, and VS Code lists it twice (it reads both). Skills are listed once. Fix it in VS Code, not in the folders: ask the person, then add this to their user settings.json (Cmd+Shift+P, "Preferences: Open User Settings (JSON)"), and reload the window. Claude Code keeps reading `~/.claude/agents`, and VS Code keeps the Copilot copies, which carry the team's model and effort. A repo's own `.claude/agents` stops loading in VS Code (Claude Code still loads it), `".github/agents": true` is already on.
+
+```json
+"chat.agentFilesLocations": {
+    ".claude/agents": false,
+    "~/.claude/agents": false
+}
+```
+- Afterwards tell the person to restart the tool or reload the VS Code window, then check: `loadout status` (every row ok) and, in Copilot CLI, `copilot skill list`. `loadout list` shows how many packages the person can read, and `loadout install --all` installs all of them, `loadout status` has one row per package and tool.
+- A clean `loadout cleanup` and an ok `loadout status` do not prove there are no doubles, so run `loadout cleanup --tool vscode --duplicates` once more at the end: it should say nothing to clean up (apart from loadout's own two copies of an agent).
+- `cleanup` prints every path and ends with a count per folder. The backup keeps the same layout under `~/.loadout/backup/<date>/` in hidden folders (`.claude`, `.agents`, `.copilot`), so look with `ls -a`.
+- `--tool vscode` covers `~/.copilot`, `~/.agents` and `~/.claude` in one run, so a person using both tools needs only that one.
 
 ## Stay up to date
 

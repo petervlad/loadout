@@ -163,6 +163,7 @@ func NewRoot(d Deps) *cobra.Command {
 		newNewCmd(d),
 		newImportCmd(d),
 		newInstallCmd(d),
+		newCleanupCmd(d),
 		newStatusCmd(d),
 		newPolicyCmd(d),
 		newUninstallCmd(d),

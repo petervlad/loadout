@@ -400,6 +400,8 @@ td code { white-space: nowrap; }
 </div>
 <p>When two layers ship a package with the same name, the closer layer wins: your team's <code>payments/planner</code> shadows the project's <code>acme/planner</code>, and only the team's file is installed. <code>loadout status</code> then shows the project's copy as "shadowed by payments/planner". Uninstall the team's package and the project's comes back when you install it again.</p>
 <p>loadout never touches L2. If a package would overwrite a file you made yourself, the install stops and names the file. Your file stays unless you pass <code>--force</code>.</p>
+<p>On a machine an older setup filled (a dotfiles repo, or a script that linked agents and skills into <code>~/.claude</code>, <code>~/.copilot</code> and <code>~/.agents</code>), the same install stops on every link and file in the way. Run it with <code>--adopt</code>: loadout moves them, and same-named copies in <code>~/.agents</code> that Copilot also reads, into <code>~/.loadout/backup/&lt;date&gt;/</code> and installs. Nothing is deleted, and a link's target is never touched. To undo, move them back.</p>
+<p><code>loadout cleanup</code> finds the old ones without installing anything: agents, skills and knowledge bases with the name of a package your registry offers that loadout did not write, in the folders your tool reads (<code>--tool copilot</code>, the default, also looks in <code>~/.agents</code>, <code>--tool claude</code>, <code>--tool vscode</code> for VS Code, which reads <code>~/.copilot</code>, <code>~/.agents</code> and <code>~/.claude</code>, so it lists an agent twice when an old copy sits in <code>~/.claude</code>, and reads <code>~/.agents/skills</code> before <code>~/.copilot/skills</code>). With <code>--duplicates</code> it also finds agents and skills that sit in more than one folder the tool reads, even when no package has that name (an old setup that installed other teams' files), keeps one copy and lists the rest. loadout's own copies are never moved: an agent installed for both Claude Code and Copilot is in <code>~/.claude/agents</code> and <code>~/.copilot/agents</code>, and VS Code lists it twice (fix it in VS Code's user settings.json with <code>"chat.agentFilesLocations": {".claude/agents": false, "~/.claude/agents": false}</code>, then reload the window. Claude Code is not affected). It only lists them until you add <code>--apply</code>, which moves them into the same backup folder.</p>
 <h3 id="roles">Roles</h3>
 <p>Everyone who signs in has a role in a team or project:</p>
 <div class="table">
@@ -1189,7 +1191,11 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 </tr>
 <tr>
 <td><code>loadout install TEAM/NAME[@V] | FOLDER | --all</code></td>
-<td>Install into your AI tools (<code>--scope</code>, <code>--target</code>, <code>--policy</code>, <code>--force</code>)</td>
+<td>Install into your AI tools (<code>--scope</code>, <code>--target</code>, <code>--policy</code>, <code>--force</code>, <code>--adopt</code>)</td>
+</tr>
+<tr>
+<td><code>loadout cleanup [--tool copilot|claude|vscode] [--duplicates] [--apply]</code></td>
+<td>List, or with <code>--apply</code> move aside, old agents, skills and knowledge bases an earlier setup left</td>
 </tr>
 <tr>
 <td><code>loadout install TEAM/NAME[@V] --merge</code></td>
@@ -1362,6 +1368,10 @@ loadout token create --team payments --read --invite --url http://10.0.4.12:7420
 <tr>
 <td><code>loadout user password --email E</code></td>
 <td>Set an account's password, creating it; the password comes from standard input, never a flag (on the host)</td>
+</tr>
+<tr>
+<td><code>loadout user add --email E --password-file F [--admin]</code></td>
+<td>Add an account with a password read from a file or <code>-</code>, never a flag, keeping the password of one that exists (on the host)</td>
 </tr>
 <tr>
 <td><code>loadout setup --skills [--target T] [--force]</code></td>

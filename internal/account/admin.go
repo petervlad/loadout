@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/petervlad/loadout/internal/registry"
@@ -68,4 +69,32 @@ func (s *Service) DeleteUser(ctx context.Context, actor Actor, email string) (in
 		return 0, fmt.Errorf("user deleted, but revoking their tokens failed: %w", err)
 	}
 	return n, nil
+}
+
+// AddUser creates the account for email on the registry host, with a
+// password, a verified address and the admin flag if asked. An account that
+// exists keeps its password, so this never resets one: use
+// SetPasswordAsOperator for that. Only the operator does this.
+func (s *Service) AddUser(ctx context.Context, actor Actor, email, pw string, admin bool) error {
+	if !actor.Operator {
+		return forbidden("users are added on the registry host")
+	}
+	e, err := NormalizeEmail(email)
+	if err != nil {
+		return err
+	}
+	if _, err := s.store.UserByEmail(ctx, e); err == nil {
+		return nil
+	} else if !errors.Is(err, registry.ErrNotFound) {
+		return fmt.Errorf("add user: %w", err)
+	}
+	if _, err := s.SetPasswordAsOperator(ctx, actor, e, pw); err != nil {
+		return err
+	}
+	if admin {
+		if _, err := s.SetAdmin(ctx, actor, e, true); err != nil {
+			return err
+		}
+	}
+	return nil
 }

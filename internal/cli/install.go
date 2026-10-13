@@ -26,6 +26,7 @@ func newInstallCmd(d Deps) *cobra.Command {
 		policy     string
 		remoteName string
 		force      bool
+		adopt      bool
 		merge      bool
 		all        bool
 	)
@@ -41,7 +42,10 @@ Agents go to each tool's agents folder. Skills and knowledge bases go to a
 skill folder: ~/.claude/skills/NAME and ~/.copilot/skills/NAME for your
 user, .claude/skills/NAME in a project, which both tools read.
 
-A file you edited is never overwritten without --force. With --merge, an
+A file you edited is never overwritten without --force. On a machine set up
+by hand or by a dotfiles repo, --adopt moves the files and links in the way
+(and same-named copies in ~/.agents, which Copilot also reads) into
+~/.loadout/backup, then installs. Nothing is deleted. With --merge, an
 installed package takes the new release and keeps your edits: each edited
 file is merged with the release's changes, and where both changed the
 same lines the file holds conflict markers for you to resolve.`,
@@ -49,7 +53,7 @@ same lines the file holds conflict markers for you to resolve.`,
   loadout install payments/planner@1.2.0 --scope project
   loadout install ./planner --target claude
   loadout install payments/planner --merge
-  loadout install --all`,
+  loadout install --all --adopt`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if all != (len(args) == 0) {
@@ -64,6 +68,7 @@ same lines the file holds conflict markers for you to resolve.`,
 				Targets: targets,
 				Policy:  lock.Policy(policy),
 				Force:   force,
+				Adopt:   adopt,
 			}
 			if merge {
 				if all {
@@ -127,6 +132,7 @@ same lines the file holds conflict markers for you to resolve.`,
 	f.StringVar(&policy, "policy", "", "how updates arrive: auto, notify or pin (default notify, or the current policy)")
 	f.StringVar(&remoteName, "remote", "", "registry to install from (default: the team's registry, else the default remote)")
 	f.BoolVar(&force, "force", false, "overwrite files loadout did not write or that were edited")
+	f.BoolVar(&adopt, "adopt", false, "move files and links an older setup left in the way into ~/.loadout/backup, then install")
 	f.BoolVar(&merge, "merge", false, "take the new release and keep your edits, merging them; conflicts are marked in the files")
 	f.BoolVar(&all, "all", false, "install every package your token can read, from all layers")
 	return cmd

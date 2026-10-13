@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 	"text/tabwriter"
 
@@ -289,5 +292,60 @@ func newUserCmd(d Deps) *cobra.Command {
 	_ = del.MarkFlagRequired("email") // only fails for an unknown flag name
 	cmd.AddCommand(del)
 	cmd.AddCommand(newUserPasswordCmd(d, &dataDir))
+
+	var (
+		addEmail, pwFile string
+		admin            bool
+	)
+	add := &cobra.Command{
+		Use:   "add",
+		Short: "Add an account with a password, for registries that use LOADOUT_LOGIN=simple",
+		Long: `Add an account that signs in with an email and a password. The password is
+read from a file (or - for standard input), never from the command line.
+An account that exists keeps its password. Give it a team afterwards with
+loadout member add.`,
+		Example: `  echo secret | loadout user add --email olga@example.com --password-file -
+  loadout user add --email olga@example.com --password-file ./pw --admin`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			pw, err := readPassword(cmd, pwFile)
+			if err != nil {
+				return err
+			}
+			err = withRegistry(cmd.Context(), d, dataDir, func(reg Registry) error {
+				return reg.Accounts.AddUser(cmd.Context(), account.Operator(), addEmail, pw, admin)
+			})
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "added %s\n", addEmail)
+			return nil
+		},
+	}
+	add.Flags().StringVar(&addEmail, "email", "", "the user's email address (required)")
+	add.Flags().StringVar(&pwFile, "password-file", "", "file holding the password, or - for standard input (required)")
+	add.Flags().BoolVar(&admin, "admin", false, "make the user a registry admin")
+	_ = add.MarkFlagRequired("email")         // only fails for an unknown flag name
+	_ = add.MarkFlagRequired("password-file") // only fails for an unknown flag name
+	cmd.AddCommand(add)
 	return cmd
+}
+
+// readPassword reads one line from path, or from standard input for "-".
+func readPassword(cmd *cobra.Command, path string) (string, error) {
+	var data []byte
+	var err error
+	if path == "-" {
+		data, err = io.ReadAll(io.LimitReader(cmd.InOrStdin(), 1024))
+	} else {
+		data, err = os.ReadFile(path)
+	}
+	if err != nil {
+		return "", fmt.Errorf("read the password: %w", err)
+	}
+	pw, _, _ := strings.Cut(string(data), "\n")
+	if pw == "" {
+		return "", errors.New("the password file is empty")
+	}
+	return pw, nil
 }

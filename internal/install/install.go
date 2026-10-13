@@ -85,6 +85,11 @@ type Options struct {
 	// Force overwrites files loadout did not write or that were edited. It
 	// never takes a file over from another package of the same layer.
 	Force bool
+	// Adopt moves what stands in the way (files and links an older setup
+	// wrote, and same-named copies in ~/.agents that Copilot also reads)
+	// into ~/.loadout/backup instead of failing. Nothing is deleted. Files
+	// loadout wrote and you edited still need Force.
+	Adopt bool
 	// Depth is how far the package's namespace is from the installing
 	// token's own: 0 for its own namespace and for folders, 1 for the
 	// parent, and so on. When another package already owns a file this
@@ -211,6 +216,11 @@ func (in *Installer) installLocked(ctx context.Context, l *lock.Lock, files tree
 	conflicts, err := findConflicts(files, l, p.ID(), opts.Depth, write, dropped)
 	if err != nil {
 		return Result{}, err
+	}
+	if opts.Adopt {
+		if conflicts, err = in.adopt(files, write, conflicts); err != nil {
+			return Result{}, err
+		}
 	}
 	if len(conflicts) > 0 && (!opts.Force || slices.ContainsFunc(conflicts, Conflict.blocking)) {
 		return Result{}, &ConflictError{Conflicts: conflicts}

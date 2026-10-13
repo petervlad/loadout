@@ -298,6 +298,13 @@ td code { white-space: nowrap; }
 <h1 id="whats-new-in-loadout">What's new in loadout</h1>
 <p>What changed in loadout, newest first. Each update lists what it added and what it fixed. The <a href="../">user guide</a> explains how to use each one.</p>
 <h2 id="october-2026">October 2026</h2>
+<h3 id="13-october-2026"><time datetime="2026-10-13">13 October 2026</time></h3>
+<ul>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout cleanup</code> lists the old agents, skills and knowledge bases an earlier setup left in your tool folders, and <code>--apply</code> moves them into <code>~/.loadout/backup/</code>. <code>--duplicates</code> also finds copies of names your registry does not offer, and <code>--tool vscode</code> covers the folders VS Code reads.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout install --adopt</code> moves aside the files and links an older setup left in the way, then installs. A link is moved, never the folder it points to.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> <code>loadout user add --email E --password-file F</code> adds an account on a simple-login registry, with <code>--admin</code> for an admin. An account that exists keeps its password.</li>
+<li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The built-in setup skill walks through a messy machine, including agents that show twice in VS Code and the <code>chat.agentFilesLocations</code> setting that fixes it.</li>
+</ul>
 <h3 id="12-october-2026"><time datetime="2026-10-12">12 October 2026</time></h3>
 <ul>
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The members list on a project or team's <strong>Settings</strong> page is sorted: owners first, then maintainers, then members, each by name.</li>

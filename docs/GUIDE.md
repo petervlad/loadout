@@ -53,6 +53,10 @@ When two layers ship a package with the same name, the closer layer wins: your t
 
 loadout never touches L2. If a package would overwrite a file you made yourself, the install stops and names the file. Your file stays unless you pass `--force`.
 
+On a machine an older setup filled (a dotfiles repo, or a script that linked agents and skills into `~/.claude`, `~/.copilot` and `~/.agents`), the same install stops on every link and file in the way. Run it with `--adopt`: loadout moves them, and same-named copies in `~/.agents` that Copilot also reads, into `~/.loadout/backup/<date>/` and installs. Nothing is deleted, and a link's target is never touched. To undo, move them back.
+
+`loadout cleanup` finds the old ones without installing anything: agents, skills and knowledge bases with the name of a package your registry offers that loadout did not write, in the folders your tool reads (`--tool copilot`, the default, also looks in `~/.agents`, `--tool claude`, `--tool vscode` for VS Code, which reads `~/.copilot`, `~/.agents` and `~/.claude`, so it lists an agent twice when an old copy sits in `~/.claude`, and reads `~/.agents/skills` before `~/.copilot/skills`). With `--duplicates` it also finds agents and skills that sit in more than one folder the tool reads, even when no package has that name (an old setup that installed other teams' files), keeps one copy and lists the rest. loadout's own copies are never moved: an agent installed for both Claude Code and Copilot is in `~/.claude/agents` and `~/.copilot/agents`, and VS Code lists it twice (fix it in VS Code's user settings.json with `"chat.agentFilesLocations": {".claude/agents": false, "~/.claude/agents": false}`, then reload the window. Claude Code is not affected). It only lists them until you add `--apply`, which moves them into the same backup folder.
+
 ### Roles
 
 Everyone who signs in has a role in a team or project:
@@ -856,7 +860,8 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout team leave T` | Leave a team |
 | `loadout list [--kind K] [--layer L] [--sort S] [--wide] [--remote R]` | Packages you can install, with kind and layer; `--kind agent\|skill\|kb`, `--layer` a namespace name, `--sort layer\|name\|kind\|updated`, `--wide` for full descriptions |
 | `loadout layers` | For each of your teams, the layers it reads, closest first |
-| `loadout install TEAM/NAME[@V] \| FOLDER \| --all` | Install into your AI tools (`--scope`, `--target`, `--policy`, `--force`) |
+| `loadout install TEAM/NAME[@V] \| FOLDER \| --all` | Install into your AI tools (`--scope`, `--target`, `--policy`, `--force`, `--adopt`) |
+| `loadout cleanup [--tool copilot\|claude\|vscode] [--duplicates] [--apply]` | List, or with `--apply` move aside, old agents, skills and knowledge bases an earlier setup left |
 | `loadout install TEAM/NAME[@V] --merge` | Take a new release and keep your edits, merged; conflicts are marked in the files |
 | `loadout uninstall TEAM/NAME [--scope S] [--force]` | Remove a package's files |
 | `loadout status [--files]` | Installed packages and whether their files are intact, the updates the last sync found, and a newer loadout |
@@ -900,6 +905,7 @@ On a host that is not Hetzner, leave the `LOADOUT_HETZNER_` lines out: with a to
 | `loadout admin grant\|revoke\|list --email E` | Registry admins (on the host) |
 | `loadout user delete --email E` | Delete an account (on the host) |
 | `loadout user password --email E` | Set an account's password, creating it; the password comes from standard input, never a flag (on the host) |
+| `loadout user add --email E --password-file F [--admin]` | Add an account with a password read from a file or `-`, never a flag, keeping the password of one that exists (on the host) |
 | `loadout setup --skills [--target T] [--force]` | Install loadout's own skills for your AI agent now (login does it for you); brings back ones you uninstalled |
 | `loadout setup --host-skills [--target T] [--force]` | Install the two skills that set up a registry of your own; login and sync never add them, but keep installed ones up to date |
 | `loadout setup --hooks [--target T]`, `setup --no-hooks` | Set up, or remove, the session hooks that say when your edits hold an update back or a newer loadout is out (login sets them up) |
