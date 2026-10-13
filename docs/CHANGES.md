@@ -105,6 +105,9 @@ fixed. The [user guide](../) explains how to use each one.
   one of them, in a sample project. Nothing is installed on your machine and it needs no
   Go. It is also `loadout demo seed` and `loadout demo up`. The demo only starts on a
   localhost address, because every demo account shares one public password.
+- Fix: loadout now finds Claude Code's MCP entry in `$CLAUDE_CONFIG_DIR/.claude.json` when
+  you set that variable. Before, it looked in `~/.claude.json`, never saw its own entry,
+  and warned on every install and sync.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->

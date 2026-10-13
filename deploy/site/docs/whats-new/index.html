@@ -333,6 +333,7 @@ td code { white-space: nowrap; }
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The server page shows team memory counts for each team, with no memory text.</li>
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> The backups panel shows how the last run ended, whether the newest archive holds both databases, and the copies saved before packages were deleted.</li>
 <li><span class="tag tag-feature">Feature</span><span class="vh">:</span> A <strong>demo</strong>. <code>docker compose up</code> in the repository starts a registry full of fake projects, teams, people, packages, proposals, pipelines, team memory, wikis and courses, on <code>http://localhost:8080</code>, and <code>docker compose run --rm cli</code> opens a shell signed in as one of them, in a sample project. Nothing is installed on your machine and it needs no Go. It is also <code>loadout demo seed</code> and <code>loadout demo up</code>. The demo only starts on a localhost address, because every demo account shares one public password.</li>
+<li><span class="tag tag-fix">Fix</span><span class="vh">:</span> loadout now finds Claude Code's MCP entry in <code>$CLAUDE_CONFIG_DIR/.claude.json</code> when you set that variable. Before, it looked in <code>~/.claude.json</code>, never saw its own entry, and warned on every install and sync.</li>
 </ul>
 <h3 id="12-october-2026"><time datetime="2026-10-12">12 October 2026</time></h3>
 <ul>

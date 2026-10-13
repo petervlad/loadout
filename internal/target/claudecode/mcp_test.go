@@ -43,8 +43,21 @@ func TestRemoveMCPArgs(t *testing.T) {
 
 func TestMCPProgramAndFile(t *testing.T) {
 	a := New()
-	if a.MCPProgram() != "claude" || a.MCPStateFile() != ".claude.json" {
-		t.Errorf("MCPProgram() = %q, MCPStateFile() = %q", a.MCPProgram(), a.MCPStateFile())
+	if a.MCPProgram() != "claude" {
+		t.Errorf("MCPProgram() = %q", a.MCPProgram())
+	}
+	home := filepath.Join(string(filepath.Separator), "h")
+	abs := filepath.Join(string(filepath.Separator), "cfg")
+	for dir, want := range map[string]string{
+		"":        filepath.Join(home, ".claude.json"),
+		abs:       filepath.Join(abs, ".claude.json"),
+		"~":       filepath.Join(home, ".claude.json"),
+		"~/cfg":   filepath.Join(home, "cfg", ".claude.json"),
+		"rel/cfg": filepath.Join(home, ".claude.json"),
+	} {
+		if got := a.MCPStateFile(func(string) string { return dir }, home); got != want {
+			t.Errorf("MCPStateFile with CLAUDE_CONFIG_DIR=%q = %q, want %q", dir, got, want)
+		}
 	}
 }
 

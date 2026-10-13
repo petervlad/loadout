@@ -176,6 +176,9 @@ type Options struct {
 	// exec.LookPath.
 	Executable func() (string, error)
 	LookPath   func(file string) (string, error)
+	// Getenv reads the tool's config folder variable (CLAUDE_CONFIG_DIR);
+	// nil uses os.Getenv.
+	Getenv func(string) string
 	// Run runs a tool's own command line (claude mcp add-json). Tests
 	// replace it so the real program never runs; nil runs the program.
 	Run Runner
@@ -213,13 +216,16 @@ func New(opts Options, tools ...Tool) (*Service, error) {
 	if opts.LookPath == nil {
 		opts.LookPath = exec.LookPath
 	}
+	if opts.Getenv == nil {
+		opts.Getenv = os.Getenv
+	}
 	if opts.Run == nil {
 		opts.Run = runIn(opts.Home)
 	}
 	if opts.Log == nil {
 		opts.Log = slog.New(slog.DiscardHandler)
 	}
-	e := env{home: opts.Home, run: opts.Run, lookPath: opts.LookPath, log: opts.Log}
+	e := env{home: opts.Home, run: opts.Run, lookPath: opts.LookPath, getenv: opts.Getenv, log: opts.Log}
 	s := &Service{
 		home: opts.Home, wish: wishFile{path: opts.WishPath},
 		executable: opts.Executable, lookPath: opts.LookPath, tokens: opts.Tokens, log: opts.Log,

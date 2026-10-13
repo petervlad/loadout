@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -33,6 +35,7 @@ type env struct {
 	home     string
 	run      Runner
 	lookPath func(string) (string, error)
+	getenv   func(string) string
 	log      *slog.Logger
 }
 
@@ -124,7 +127,15 @@ type cmdBackend struct {
 	t target.MCPCommands
 }
 
-func (b cmdBackend) where() string { return "~/" + b.t.MCPStateFile() }
+func (b cmdBackend) stateFile() string { return b.t.MCPStateFile(b.getenv, b.home) }
+
+// where shows the state file as ~/... when it is under the home folder.
+func (b cmdBackend) where() string {
+	if rel, err := filepath.Rel(b.home, b.stateFile()); err == nil && filepath.IsLocal(rel) {
+		return "~/" + filepath.ToSlash(rel)
+	}
+	return b.stateFile()
+}
 
 func (b cmdBackend) ready() error {
 	if _, err := b.lookPath(b.t.MCPProgram()); err != nil {
@@ -134,14 +145,20 @@ func (b cmdBackend) ready() error {
 }
 
 func (b cmdBackend) entries() ([]target.MCPServer, error) {
-	root, err := os.OpenRoot(b.home)
+	// The state file may live outside the home folder (CLAUDE_CONFIG_DIR),
+	// so the root is its own folder.
+	file := b.stateFile()
+	root, err := os.OpenRoot(filepath.Dir(file))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
 	defer root.Close()
-	data, err := read(root, b.t.MCPStateFile())
+	data, err := read(root, filepath.Base(file))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read %s: %w", file, err)
 	}
 	return b.t.LoadoutServers(data)
 }

@@ -198,6 +198,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		WishPath:   filepath.Join(cfg.StateDir, "mcp.yaml"),
 		Executable: executable,
 		LookPath:   lookPath,
+		Getenv:     getenv,
 		Tokens: memoryTokens{
 			remotes: remotes,
 			newClient: func(r remote.Remote, loginToken string) (*client.Client, error) {

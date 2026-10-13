@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/petervlad/loadout/internal/jsonedit"
 	"github.com/petervlad/loadout/internal/target"
@@ -18,8 +20,22 @@ import (
 // MCPProgram is the program that manages Claude Code's MCP servers.
 func (*Adapter) MCPProgram() string { return "claude" }
 
-// MCPStateFile is the file that lists user-scope MCP servers.
-func (*Adapter) MCPStateFile() string { return ".claude.json" }
+// MCPStateFile is the file that lists user-scope MCP servers: .claude.json
+// in CLAUDE_CONFIG_DIR when that names a folder, else in the home folder,
+// which is where `claude mcp add-json` writes it.
+func (*Adapter) MCPStateFile(getenv func(string) string, home string) string {
+	dir := getenv("CLAUDE_CONFIG_DIR")
+	switch {
+	case dir == "~":
+		dir = home
+	case strings.HasPrefix(dir, "~/"):
+		dir = filepath.Join(home, dir[2:])
+	}
+	if !filepath.IsAbs(dir) {
+		dir = home
+	}
+	return filepath.Join(dir, ".claude.json")
+}
 
 // stdioServer is the JSON `claude mcp add-json` takes for a local server.
 type stdioServer struct {

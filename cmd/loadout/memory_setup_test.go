@@ -15,8 +15,8 @@ const (
 )
 
 // fakeClaude puts a claude program first on the PATH. It records its
-// arguments and keeps the entry in $HOME/.claude.json the way Claude Code
-// would, and the home it sees is the test person's, so the real
+// arguments and keeps the entry in $CLAUDE_CONFIG_DIR/.claude.json, or
+// $HOME/.claude.json when that is unset, the way Claude Code would, and the home it sees is the test person's, so the real
 // ~/.claude.json is never in reach. It returns the calls recorded so far.
 func fakeClaude(t *testing.T) (calls func() []string) {
 	t.Helper()
@@ -28,8 +28,8 @@ func fakeClaude(t *testing.T) (calls func() []string) {
 	script := `#!/bin/sh
 echo "$*" >> "$FAKE_CLAUDE_LOG"
 case "$2" in
-add-json) printf '{"mcpServers":{"%s":%s}}\n' "$5" "$6" > "$HOME/.claude.json" ;;
-remove) printf '{"mcpServers":{}}\n' > "$HOME/.claude.json" ;;
+add-json) printf '{"mcpServers":{"%s":%s}}\n' "$5" "$6" > "${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json" ;;
+remove) printf '{"mcpServers":{}}\n' > "${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json" ;;
 esac
 `
 	if err := os.WriteFile(filepath.Join(dir, "claude"), []byte(script), 0o755); err != nil { //nolint:gosec // a test program that must run
@@ -217,5 +217,63 @@ func TestNoLimitWhenNoServerIsAdded(t *testing.T) {
 	// settings.json may exist, since login set up the session hook in it.
 	if data, err := os.ReadFile(filepath.Join(alice.home, ".claude", "settings.json")); err == nil && strings.Contains(string(data), limitName) || strings.Contains(out, limitName) {
 		t.Error("install set the description limit although no memory server was added")
+	}
+}
+
+// configDirTeam is memoryTeam for a person whose Claude Code keeps its
+// config in a folder of its own, set the way a shell would for both loadout
+// and the claude it starts.
+func configDirTeam(t *testing.T) (alice *person, configDir string) {
+	t.Helper()
+	_, alice, _, _ = memoryTeam(t)
+	configDir = t.TempDir()
+	alice.env = map[string]string{"CLAUDE_CONFIG_DIR": configDir}
+	t.Setenv("CLAUDE_CONFIG_DIR", configDir)
+	return alice, configDir
+}
+
+func TestConfigDirHoldsTheMemoryEntry(t *testing.T) {
+	calls := fakeClaude(t)
+	alice, configDir := configDirTeam(t)
+
+	out, errOut, code := alice.runIn("", "install", "--all")
+	if want := "added lime's team memory to Claude Code (" + filepath.Join(configDir, ".claude.json") + ")"; code != 0 || !strings.Contains(out, want) {
+		t.Fatalf("install --all: exit %d\n%s\n%s", code, out, errOut)
+	}
+	state, err := os.ReadFile(filepath.Join(configDir, ".claude.json"))
+	if err != nil || !strings.Contains(string(state), "loadout-memory-lime") {
+		t.Fatalf("$CLAUDE_CONFIG_DIR/.claude.json = %q, %v", state, err)
+	}
+	if _, err := os.Stat(filepath.Join(alice.home, ".claude.json")); err == nil {
+		t.Error("the fake claude wrote ~/.claude.json too")
+	}
+
+	// Install again and sync: loadout sees its own entry, so it says
+	// nothing, warns nothing and does not ask claude.
+	for _, args := range [][]string{{"install", "--all"}, {"sync"}} {
+		out, errOut, code := alice.runIn("", args...)
+		if code != 0 || strings.Contains(out+errOut, "team memory") || strings.Contains(errOut, "MCP servers alone") || strings.Contains(errOut, "WARN") {
+			t.Errorf("loadout %s: exit %d\n%s\n%s", args[0], code, out, errOut)
+		}
+		if got := calls(); len(got) != 1 {
+			t.Errorf("claude was called again by %s: %q", args[0], got)
+		}
+	}
+}
+
+func TestConfigDirEntryIsRemoved(t *testing.T) {
+	calls := fakeClaude(t)
+	alice, configDir := configDirTeam(t)
+	alice.must("", "install", "--all")
+
+	if out := alice.must("", "setup", "--no-memory"); !strings.Contains(out, "removed lime's team memory from Claude Code ("+filepath.Join(configDir, ".claude.json")) {
+		t.Errorf("setup --no-memory output does not name %s:\n%s", configDir, out)
+	}
+	if got := calls(); len(got) != 2 || !strings.HasPrefix(got[1], "mcp remove --scope user loadout-memory-lime") {
+		t.Errorf("claude was called with %q, want an add then a remove", got)
+	}
+	state, err := os.ReadFile(filepath.Join(configDir, ".claude.json"))
+	if err != nil || strings.Contains(string(state), "loadout-memory-lime") {
+		t.Errorf("$CLAUDE_CONFIG_DIR/.claude.json = %q, %v", state, err)
 	}
 }

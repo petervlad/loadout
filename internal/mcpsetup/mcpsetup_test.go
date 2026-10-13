@@ -159,6 +159,7 @@ func (m machine) service(o opts) (*Service, *fakeClaude) {
 			}
 			return o.onPath, nil
 		},
+		Getenv: func(string) string { return "" },
 		Run:    fake.run,
 		Tokens: o.tokens,
 		Log:    slog.New(slog.DiscardHandler),

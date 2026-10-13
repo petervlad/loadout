@@ -70,9 +70,10 @@ type MCPCommands interface {
 	// RemoveMCPArgs is the argument list that removes the entry called
 	// name at user scope.
 	RemoveMCPArgs(name string) []string
-	// MCPStateFile is the file, relative to the home folder, that lists
-	// the entries. loadout reads it and never writes it.
-	MCPStateFile() string
+	// MCPStateFile is the absolute path of the file that lists the
+	// entries, given the person's home folder and getenv for the tool's
+	// own config folder variable. loadout reads it and never writes it.
+	MCPStateFile(getenv func(string) string, home string) string
 	// LoadoutServers returns the entries loadout added, as cur (nil when
 	// the file does not exist) lists them.
 	LoadoutServers(cur []byte) ([]MCPServer, error)
