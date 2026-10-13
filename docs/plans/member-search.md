@@ -4,7 +4,7 @@
 
 ## Problem
 
-On a project or team settings page the member list comes in store order, so maintainers are mixed in with members and a long list is hard to scan. There is no way to find a person in it, and nothing says which other teams a person belongs to, so "who is in kiwi?" means opening every team.
+On a project or team settings page the member list comes in store order, so maintainers are mixed in with members and a long list is hard to scan. There is no way to find a person in it, and nothing says which other teams a person belongs to, so "who is in lime?" means opening every team.
 
 ## Solution
 
