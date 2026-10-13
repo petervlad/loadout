@@ -1,0 +1,17 @@
+{
+  "banner": false,
+  "mcpServers": {
+    "loadout-memory-lime": {
+      "type": "local",
+      "command": "loadout",
+      "args": [
+        "mcp",
+        "--team",
+        "lime"
+      ],
+      "tools": [
+        "*"
+      ]
+    }
+  }
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/petervlad/loadout/internal/device"
 	"github.com/petervlad/loadout/internal/ident"
 	"github.com/petervlad/loadout/internal/mail"
+	"github.com/petervlad/loadout/internal/memory"
 	"github.com/petervlad/loadout/internal/pack"
 	"github.com/petervlad/loadout/internal/password"
 	"github.com/petervlad/loadout/internal/registry"
@@ -77,6 +78,12 @@ type Options struct {
 	// Wiki keeps the namespaces' wiki pages. Nil means this registry has
 	// no wiki.
 	Wiki Wikis
+	// MemoryTokens revokes a person's memory tokens when they sign out
+	// everywhere. Nil leaves them out: this registry has no team memory.
+	MemoryTokens MemoryTokenRevoker
+	// MemoryRemover deletes a namespace's team memory when the namespace is
+	// deleted. Nil leaves it out: this registry has no team memory.
+	MemoryRemover MemoryRemover
 	// Snapshots takes the copy that comes before a package is deleted on
 	// the web. Nil turns web deletes off.
 	Snapshots Snapshots
@@ -99,6 +106,8 @@ type Service struct {
 	hasher    *password.Hasher
 	publicURL string
 	wiki      Wikis
+	memTokens MemoryTokenRevoker
+	memRemove MemoryRemover
 	snapshots Snapshots
 	deletions Deletions
 	// deleteMu makes web deletes run one after the other.
@@ -123,6 +132,8 @@ func NewService(store Store, reg Registry, roles *Roles, flow *device.Flow, o Op
 		mailer:    o.Mailer,
 		publicURL: strings.TrimRight(o.PublicURL, "/"),
 		wiki:      o.Wiki,
+		memTokens: o.MemoryTokens,
+		memRemove: o.MemoryRemover,
 		snapshots: o.Snapshots,
 		deletions: o.Deletions,
 		now:       o.Now,
@@ -383,16 +394,35 @@ func (s *Service) Logout(ctx context.Context, secret string) error {
 	return nil
 }
 
+// MemoryTokenRevoker removes a person's memory tokens. memory.Tokens is one.
+type MemoryTokenRevoker interface {
+	RevokeAll(ctx context.Context, userID string) (int, error)
+}
+
+// MemoryRemover deletes the team memory of a namespace that no longer exists.
+// memory.Service is one.
+type MemoryRemover interface {
+	RemoveNamespace(ctx context.Context, namespace string) (memory.Removed, error)
+}
+
 // SignOutEverywhere ends every web session of the user and revokes every
-// token `loadout login` issued them, for when a device or a token may be
-// lost. Machine tokens they made stay; maintainers revoke those. It
-// returns how many sessions and tokens ended.
+// token `loadout login` issued them and every memory token, for when a
+// device or a token may be lost. Machine tokens they made stay; maintainers
+// revoke those. It returns how many sessions and tokens ended, memory tokens
+// included.
 func (s *Service) SignOutEverywhere(ctx context.Context, userID string) (sessions, tokens int, err error) {
 	if sessions, err = s.store.DeleteUserSessions(ctx, userID); err != nil {
 		return 0, 0, fmt.Errorf("sign out everywhere: %w", err)
 	}
 	if tokens, err = s.reg.RevokeUserTokens(ctx, userID, ""); err != nil {
 		return sessions, 0, fmt.Errorf("sign out everywhere: %w", err)
+	}
+	if s.memTokens != nil {
+		n, err := s.memTokens.RevokeAll(ctx, userID)
+		if err != nil {
+			return sessions, tokens, fmt.Errorf("sign out everywhere: %w", err)
+		}
+		tokens += n
 	}
 	s.log.InfoContext(ctx, "signed out everywhere", "user_id", userID, "sessions", sessions, "tokens", tokens)
 	return sessions, tokens, nil

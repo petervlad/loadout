@@ -15,8 +15,11 @@ import (
 // started is when this process started, for the server page's uptime.
 var started = time.Now()
 
-// dbFile is the registry database in the --data folder.
-const dbFile = "registry.db"
+// The databases in the --data folder: packages and accounts, and team memory.
+const (
+	dbFile       = "registry.db"
+	memoryDBFile = "memory.db"
+)
 
 // serverStats builds what the admins' server page reports: the data
 // folder, the store's counts, backups, the mail queue (nil when email is
@@ -25,7 +28,7 @@ const dbFile = "registry.db"
 func serverStats(log *slog.Logger, st config.Stats, publicURL, dataDir, version string, store *sqlitestore.Store, queue *mail.Queue) (*serverstats.Collector, error) {
 	cfg := serverstats.Config{
 		DataDir:   dataDir,
-		DBFile:    dbFile,
+		DBFiles:   []string{dbFile, memoryDBFile},
 		BackupDir: st.BackupDir,
 		Version:   version,
 		Started:   started,

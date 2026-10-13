@@ -276,7 +276,9 @@ td code { white-space: nowrap; }
 <li><a href="#concepts">Concepts</a></li>
 <li><a href="#get-started">Get started</a></li>
 <li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
+<li><a href="#team-memory-in-your-ai-tools">Team memory in your AI tools</a></li>
 <li><a href="#loadouts-own-skills">loadout's own skills</a></li>
+<li><a href="#team-memory">Team memory</a></li>
 <li><a href="#everyday-commands">Everyday commands</a></li>
 <li><a href="#write-packages">Write packages</a></li>
 <li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
@@ -302,7 +304,9 @@ td code { white-space: nowrap; }
 <li><a href="#concepts">Concepts</a></li>
 <li><a href="#get-started">Get started</a></li>
 <li><a href="#set-up-claude-code-and-copilot">Set up Claude Code and Copilot</a></li>
+<li><a href="#team-memory-in-your-ai-tools">Team memory in your AI tools</a></li>
 <li><a href="#loadouts-own-skills">loadout's own skills</a></li>
+<li><a href="#team-memory">Team memory</a></li>
 <li><a href="#everyday-commands">Everyday commands</a></li>
 <li><a href="#write-packages">Write packages</a></li>
 <li><a href="#bring-your-existing-agents-and-skills">Bring your existing agents and skills</a></li>
@@ -433,6 +437,7 @@ td code { white-space: nowrap; }
 </table>
 </div>
 <p>Anyone in a team is also a member of the project above it: they install its packages and may propose changes to it, and the project's maintainers or owners decide. They read the project's wiki too, but edit it only with a role in the project. A team maintainer is not a project maintainer; an owner adds that role separately.</p>
+<p>Team memory has its own rules: members read and save to their team's memory, maintainers and owners also retract anyone's memory, move one to the project and switch it on or off. In a project, saving needs a maintainer.</p>
 <p>On a registry in simple login mode there is no sign-up: an admin gives you an account and a password (<code>loadout user password --email E</code> on the registry host). A brand-new simple-login registry has one account, the admin <code>admin@loadout.local</code>: its one-time password is printed once in the service's log (<code>journalctl -u loadout</code>) unless the operator set <code>LOADOUT_ADMIN_PASSWORD</code>. Sign in with it, then have the operator change it with <code>loadout user password --email admin@loadout.local</code>, because the log keeps the printed one. It is created only while the registry has no account at all.</p>
 <p>A new member needs no account first. A maintainer adds their email; they sign up with that address (or Google) and run <code>loadout login</code>.</p>
 <h3 id="review">Review</h3>
@@ -557,6 +562,15 @@ loadout setup --no-hooks    # remove them; login will not add them again</code><
 <p>Until you choose either, <code>sync</code> reminds you with one tip line when something is held back.</p>
 </div></details>
 <details class="chapter"><summary>
+<h2 id="team-memory-in-your-ai-tools">Team memory in your AI tools</h2>
+</summary><div class="chapter-body">
+<p>When a team has team memory on, <code>loadout install</code> and <code>loadout sync</code> add its memory server to Claude Code (through <code>claude mcp add-json</code>, so <code>~/.claude.json</code> is changed by Claude Code itself) and to Copilot (<code>~/.copilot/mcp-config.json</code>). Each change is one line, for example <code>added lime's team memory to Claude Code (~/.claude.json)</code>. When a team switches memory off, the next <code>sync</code> removes the entry. loadout also makes the memory token the server needs and keeps it on your machine, and replaces it when it is close to its end. Nothing else in those files is touched, a tool that is not installed is skipped, and a problem is a warning that never fails the install or the sync. Offline, nothing changes.</p>
+<p>Claude Code cuts a server's instructions at 2,048 characters, which would hide most of the memory index. The first time loadout adds a memory server to Claude Code it also sets <code>CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH</code> to 24000 in <code>~/.claude/settings.json</code>, and says so. If you set that variable yourself, loadout leaves it alone.</p>
+<pre class="sh"><code>loadout setup --no-memory                  # remove the entries and stop adding them
+loadout setup --no-memory --target copilot # only for Copilot
+loadout setup --memory                     # allow them again and add them now</code></pre>
+</div></details>
+<details class="chapter"><summary>
 <h2 id="loadouts-own-skills">loadout's own skills</h2>
 </summary><div class="chapter-body">
 <p>loadout comes with four skills that teach your AI agent to use loadout. Their text is inside the loadout program, so it always names the commands and flags of the loadout you have.</p>
@@ -613,6 +627,103 @@ description: How Acme uses loadout - registry address, which team to join, our n
 - Every team requires review; propose with at least three prompts from real tickets.
 - Never put customer data in a knowledge base.</code></pre>
 <p>Then <code>loadout publish acme-loadout</code>. Keep it short and factual: addresses, which team, local rules. Leave the commands to loadout's skills, which stay in step with the CLI. Put the description in quotes if it contains <code>: </code>.</p>
+</div></details>
+<details class="chapter"><summary>
+<h2 id="team-memory">Team memory</h2>
+</summary><div class="chapter-body">
+<p>Your AI agent learns facts that help the whole team: which Jira host a project uses, which label a release needs, how a known failure is fixed. Team memory is a shared place where the agents of a team's members save such facts and find each other's. It holds short facts, not documents. Anything long belongs in the team's wiki or a knowledge base, and a memory links to it.</p>
+<p>loadout only stores the text and searches it by words. It never calls a model and never holds an AI key. Your own agent does all the thinking.</p>
+<h3 id="switch-it-on">Switch it on</h3>
+<p>A maintainer or owner of a team (or an admin) switches it on. It is off at first. While it is off the team has no memory pages and no memory server at all.</p>
+<ul>
+<li>On the web: <strong>Settings</strong> of the team, <strong>Team memory</strong>.</li>
+<li>From the CLI: <code>loadout namespace set lime --memory on --remote office</code>. Use <code>--memory off</code> to switch it off again. On the registry host the operator has no role, so the command asks you to use <code>--remote</code> there.</li>
+</ul>
+<p>A team reads its own memory and its project's, as long as the project has switched memory on too. It saves only to its own. A project can switch memory on for its own facts, and its maintainers write to it.</p>
+<h3 id="memory-tokens">Memory tokens</h3>
+<p>Your AI tool reaches team memory with a memory token. It works on the memory server only. It cannot install, publish or change anything else, so a leaked tool setting carries no publish rights. A token belongs to you, works for every team where you may use memory, and lasts 90 days.</p>
+<pre class="sh"><code>loadout memory token create                      # makes one and keeps it on this machine
+loadout memory token create --label work-laptop
+loadout memory token list
+loadout memory token revoke ID</code></pre>
+<p><code>create</code> stores the token in <code>~/.loadout/memory-credentials.yaml</code>, which only you can read, and does not print it. Add <code>--show</code> to print it once, for a tool you configure by hand. You can also make one on the <strong>Account</strong> page of the website, under <strong>Memory tokens</strong>, where it is shown once. <code>LOADOUT_MEMORY_TOKEN</code> in the environment overrides the stored token. You can hold at most 20 valid memory tokens, and a new one is refused with that number until you revoke one. Signing out everywhere ends your memory tokens too, so after it the memory server answers that your token was refused. Run <code>loadout sync</code> or <code>loadout memory token create</code> to get a new one.</p>
+<p>You need to be signed in with <code>loadout login</code> first. A machine token for CI cannot make a memory token.</p>
+<h3 id="connect-your-ai-tool">Connect your AI tool</h3>
+<p>Each team has its own server, at <code>/mcp/t/TEAM</code> on the registry. The simplest way to reach it is the bridge:</p>
+<pre class="sh"><code>loadout mcp --team lime</code></pre>
+<p>This is a small program that an AI tool starts and talks to over standard input and output, so you rarely run it yourself. It sends every call to the registry with your memory token and trusts the registry's CA file if you gave one at login. A tool that uses it sees the same tools and answers as one that talks to the registry directly. If the registry cannot be reached within 5 seconds, the bridge still starts and every call answers that memory cannot be reached, so a closed VPN never stops your tool from starting. <code>--remote NAME</code> picks the registry. Without it the one the team is joined on is used.</p>
+<p><code>loadout install</code> and <code>loadout sync</code> add this for you. When a team has team memory on, they add its memory server to Claude Code (through <code>claude mcp add-json</code>, so <code>~/.claude.json</code> is changed by Claude Code itself) and to Copilot (<code>~/.copilot/mcp-config.json</code>). Each change is one line, for example <code>added lime's team memory to Claude Code (~/.claude.json)</code>. When a team switches memory off, the next <code>sync</code> removes the entry. A registry that is too old to know team memory, or that refuses your login for it, counts as no answer, so <code>sync</code> removes nothing because of it. Nothing else in those files is touched, a tool that is not installed is skipped, and a problem is a warning that never fails the install or the sync. Offline, nothing changes.</p>
+<p>They also make the memory token the server needs, keep it on your machine and replace it when it has less than 14 days left (the one it replaces is revoked), so you never run <code>memory token create</code> yourself for this.</p>
+<p>Claude Code cuts a server's instructions at 2,048 characters, which would hide most of the memory index. The first time loadout adds a memory server to Claude Code it also sets <code>CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH</code> to 24000 in <code>~/.claude/settings.json</code>, and says so. That setting raises the limit for every MCP server in Claude Code, not only loadout's. If you set that variable yourself, loadout leaves it alone, and you can remove the line from <code>~/.claude/settings.json</code> to go back to the default.</p>
+<pre class="sh"><code>loadout setup --no-memory                  # remove the entries and stop adding them
+loadout setup --no-memory --target copilot # only for Copilot
+loadout setup --memory                     # allow them again and add them now</code></pre>
+<p>To add the bridge yourself instead (after <code>--no-memory</code>, or for a tool loadout does not know):</p>
+<ul>
+<li><strong>Claude Code:</strong> <code>claude mcp add-json --scope user loadout-memory-lime '{"type":"stdio","command":"loadout","args":["mcp","--team","lime"]}'</code></li>
+<li><strong>Copilot CLI:</strong> add the same program to <code>mcpServers</code> in <code>~/.copilot/mcp-config.json</code>, as <code>{"type": "local", "command": "loadout", "args": ["mcp", "--team", "lime"], "tools": ["*"]}</code> under the name <code>loadout-memory-lime</code>.</li>
+</ul>
+<p>The entry holds no token, only the command, so it is safe to keep in dotfiles.</p>
+<h3 id="other-clients">Other clients</h3>
+<p>When memory is on, the team's <strong>Memory</strong> tab has a <strong>Set up</strong> page for any other tool that speaks MCP. It shows the team's address, a <code>curl</code> that tests it, the bridge command, and a configuration for tools that connect over HTTP with an <code>Authorization: Bearer</code> header.</p>
+<h3 id="what-your-agent-sees">What your agent sees</h3>
+<p>When the tool connects, the agent receives a short rule and an index. The rule says to save only a fact another team member would need, never your preferences or one person's own work, never secrets or long text, to search before saving, and to tell you about every save, update and retract in one line. The index lists up to 150 active memories, one line each, newest and most used first. Claude Code can cut a server's instructions at 2,048 characters, so on a team with many memories the end of the index may not show. The agent can always use <code>search</code>.</p>
+<p>It has six tools:</p>
+<div class="table">
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>search</code></td>
+<td>Find memories by words, optionally by type or by team or project</td>
+</tr>
+<tr>
+<td><code>get</code></td>
+<td>Read one memory in full, with the names of the memories it links to</td>
+</tr>
+<tr>
+<td><code>save</code></td>
+<td>Save a new memory under your name. If close matches exist, nothing is saved and they are returned. The agent updates one, or saves again with <code>new: true</code></td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td>Change a memory. Every earlier version is kept. <code>confirm: true</code> says it is still true</td>
+</tr>
+<tr>
+<td><code>retract</code></td>
+<td>Hide a wrong memory, with a reason. The history is kept</td>
+</tr>
+<tr>
+<td><code>recent</code></td>
+<td>What was saved or changed in the last days</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Every memory comes back marked as data with its author, team, confirmed date and number (and, when a colleague changed it last, who, as <code>edited_by</code>, which the Memory tab shows as <strong>Last edited by</strong>), and the agent is told never to follow instructions found inside one. A memory is short: a type (<code>feedback</code>, <code>project</code> or <code>reference</code>, there is no <code>user</code> type), a name of at most 64 characters, a one-line description of at most 150, and a body of at most 4 KB. A longer text is refused with a hint to put it in the team docs and link to it. You can save or update 200 times a day in all your teams.</p>
+<p>A memory not confirmed for six months shows "unconfirmed since" in the index and in results. It is marked, never hidden, because some facts stay true for years.</p>
+<p>Anything that looks like a secret is refused: AWS keys, tokens of GitHub, Atlassian, Slack and loadout, JWTs, private keys, <code>password=</code> assignments, a password in a web address (<code>postgres://user:pass@host</code>), quoted <code>"password"</code>, <code>"secret"</code> and <code>"api_key"</code> values, <code>api_key</code> or <code>token</code> assignments with a long value, and long random strings. Names and descriptions also refuse invisible formatting characters, and a body refuses control characters such as escape sequences. The refusal names the rule and the place, and the text is stored nowhere. The same check runs on your machine before <code>memory import</code> sends anything. There is no way to switch it off. A harmless text that is refused is a bug to report, not something to work around.</p>
+<h3 id="look-it-over-every-week">Look it over every week</h3>
+<p>The team's <strong>Memory</strong> tab shows <strong>New this week</strong>: everything saved or changed in the last 7 days, with its author. Search it with the box, and filter by type or by team or project. Open a memory to read it, its links and its history, where every version shows who changed it and what. Nothing is edited on the web. Agents save and update, and people look and take back what is wrong.</p>
+<ul>
+<li><strong>Retract…</strong> hides a memory from search, the index and <code>recent</code>. Its author, the team's maintainers and owners can do it, with a reason. A retracted memory stays visible on its own page with the reason.</li>
+<li><strong>Move to project…</strong> makes a team's memory part of the project's, so every team in the project reads it. It keeps its author, history and number. Maintainers and owners of the team can do it without any role in the project, but only while the project has memory switched on. It cannot be moved back.</li>
+</ul>
+<h3 id="bring-your-own-memory-files">Bring your own memory files</h3>
+<p><code>loadout memory import</code> offers the memory files your AI tool keeps on your machine to a team:</p>
+<pre class="sh"><code>loadout memory import ~/.claude/projects/me/memory --team lime
+loadout memory import ./notes --team lime --select 1,3</code></pre>
+<p>It reads the <code>.md</code> files in the folder (not its sub-folders, and not <code>MEMORY.md</code>) that have <code>name</code>, <code>description</code> and <code>type</code> in their header. Claude Code's own memory folder works as it is: it keeps the type under <code>metadata:</code> (<code>metadata:</code> then an indented <code>type: feedback</code>), and loadout reads that too. A <code>type</code> at the top of the header wins when both are there. A file of type <code>user</code> is never offered. Entries of type <code>reference</code> and <code>project</code> are pre-selected and <code>feedback</code> is not. Nothing that speaks of one person ("I", "my", "the user prefers", an email address) is pre-selected either. Each line says why. Files with a secret show as refused and are never sent. In a terminal you toggle numbers and press Enter to save. With <code>--select</code> the numbers you list are saved without asking. Without a terminal and without <code>--select</code> the list is printed and nothing is saved. Each entry goes through the same checks as a <code>save</code>. A likely duplicate is shown and skipped unless you add <code>--new</code>. It needs a memory token and the team's memory switched on.</p>
+<h3 id="remove-a-memory-for-good-admins">Remove a memory for good (admins)</h3>
+<p>Retract keeps the history, and every team member can read it. If a secret slipped through, rotate the secret first. That is the real fix. Then an admin on the registry host removes the memory and all its versions:</p>
+<pre class="sh"><code>loadout memory purge --id 42 --data /var/lib/loadout           # shows it and stops
+loadout memory purge --id 42 --data /var/lib/loadout --yes     # removes it</code></pre>
+<p>If a purge says the database was busy, the memory is already gone: run the same command again to finish the cleanup. A running registry keeps the purged name in its index for up to 30 seconds. The purge is logged without the text. It then lists the nightly backups in <code>--backups DIR</code> (or <code>LOADOUT_BACKUP_DIR</code>) that still hold the memory. Copies made off the machine cannot be listed. Team memory lives in its own <code>memory.db</code> next to <code>registry.db</code>, and the nightly backup covers both.</p>
 </div></details>
 <details class="chapter"><summary>
 <h2 id="everyday-commands">Everyday commands</h2>
@@ -979,7 +1090,7 @@ loadout publish planner</code></pre>
 <li><strong>Packages:</strong> everything the team reads, from its own layer and the project above, with the command that installs it. Tabs filter by kind (Agents, Skills, KBs) and by layer (All layers, the team, the project), with a count on each; <strong>Sort by</strong> orders the list by layer, name, kind, last update or number of releases. The search box looks at names, descriptions and kinds. A package page shows its releases and files.</li>
 <li><strong>A package page:</strong> <strong>Download</strong> gives the version you are looking at as a zip (<code>lime-planner-1.4.0.zip</code>, a folder with every file, <code>loadout.yaml</code> included), and each row of the releases table has its own download. Click a version to look at an older release; the page says which is the newest. Click a file (or <strong>Preview</strong> on the main file) to open it on a page of its own: Markdown is rendered, Mermaid and draw.io diagrams are drawn (a draw.io file gets a tab per page), anything else shows as text. <strong>Show source</strong> shows a Markdown file as written, <strong>Download</strong> saves one file, and <strong>Previous</strong> and <strong>Next</strong> walk through the package's files. Images are not shown: an image in Markdown appears as its alt text, and an <code>.svg</code> file shows as its text. Diagrams need JavaScript; without it you see their source. Links inside a draw.io diagram do not open on the page; download the file and open it in draw.io to follow them.</li>
 <li><strong>Reviews:</strong> open proposals, the answers of the current and candidate versions side by side (long answers show their first 150 words and a word count; <strong>Show whole answers</strong> opens both), the diff, and Approve, Reject or Withdraw. On your own proposal, an owner also gets <strong>Approve as owner…</strong>, which asks why.</li>
-<li><strong>Settings:</strong> the team's people and how it works. Under <strong>Members</strong>, add people by email, change roles and remove people. The list shows owners first, then maintainers, then members, each by name, and under a name a muted line, "Teams: a, b", names the person's other teams in the same project (only teams you may open). The search box in the panel's header finds people by name, email or team name and also filters <strong>Through the project</strong>; it filters as you type, and without JavaScript it reloads the page with the matching rows. Changing a role or removing someone keeps your search; adding someone clears it. Below that: for owners, turn review and the wiki on or off and choose the wiki's <strong>Course</strong>; make and revoke machine tokens (a new token is shown once). On a team, <strong>Through the project</strong> lists the project's owners, who are owners of the team without being added to it; you change them in the project's Settings. Maintainers and owners get <strong>Choose models</strong>, which opens the model settings (see below); a <strong>Settings</strong> link at its top leads back. The tab was called Members before; old links to it still work.</li>
+<li><strong>Settings:</strong> the team's people and how it works. Under <strong>Members</strong>, add people by email, change roles and remove people. The list shows owners first, then maintainers, then members, each by name, and under a name a muted line, "Teams: a, b", names the person's other teams in the same project (only teams you may open). The search box in the panel's header finds people by name, email or team name and also filters <strong>Through the project</strong>; it filters as you type, and without JavaScript it reloads the page with the matching rows. Changing a role or removing someone keeps your search; adding someone clears it. Below that: for owners, turn review and the wiki on or off and choose the wiki's <strong>Course</strong>. Make and revoke machine tokens (a new token is shown once). Maintainers and owners also get the <strong>Team memory</strong> switch (see <a href="#team-memory">Team memory</a>). On a team, <strong>Through the project</strong> lists the project's owners, who are owners of the team without being added to it. You change them in the project's Settings. Maintainers and owners get <strong>Choose models</strong>, which opens the model settings (see below). A <strong>Settings</strong> link at its top leads back. The tab was called Members before. Old links to it still work.</li>
 <li><strong>Wiki:</strong> a tab that appears once an owner ticks <strong>Show a wiki</strong> in Settings (each project and team has its own switch, off at first). It holds one page that the team's members write and everyone in the team reads; members of a team also read the project's wiki, and a team's wiki links to it. The page shows its revision, who saved it and when; <strong>Show source</strong> shows it as written, <strong>History</strong> lists every save with its note and a <strong>Changes</strong> link, and the download button saves it as <code>wiki.md</code>. <strong>Edit</strong> opens the text with <strong>Write</strong> and <strong>Preview</strong> buttons that switch between the text and how it will look, without losing anything, then <strong>Save</strong>, with an optional line saying what changed. Mermaid and draw.io blocks become diagrams once you save; the preview shows their source. Each section that starts with a <code>##</code> heading folds: the page opens with its title, the text above the first <code>##</code> and a list of its sections, and you open the ones you need (<strong>Open all</strong> opens every one). The preview shows them open. A link to a heading, such as <code>#how-to-deploy</code>, opens the section it is in; headings get their link names from their text, in lower case with hyphens for spaces. In Chrome and Edge, find in page searches closed sections too and opens the one it finds. To go back to an older version, open it from History and choose <strong>Edit from this revision</strong>, then save it as the newest. If someone saved while you were editing, the page does not save: it shows your text again with what they changed above it. Merge their change into your text, then save again. Turning the wiki off hides the tab and keeps the history.</li>
 <li><strong>Course:</strong> at the end of the wiki page, below its sections, a box lists the lessons of the knowledge base an owner chose in Settings (<strong>Course</strong>, next to the wiki switch). It may be the team's own knowledge base or one of a project above it. A team without a course of its own shows its project's, labelled "From acme"; choosing one for the team replaces it. The box always shows the package's newest release. Open a lesson to read it in the box, with <strong>Previous</strong> and <strong>Next</strong> and the list folded above it; each lesson has its own address, so you can send a new teammate "lesson 3". If the chosen package cannot be shown (it is gone, it is no longer a knowledge base, or it has no top-level Markdown file), owners see a line saying so with a link to Settings, and everyone else sees no box.</li>
 <li><strong>Invite someone:</strong> a fold-out at the top of a project's Settings (click it to open). Owners and admins (and the project's maintainers, for the project alone) add a person to the project and any of its teams in one step: their email, a role in the project, and a tick with a role for each team. Either every role is given or none is, and a role they already have is raised, never lowered. The page then shows what changed where and a sign-in link to pass on; when the registry sends mail, loadout also mails them the invitation, naming you. The link holds no secret: it opens sign-in with their address filled in and brings them to the project afterwards.</li>
@@ -1182,6 +1293,7 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <p>An upload is at most 32 MB compressed.</p></li>
 <li><p><strong>Wiki pages:</strong> one page per project or team, at most 256 KB, as <code>.md</code>, <code>.markdown</code> or <code>.mdx</code>. The newest 200 revisions are kept; older ones are deleted. A save's note is one line of at most 200 characters. In an MDX page, components and <code>import</code> or <code>export</code> lines show as code; nothing in a page ever runs. Front matter at the top shows as code too. Images are not shown, as in packages. The wiki needs the sign-in of <code>loadout login</code>, so every revision names a person. Machine tokens are refused, and so are most sign-ins from before one login covered all teams; run <code>loadout login</code> again if the wiki refuses yours.</p></li>
 <li><p><strong>Courses:</strong> the Course box lists the first 50 lessons. A quiz has 2 to 8 answers and is at most 16 KB; a document shows at most 50 quizzes, and the rest stay as text.</p></li>
+<li><p><strong>Team memory:</strong> a name is one line of at most 64 characters, a description one line of at most 150, a body at most 4 KB, a memory links to at most 10 others, a note or reason is one line of at most 200. One person saves or updates at most 200 times in 24 hours. The index in the server's instructions holds at most 150 memories, each description cut to 100 characters. A memory token lasts 90 days, you can hold 20 at a time, and a token may make up to 120 calls at once, then two a second. A request to the memory server is at most 64 KB. Team memory is off until a maintainer or owner switches it on.</p></li>
 <li><p><strong>Your edits are safe.</strong> loadout never overwrites a file it did not write, or one you edited since, without <code>--force</code>. <code>--merge</code> keeps your edits and adds the release's changes.</p></li>
 <li><p><strong>One namespace per token.</strong> A token belongs to one team or project. In two teams? Sign in to each.</p></li>
 <li><p><strong>Login tokens expire after 90 days.</strong> Run <code>loadout login</code> again. Machine tokens do not expire.</p></li>
@@ -1350,8 +1462,8 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <td>Create a team (or, on the host, a project)</td>
 </tr>
 <tr>
-<td><code>loadout namespace set NAME [--require-review on|off] [--wiki on|off] [--course TEAM/NAME|none] [--model TOOL:HINT=MODEL] [--effort TOOL:HINT=LEVEL]</code></td>
-<td>Require review for a namespace; turn its wiki on or off; choose the knowledge base its wiki shows as a course; choose which model and effort each AI tool runs per hint (an empty value inherits)</td>
+<td><code>loadout namespace set NAME [--require-review on|off] [--wiki on|off] [--memory on|off] [--course TEAM/NAME|none] [--model TOOL:HINT=MODEL] [--effort TOOL:HINT=LEVEL]</code></td>
+<td>Require review for a namespace; turn its wiki or its team memory on or off; choose the knowledge base its wiki shows as a course; choose which model and effort each AI tool runs per hint (an empty value inherits)</td>
 </tr>
 <tr>
 <td><code>loadout namespace tiers NAME</code></td>
@@ -1434,6 +1546,30 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <td>Set up, or remove, the session hooks that say when your edits hold an update back or a newer loadout is out (login sets them up)</td>
 </tr>
 <tr>
+<td><code>loadout setup --memory</code>, <code>setup --no-memory</code> [<code>--target T</code>]</td>
+<td>Allow or stop loadout adding your teams' memory server to your AI tools (install and sync do it)</td>
+</tr>
+<tr>
+<td><code>loadout memory token create [--label L] [--show] [--remote R]</code></td>
+<td>Make a memory token for your AI tools and keep it on this machine, <code>--show</code> prints it once</td>
+</tr>
+<tr>
+<td><code>loadout memory token list</code>, <code>memory token revoke ID</code></td>
+<td>List and revoke your memory tokens</td>
+</tr>
+<tr>
+<td><code>loadout mcp --team T [--remote R]</code></td>
+<td>The bridge an AI tool starts to reach a team's memory over standard input and output</td>
+</tr>
+<tr>
+<td><code>loadout memory import DIR --team T [--select N,...] [--new]</code></td>
+<td>Offer your personal memory files to a team's memory, and you confirm what is saved</td>
+</tr>
+<tr>
+<td><code>loadout memory purge --id N --data DIR [--yes] [--backups DIR]</code></td>
+<td>Remove a memory and its history for good, and list the backups that hold it (on the host)</td>
+</tr>
+<tr>
 <td><code>loadout version</code></td>
 <td>Print the version, and whether a newer one is out (from what a registry last said)</td>
 </tr>
@@ -1481,6 +1617,8 @@ loadout package delete lime/lime-app-dev --data /var/lib/loadout --yes --reason 
 <p><strong>"deleted on one side and changed on the other when loadout rebase merged"</strong> One side deleted the file and the other changed it. Delete it, or keep it with the <code>loadout rebase ... --resolved FILE</code> command the message gives.</p>
 <p><strong>"already has an open proposal"</strong> A teammate's open proposal has your folder's version. Only its author replaces it, so raise the version (<code>--bump patch</code>) to propose your own.</p>
 <p>**"compressed draw.io file" In draw.io turn off File &gt; Properties &gt; Compressed, save, and publish again.</p>
+<p><strong>"No team memory here."</strong> Team memory is off for that team, the team does not exist, or you are not in it. The answer is the same for all three on purpose. Ask a maintainer or owner of the team to switch it on in Settings.</p>
+<p><strong>"A valid memory token is needed."</strong> The token is missing, wrong, expired (after 90 days) or revoked, or it is a login token. Only a memory token works on the memory server. Run <code>loadout memory token create</code>.</p>
 </div></details>
 </article>
 </main>

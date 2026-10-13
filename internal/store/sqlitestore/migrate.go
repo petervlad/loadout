@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"path"
 	"strconv"
 	"strings"
@@ -19,6 +20,9 @@ var ErrSchemaTooNew = errors.New("database schema is newer than this loadout sup
 //go:embed migrations/*.sql
 var migrationFiles embed.FS
 
+//go:embed memorymigrations/*.sql
+var memoryMigrationFiles embed.FS
+
 // migration is one schema step. Version N is the Nth file, and after it is
 // applied PRAGMA user_version is N.
 type migration struct {
@@ -27,10 +31,10 @@ type migration struct {
 	sql     string
 }
 
-// migrations returns the embedded migrations in order. Files are named
+// migrations returns the migrations of one folder in order. Files are named
 // NNNN_description.sql and must be numbered 1, 2, 3, ... without gaps.
-func migrations() ([]migration, error) {
-	entries, err := fs.ReadDir(migrationFiles, "migrations")
+func migrations(fsys fs.FS, dir string) ([]migration, error) {
+	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return nil, fmt.Errorf("read migrations: %w", err)
 	}
@@ -41,7 +45,7 @@ func migrations() ([]migration, error) {
 		if !ok || err != nil || n != i+1 {
 			return nil, fmt.Errorf("migration %s: want name %04d_<description>.sql", e.Name(), i+1)
 		}
-		b, err := migrationFiles.ReadFile(path.Join("migrations", e.Name()))
+		b, err := fs.ReadFile(fsys, path.Join(dir, e.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("read migration %s: %w", e.Name(), err)
 		}
@@ -50,14 +54,15 @@ func migrations() ([]migration, error) {
 	return out, nil
 }
 
-// migrate applies every migration newer than the database's user_version,
-// each in its own transaction.
-func (s *Store) migrate(ctx context.Context) error {
-	ms, err := migrations()
+// migrate applies every migration of a folder newer than the database's
+// user_version, each in its own transaction. registry.db and memory.db each
+// have their own folder and their own user_version.
+func migrate(ctx context.Context, db *sql.DB, log *slog.Logger, fsys fs.FS, dir string) error {
+	ms, err := migrations(fsys, dir)
 	if err != nil {
 		return err
 	}
-	cur, err := userVersion(ctx, s.db)
+	cur, err := userVersion(ctx, db)
 	if err != nil {
 		return err
 	}
@@ -65,7 +70,7 @@ func (s *Store) migrate(ctx context.Context) error {
 		return fmt.Errorf("%w: database is at version %d, this build knows %d", ErrSchemaTooNew, cur, len(ms))
 	}
 	for _, m := range ms[cur:] {
-		if err := s.apply(ctx, m); err != nil {
+		if err := apply(ctx, db, log, m); err != nil {
 			return err
 		}
 	}
@@ -75,8 +80,8 @@ func (s *Store) migrate(ctx context.Context) error {
 // apply runs one migration in a write transaction. It rereads user_version
 // under the write lock so two processes opening the same file at once do
 // not apply the same step twice.
-func (s *Store) apply(ctx context.Context, m migration) (err error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+func apply(ctx context.Context, db *sql.DB, log *slog.Logger, m migration) (err error) {
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("migration %s: begin: %w", m.name, err)
 	}
@@ -102,7 +107,7 @@ func (s *Store) apply(ctx context.Context, m migration) (err error) {
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("migration %s: commit: %w", m.name, err)
 	}
-	s.log.DebugContext(ctx, "applied migration", "version", m.version, "name", m.name)
+	log.DebugContext(ctx, "applied migration", "version", m.version, "name", m.name)
 	return nil
 }
 

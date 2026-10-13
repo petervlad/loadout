@@ -1,0 +1,16 @@
+{
+  "numStartups": 412,
+  "projects": {
+    "/Users/a/code": {
+      "mcpServers": {
+        "loadout-memory-other": {"type": "stdio", "command": "loadout", "args": ["mcp", "--team", "other"]}
+      }
+    }
+  },
+  "mcpServers": {
+    "github": {"type": "http", "url": "https://api.githubcopilot.com/mcp/"},
+    "loadout-memory-lime": {"type": "stdio", "command": "loadout", "args": ["mcp", "--team", "lime"], "env": {}},
+    "loadout-memory-mine": {"type": "stdio", "command": "my-memory", "args": []},
+    "loadout-memory-acme": {"type": "stdio", "command": "/opt/bin/loadout", "args": ["mcp", "--team", "acme"]}
+  }
+}

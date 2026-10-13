@@ -80,17 +80,21 @@ func newNamespaceCreateCmd(d Deps, dataDir, remoteName *string) *cobra.Command {
 
 func newNamespaceSetCmd(d Deps, dataDir, remoteName *string) *cobra.Command {
 	var (
-		review, wiki, course string
-		models, efforts      []string
+		review, wiki, course, memory string
+		models, efforts              []string
 	)
 	cmd := &cobra.Command{
-		Use:   "set NAME [--require-review on|off] [--wiki on|off] [--course TEAM/NAME|none] [--model TOOL:HINT=MODEL] [--effort TOOL:HINT=LEVEL]",
+		Use:   "set NAME [--require-review on|off] [--wiki on|off] [--memory on|off] [--course TEAM/NAME|none] [--model TOOL:HINT=MODEL] [--effort TOOL:HINT=LEVEL]",
 		Short: "Change a namespace's settings (owners and admins)",
 		Long: `--require-review on refuses direct publishes to the namespace: every
 version goes through loadout propose and a maintainer's approval.
 
 --wiki on gives the namespace a Wiki tab: one page its members write and
 everyone in it reads. Off hides the page and keeps its history.
+
+--memory on gives the namespace team memory: short facts its members' AI
+tools save for each other, through an MCP server. Maintainers and owners
+turn it, over --remote. Off hides it and keeps what was saved.
 
 --course TEAM/NAME shows a knowledge base of the namespace, or of a
 project above it, as a Course box at the end of the wiki: its Markdown
@@ -106,19 +110,24 @@ medium, high, xhigh or max. An empty value clears it, so the namespace
 inherits the project's again. Teams inherit a project's values one by one.`,
 		Example: `  loadout namespace set payments --require-review on
   loadout namespace set lime --wiki on
+  loadout namespace set lime --memory on
   loadout namespace set lime --course lime/lime-course
   loadout namespace set acme --model copilot:deep="Claude Sonnet 5" --effort copilot:deep=high
   loadout namespace set payments --model copilot:fast=`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if review == "" && wiki == "" && course == "" && len(models) == 0 && len(efforts) == 0 {
-				return errors.New("nothing to change: give --require-review, --wiki, --course, --model or --effort")
+			if review == "" && wiki == "" && memory == "" && course == "" && len(models) == 0 && len(efforts) == 0 {
+				return errors.New("nothing to change: give --require-review, --wiki, --memory, --course, --model or --effort")
 			}
 			reviewOn, err := onOff("--require-review", review)
 			if err != nil {
 				return err
 			}
 			wikiOn, err := onOff("--wiki", wiki)
+			if err != nil {
+				return err
+			}
+			memoryOn, err := onOff("--memory", memory)
 			if err != nil {
 				return err
 			}
@@ -165,6 +174,15 @@ inherits the project's again. Teams inherit a project's values one by one.`,
 					}
 					printWikiSwitch(out, ns, d.siteOf(*dataDir, *remoteName))
 				}
+				// Last: it needs a lower role than the settings above, so
+				// their refusals come before any change.
+				if memory != "" {
+					ns, err := m.SetMemory(cmd.Context(), args[0], memoryOn)
+					if err != nil {
+						return err
+					}
+					printMemorySwitch(out, args[0], ns)
+				}
 				return nil
 			})
 		},
@@ -172,6 +190,7 @@ inherits the project's again. Teams inherit a project's values one by one.`,
 	f := cmd.Flags()
 	f.StringVar(&review, "require-review", "", "on or off")
 	f.StringVar(&wiki, "wiki", "", "on or off")
+	f.StringVar(&memory, "memory", "", "on or off")
 	f.StringVar(&course, "course", "", "a knowledge base as TEAM/NAME the wiki shows as its course, or none")
 	f.StringArrayVar(&models, "model", nil, "TOOL:HINT=MODEL, for example copilot:deep=\"Claude Sonnet 5\"; empty MODEL clears it (repeatable)")
 	f.StringArrayVar(&efforts, "effort", nil, "TOOL:HINT=LEVEL, for example copilot:deep=high; empty LEVEL clears it (repeatable)")
@@ -201,6 +220,15 @@ func printWikiSwitch(out io.Writer, ns api.Namespace, site string) {
 		return
 	}
 	fmt.Fprintf(out, "%s now has a wiki: open it at %s/t/%s/wiki, or loadout wiki pull --team %s\n", ns.Name, strings.TrimRight(site, "/"), ns.Name, ns.Name)
+}
+
+// printMemorySwitch says where a namespace's team memory is now.
+func printMemorySwitch(out io.Writer, name string, ns api.Namespace) {
+	if !ns.Memory {
+		fmt.Fprintf(out, "%s's team memory is off, and what was saved is kept\n", name)
+		return
+	}
+	fmt.Fprintf(out, "%s now has team memory. Members connect with: loadout memory token create\n", name)
 }
 
 // printCourse says what the wiki's Course box shows now; site is the

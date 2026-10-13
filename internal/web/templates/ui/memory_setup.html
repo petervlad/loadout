@@ -1,0 +1,32 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Base}}">{{template "icon-back"}}Memory</a></div>
+<section class="panel" aria-labelledby="setup-h">
+<div class="panel-head"><div class="grow"><h2 id="setup-h">Connect an AI tool to {{.Namespace}}</h2>
+<p>Tools that <code>loadout install</code> sets up need none of this. Use these steps for any other tool that speaks MCP.</p></div></div>
+<ol class="memsetup">
+<li>
+<h3>Make a memory token</h3>
+<p>Create one on <a href="{{.Account}}">your Account page</a>. It is shown once, works for team memory only and lasts 90 days. Keep it out of files you share.</p>
+</li>
+<li>
+<h3>The address of {{.Namespace}}'s memory</h3>
+<div class="copyrow"><code class="cmd" id="mem-endpoint">{{.Endpoint}}</code>{{template "copy" "mem-endpoint"}}</div>
+</li>
+<li>
+<h3>Test it with curl</h3>
+<p>Set <code>LOADOUT_MEMORY_TOKEN</code> to your token first. A list of six tools means it works.</p>
+<div class="snippet-row"><pre class="cmd snippet" id="mem-curl" tabindex="0">{{.Curl}}</pre>{{template "copy" "mem-curl"}}</div>
+</li>
+<li>
+<h3>For tools that start a local command</h3>
+<p>The bridge reads your token for you, so the tool needs no other setting. It takes the token from <code>loadout memory token create</code> or from <code>LOADOUT_MEMORY_TOKEN</code>.</p>
+<div class="copyrow"><code class="cmd" id="mem-bridge">{{.Bridge}}</code>{{template "copy" "mem-bridge"}}</div>
+</li>
+<li>
+<h3>For tools that connect over HTTP</h3>
+<p>Put this in the tool's MCP settings and replace <code>YOUR_MEMORY_TOKEN</code>. The header must say <code>Bearer</code>, a space, then the token.</p>
+<div class="snippet-row"><pre class="cmd snippet" id="mem-config" tabindex="0">{{.Config}}</pre>{{template "copy" "mem-config"}}</div>
+</li>
+</ol>
+</section>
+{{end}}{{end}}

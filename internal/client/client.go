@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"strconv"
@@ -153,6 +154,54 @@ func New(baseURL, token string, opts ...Option) (*Client, error) {
 		transfer = &t
 	}
 	return &Client{base: base, token: token, http: hc, transfer: transfer, userAgent: o.userAgent, advice: o.advice}, nil
+}
+
+// HTTPClient returns an HTTP client with the default transport (proxy settings
+// from the environment) and no overall timeout, so a long-lived stream is not
+// cut. A caFile adds its PEM certificates to the system roots, as WithCAFile
+// does. The MCP bridge and the memory import build their connections from it.
+//
+// It refuses every redirect. These connections carry a memory token, and a
+// redirect would hand the token to whatever place the answer names.
+func HTTPClient(caFile string) (*http.Client, error) {
+	hc := &http.Client{Transport: defaultTransport(), CheckRedirect: refuseRedirect}
+	if caFile == "" {
+		return hc, nil
+	}
+	return withCA(hc, caFile)
+}
+
+func refuseRedirect(*http.Request, []*http.Request) error {
+	return errors.New("the registry answered with a redirect, which loadout does not follow with a memory token. Check the registry address in `loadout remote list`")
+}
+
+// CheckMemoryURL accepts the address of a registry that may be sent a memory
+// token: https, or http only when the host is this machine. Anything else would
+// put the token on the network in clear.
+func CheckMemoryURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return fmt.Errorf("registry url %q is not an address", raw)
+	}
+	switch u.Scheme {
+	case "https":
+		return nil
+	case "http":
+		if isLoopback(u.Hostname()) {
+			return nil
+		}
+		return fmt.Errorf("registry url %q uses http, which would send your memory token unencrypted. Use the https address of the registry", raw)
+	}
+	return fmt.Errorf("registry url %q: scheme must be https", raw)
+}
+
+// isLoopback is true for localhost and for loopback IP addresses.
+func isLoopback(host string) bool {
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip, err := netip.ParseAddr(host)
+	return err == nil && ip.IsLoopback()
 }
 
 func parseBase(raw string) (*url.URL, error) {

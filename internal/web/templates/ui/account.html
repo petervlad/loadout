@@ -34,6 +34,45 @@
 <a class="btn" href="/account/server">Server details{{template "icon-chevron"}}</a>
 </div>
 </section>
+{{end}}{{with .MemoryTokens}}<section class="panel" aria-labelledby="memtok-h">
+<div class="panel-head">
+<div><h2 id="memtok-h">Memory tokens</h2><p>Let your AI tools read and save your teams' memory. A memory token works there and nowhere else, and lasts 90 days.</p></div>
+<span class="grow"></span>
+<details class="menu"{{if eq $.Field "mem-label"}} open{{end}}>
+<summary class="btn">New token…</summary>
+<form class="pop" method="post" action="/account/memory-tokens">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<label for="mem-label">Name</label>
+<input id="mem-label" name="label" class="field" maxlength="80" placeholder="work-laptop"{{invalid $.Field "mem-label"}}>
+<p>The token is shown once, right after you create it.</p>
+<div class="row"><a class="btn" href="/account">Cancel</a><button type="submit" class="btn btn-primary">Create token</button></div>
+</form>
+</details>
+</div>
+{{with .New}}<div class="secret" role="status">
+<p><strong>Memory token{{if .Label}} {{.Label}}{{end}} created.</strong> Copy it now: it is not shown again. Set it as LOADOUT_MEMORY_TOKEN in the tool that needs it.</p>
+<div class="copyrow"><code class="cmd" id="memory-secret">{{.Secret}}</code>{{template "copy" "memory-secret"}}</div>
+</div>{{end}}
+{{if .Tokens}}<table class="list">
+<colgroup><col><col class="w190"><col class="w190"><col class="w110"></colgroup>
+<tbody>{{range .Tokens}}
+<tr>
+<td class="wide"><code>{{or .Label .ID}}</code></td>
+<td class="muted">Created <time datetime="{{stamp .CreatedAt}}" title="{{exact .CreatedAt}}">{{month .CreatedAt}}</time></td>
+<td class="muted">Expires <time datetime="{{stamp .ExpiresAt}}" title="{{exact .ExpiresAt}}">{{month .ExpiresAt}}</time></td>
+<td class="end"><details class="menu">
+<summary class="btn btn-plain btn-danger" aria-label="Revoke {{or .Label .ID}}…">Revoke…</summary>
+<form class="pop" method="post" action="/account/memory-tokens/revoke">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<input type="hidden" name="id" value="{{.ID}}">
+<p class="secondary">Revoke {{or .Label .ID}}? Tools using it can no longer reach team memory. This cannot be undone.</p>
+<div class="row"><a class="btn" href="/account">Cancel</a><button type="submit" class="btn btn-danger">Revoke token</button></div>
+</form>
+</details></td>
+</tr>{{end}}
+</tbody>
+</table>{{else if not .New}}<p class="hint">No memory tokens yet.</p>{{end}}
+</section>
 {{end}}<section class="panel" aria-labelledby="look-h">
 <div class="panel-head"><h2 id="look-h">Appearance</h2></div>
 <form method="post" action="/account/theme" data-dirty>
@@ -55,7 +94,7 @@
 <button type="submit" class="btn">Sign out</button>
 </form>
 <div class="setting">
-<div class="grow"><h3>Everywhere</h3><p>Ends every browser session and every token from loadout login, on all your machines.</p></div>
+<div class="grow"><h3>Everywhere</h3><p>Ends every browser session and every token from loadout login{{if .MemoryTokens}}, and every memory token{{end}}, on all your machines.</p></div>
 <details class="menu">
 <summary class="btn btn-danger">Sign out everywhere…</summary>
 <form class="pop" method="post" action="/account">

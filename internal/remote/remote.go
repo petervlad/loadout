@@ -18,6 +18,9 @@ import (
 // EnvToken overrides the stored token, for CI and one-off use.
 const EnvToken = "LOADOUT_TOKEN"
 
+// EnvMemoryToken overrides the stored memory token for every remote.
+const EnvMemoryToken = "LOADOUT_MEMORY_TOKEN"
+
 // ErrNoRemote is returned when no remote is configured or selected.
 var ErrNoRemote = errors.New("no remote configured; run: loadout remote add NAME URL")
 

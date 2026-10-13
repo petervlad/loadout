@@ -57,6 +57,7 @@ func TestReport(t *testing.T) {
 	data, backups := t.TempDir(), t.TempDir()
 	write(t, filepath.Join(data, "registry.db"), 4096, time.Time{})
 	write(t, filepath.Join(data, "registry.db-wal"), 1000, time.Time{})
+	write(t, filepath.Join(data, "memory.db"), 2048, time.Time{})
 	write(t, filepath.Join(data, ".loadout", "loadout.log"), 500, time.Time{})
 	old := time.Date(2026, 9, 27, 3, 15, 0, 0, time.UTC)
 	newest := time.Date(2026, 9, 28, 3, 15, 0, 0, time.UTC)
@@ -66,7 +67,7 @@ func TestReport(t *testing.T) {
 
 	now := time.Date(2026, 9, 29, 12, 0, 0, 0, time.UTC)
 	c := New(Config{
-		DataDir: data, DBFile: "registry.db", BackupDir: backups, Version: "v1.2.3",
+		DataDir: data, DBFiles: []string{"registry.db", "memory.db"}, BackupDir: backups, Version: "v1.2.3",
 		Started: now.Add(-3 * time.Hour), Now: func() time.Time { return now },
 		Registry: counters{}, Accounts: counters{}, Mail: queue{}, Cloud: cloud{},
 	})
@@ -79,11 +80,17 @@ func TestReport(t *testing.T) {
 	if d.FSErr != "" || d.FSTotal == 0 || d.FSFree > d.FSTotal || d.UsedPercent() > 100 {
 		t.Errorf("filesystem = %d free of %d (%q)", d.FSFree, d.FSTotal, d.FSErr)
 	}
-	if d.DBBytes != 4096 || d.WALBytes != 1000 || d.SHMBytes != 0 || d.DBErr != "" {
-		t.Errorf("database = %d, WAL %d, SHM %d (%q)", d.DBBytes, d.WALBytes, d.SHMBytes, d.DBErr)
+	if len(d.DBs) != 2 {
+		t.Fatalf("databases = %+v, want registry.db and memory.db", d.DBs)
 	}
-	if d.DataBytes != 5596 || d.DataFiles != 3 || d.DataErr != "" {
-		t.Errorf("data folder = %d bytes in %d files (%q), want 5596 in 3", d.DataBytes, d.DataFiles, d.DataErr)
+	if f := d.DBs[0]; f.Name != "registry.db" || f.DBBytes != 4096 || f.WALBytes != 1000 || f.SHMBytes != 0 || f.Err != "" {
+		t.Errorf("registry.db = %+v", f)
+	}
+	if f := d.DBs[1]; f.Name != "memory.db" || f.DBBytes != 2048 || f.Err != "" {
+		t.Errorf("memory.db = %+v", f)
+	}
+	if d.DataBytes != 7644 || d.DataFiles != 4 || d.DataErr != "" {
+		t.Errorf("data folder = %d bytes in %d files (%q), want 7644 in 4", d.DataBytes, d.DataFiles, d.DataErr)
 	}
 	if r.Counts.Registry.Releases != 7 || r.Counts.Accounts.Users != 3 || r.Counts.Err != "" {
 		t.Errorf("Counts = %+v", r.Counts)
@@ -105,12 +112,12 @@ func TestReport(t *testing.T) {
 func TestReportDegrades(t *testing.T) {
 	data := t.TempDir()
 	c := New(Config{
-		DataDir: data, DBFile: "registry.db", BackupDir: filepath.Join(data, "no-such-folder"),
+		DataDir: data, DBFiles: []string{"registry.db", "memory.db"}, BackupDir: filepath.Join(data, "no-such-folder"),
 		Started: time.Now(), Registry: counters{err: errors.New("database is locked")}, Accounts: counters{},
 		Cloud: cloud{err: &hetzner.APIError{Status: 401, Code: "unauthorized"}},
 	})
 	r := c.Report(t.Context())
-	if r.Disk.DBErr != "It does not exist." || r.Disk.FSErr != "" {
+	if len(r.Disk.DBs) != 2 || r.Disk.DBs[0].Err != "It does not exist." || r.Disk.DBs[1].Err != "It does not exist." || r.Disk.FSErr != "" {
 		t.Errorf("Disk = %+v, want only the database missing", r.Disk)
 	}
 	if r.Counts.Err == "" || strings.Contains(r.Counts.Err, "locked") || r.Counts.Accounts.Users != 3 {
@@ -126,7 +133,7 @@ func TestReportDegrades(t *testing.T) {
 		t.Errorf("Hetzner = %+v", r.Hetzner)
 	}
 
-	r = New(Config{DataDir: data, DBFile: "registry.db"}).Report(t.Context())
+	r = New(Config{DataDir: data, DBFiles: []string{"registry.db", "memory.db"}}).Report(t.Context())
 	if !r.Backups.Off || r.Hetzner.Configured {
 		t.Errorf("without a backup folder or token: Backups %+v, Hetzner %+v", r.Backups, r.Hetzner)
 	}
@@ -141,7 +148,7 @@ func TestUnreadableBackups(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o700) }) //nolint:gosec // G302: a folder needs x to be removed
-	r := New(Config{DataDir: t.TempDir(), DBFile: "registry.db", BackupDir: dir}).Report(t.Context())
+	r := New(Config{DataDir: t.TempDir(), DBFiles: []string{"registry.db", "memory.db"}, BackupDir: dir}).Report(t.Context())
 	if r.Backups.Err != "The service may not read it." {
 		t.Errorf("Backups.Err = %q", r.Backups.Err)
 	}

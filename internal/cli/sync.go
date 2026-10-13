@@ -51,6 +51,7 @@ from cron.`,
 			}
 			out := cmd.OutOrStdout()
 			d.ensureBuiltins(cmd, false)
+			d.ensureMemory(cmd)
 			if len(results) == 0 {
 				fmt.Fprintln(out, "nothing installed from a registry; try: loadout install TEAM/NAME")
 				return nil

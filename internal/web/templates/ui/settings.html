@@ -169,6 +169,18 @@
 </form>
 </section>{{end}}
 
+{{if .CanMemory}}<section class="panel" aria-labelledby="memory-h">
+<form class="setting" method="post" action="/t/{{$.NS}}/settings/memory" data-dirty>
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<div class="grow">
+<h2 id="memory-h">Team memory</h2>
+<p>{{if .Memory}}On: members' AI tools read and save short facts for {{.Namespace}} through an MCP server.{{else}}Off: {{.Namespace}} has no team memory. Turning it off hides it and keeps what was saved.{{end}}</p>
+</div>
+<label class="check"><input type="checkbox" name="memory" value="on"{{if .Memory}} checked{{end}}>Team memory</label>
+<button type="submit" class="btn" data-save>Save</button>
+</form>
+</section>{{end}}
+
 {{with .Course}}<section class="panel" aria-labelledby="course-h">
 <form class="setting course-setting" method="post" action="/t/{{$.NS}}/settings/course" data-dirty>
 <input type="hidden" name="csrf" value="{{$.CSRF}}">

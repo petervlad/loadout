@@ -26,7 +26,7 @@ func TestServerStats(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := c.Report(t.Context())
-	if r.Hetzner.Configured || r.Mail.On || !r.Backups.Off || r.Disk.DBBytes == 0 || r.Counts.Err != "" {
+	if r.Hetzner.Configured || r.Mail.On || !r.Backups.Off || len(r.Disk.DBs) != 2 || r.Disk.DBs[0].DBBytes == 0 || r.Counts.Err != "" {
 		t.Errorf("Report() without settings = %+v", r)
 	}
 

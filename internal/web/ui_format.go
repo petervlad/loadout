@@ -22,6 +22,7 @@ func uiFuncs(now func() time.Time) template.FuncMap {
 		"ago":      func(t time.Time) string { return ago(now(), t) },
 		"stamp":    func(t time.Time) string { return t.UTC().Format(time.RFC3339) },
 		"exact":    func(t time.Time) string { return t.UTC().Format("2 Jan 2006, 15:04 UTC") },
+		"day":      func(t time.Time) string { return t.UTC().Format("2 Jan 2006") },
 		"month":    func(t time.Time) string { return month(now(), t) },
 		"initials": initials,
 		"static":   staticURL,

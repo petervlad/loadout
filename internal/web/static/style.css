@@ -1155,3 +1155,59 @@ dl.facts.tight { padding: 0; grid-template-columns: 110px minmax(0, 1fr); }
 /* An open popover form must not be clipped by its rounded panel. */
 .panel:has(details.menu[open]) { overflow: visible; }
 .list details.menu { display: inline-block; text-align: left; }
+
+/* Team memory: the search form, the lists, one memory and its history, and
+   the setup page. Plain text only: a memory's words are untrusted. */
+.memsearch { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 0 20px 16px; }
+.memsearch-q { flex: 1 1 280px; min-width: 0; }
+.memsearch-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.memlist { margin: 0; padding: 0; list-style: none; }
+.memlist li { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 3px; }
+.memlist .mem-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.memlist .name { font-weight: 600; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.mem-desc { font-size: 0.875rem; color: var(--text-2); overflow-wrap: anywhere; }
+.mem-meta { font-size: 0.8125rem; color: var(--muted); }
+.mem-head { align-items: flex-start; flex-wrap: wrap; }
+.mem-head h2 { font-size: 1.125rem; overflow-wrap: anywhere; }
+.mem-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.mem-lead { padding: 0 20px 12px; }
+/* The text keeps its line breaks and nothing else: no Markdown, no links. */
+.mem-body {
+  margin: 0 20px 16px; padding: 12px 14px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--panel-alt);
+  font-size: 0.875rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 72ch;
+}
+.mem-facts { border-top: 1px solid var(--line); }
+.mem-retracted { border-color: var(--bad-text); background: var(--bad-bg); color: var(--bad-strong); display: flex; flex-direction: column; gap: 4px; }
+.memhist { margin: 0; padding: 0; list-style: none; }
+.memhist > li { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; font-size: 0.875rem; }
+.memhist-head { overflow-wrap: anywhere; }
+.memhist-note { color: var(--text-2); overflow-wrap: anywhere; }
+.memhist-diff > summary { display: inline-flex; align-items: center; min-height: 32px; color: var(--link); font-size: 0.8125rem; cursor: pointer; }
+.memhist-diff .diff { margin-top: 6px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--panel-alt); }
+.memsetup { margin: 0; padding: 0 20px 16px; list-style: none; display: flex; flex-direction: column; gap: 18px; counter-reset: step; }
+.memsetup > li { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.memsetup h3 { font-size: 0.9375rem; font-weight: 600; }
+.memsetup h3::before { counter-increment: step; content: counter(step) ". "; color: var(--muted); }
+.memsetup p { font-size: 0.875rem; color: var(--text-2); max-width: 72ch; }
+.memsetup-sub { margin: 4px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 14px; }
+.memsetup-sub > li { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.snippet-row { display: flex; align-items: flex-start; gap: 8px; }
+.snippet-row .snippet { flex: 1 1 auto; min-width: 0; }
+/* Code scrolls inside itself, never the page. */
+.cmd.snippet { margin: 0; white-space: pre; overflow-x: auto; overflow-wrap: normal; }
+@media (max-width: 760px) {
+  .memsearch, .mem-lead { padding-left: 16px; padding-right: 16px; }
+  .memlist li, .memhist > li { padding-left: 16px; padding-right: 16px; }
+  .mem-body { margin-left: 16px; margin-right: 16px; }
+  .memsetup { padding-left: 16px; padding-right: 16px; }
+  .memsearch-filters { width: 100%; }
+  .memsearch-filters .sel { flex: 1 1 120px; min-width: 0; }
+  .snippet-row { flex-direction: column; align-items: stretch; }
+  .mem-head .actions { flex-wrap: wrap; }
+}
+@media (pointer: coarse) {
+  .memhist-diff > summary { min-height: 44px; }
+}
+.memsearch-q .field { width: 100%; }
+.memsetup-sub { list-style: decimal; }
+.memsetup-sub > li::marker { color: var(--muted); }

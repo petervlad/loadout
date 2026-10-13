@@ -19,7 +19,7 @@ import (
 // owners, deleting namespaces) need the web or the registry host.
 //
 //	POST   /v1/namespaces                         NamespaceRequest in, Namespace out
-//	PATCH  /v1/namespaces/{ns}                    NamespaceSettings in, Namespace out (course, require_review, wiki)
+//	PATCH  /v1/namespaces/{ns}                    NamespaceSettings in, Namespace out (course, require_review, wiki, memory)
 //	PUT    /v1/namespaces/{ns}/tiers              TiersRequest in, TiersResponse out
 //	DELETE /v1/namespaces/{ns}                    admins only
 //	GET    /v1/namespaces/{ns}/members            MembersResponse
@@ -114,7 +114,7 @@ func (s *server) updateNamespace(w http.ResponseWriter, r *http.Request, a accou
 		s.writeError(w, r, err)
 		return
 	}
-	if req.RequireReview == nil && req.Wiki == nil && req.Course == nil {
+	if req.RequireReview == nil && req.Wiki == nil && req.Course == nil && req.Memory == nil {
 		s.writeError(w, r, fmt.Errorf("%w: nothing to change", registry.ErrInvalid))
 		return
 	}
@@ -146,7 +146,28 @@ func (s *server) updateNamespace(w http.ResponseWriter, r *http.Request, a accou
 			return
 		}
 	}
+	// The memory switch needs a lower role than the settings above, so it
+	// goes last: a refusal of those comes before any change.
+	if req.Memory != nil {
+		if err := s.setMemory(r, r.PathValue("ns"), *req.Memory); err != nil {
+			s.writeError(w, r, err)
+			return
+		}
+	}
 	out := toAPINamespace(ns)
+	if out.Name == "" {
+		// Only the memory switch changed, which does not touch the registry's
+		// record of the namespace.
+		out.Name = r.PathValue("ns")
+	}
+	if s.hasMemory() {
+		on, err := s.memory.Switches.Enabled(r.Context(), out.Name)
+		if err != nil {
+			s.writeError(w, r, err)
+			return
+		}
+		out.Memory = on
+	}
 	if req.Course != nil && ns.Course.IsZero() {
 		// Cleared: say what the wiki shows instead, if anything.
 		above, ok, err := s.manage.CourseAbove(r.Context(), a, ns.Name)

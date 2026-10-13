@@ -1,0 +1,70 @@
+{{define "content"}}{{with .Page}}
+<div class="back"><a href="{{.Base}}">{{template "icon-back"}}Memory</a></div>
+{{if .Retracted}}<div class="panel version-note mem-retracted" role="note">
+<p><strong>Retracted</strong>{{with .RetractedBy}} by {{.}}{{end}}{{if not .RetractedAt.IsZero}} on {{day .RetractedAt}}{{end}}. It is hidden from search and from AI tools, and its history is kept.</p>
+{{with .Reason}}<p>Reason: {{.}}</p>{{end}}
+</div>{{end}}
+<section class="panel" aria-labelledby="mem-h">
+<div class="panel-head mem-head">
+<div class="grow">
+<h2 id="mem-h">{{.Entry.Name}}</h2>
+<p class="mem-pills"><span class="pill pill-kind">{{.Entry.Type}}</span> <span class="pill{{if .Own}} pill-own{{end}}"{{if not .Own}} title="This memory belongs to the project above"{{end}}>{{.Layer}}</span>{{if .Unconfirmed}} <span class="pill pill-warn">Unconfirmed since {{day .Entry.ConfirmedAt}}</span>{{end}}</p>
+</div>
+{{if or .CanRetract .CanMove}}<div class="actions">
+{{if .CanMove}}<details class="menu"{{if eq .OpenForm "move"}} open{{end}}>
+<summary class="btn">Move to project…</summary>
+<form class="pop" method="post" action="{{.URL}}/move">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<p class="secondary">Move this memory to {{with .Project}}{{.}}{{else}}the project{{end}}? Every team in the project reads it from then on. It keeps its author, history and number. It cannot be moved back, and only its author and the project's maintainers can retract it.</p>
+<div class="row"><a class="btn" href="{{.URL}}">Cancel</a><button type="submit" class="btn btn-primary">Move to project</button></div>
+</form>
+</details>{{end}}
+{{if .CanRetract}}<details class="menu"{{if eq .OpenForm "retract"}} open{{end}}>
+<summary class="btn btn-danger">Retract…</summary>
+<form class="pop" method="post" action="{{.URL}}/retract">
+<input type="hidden" name="csrf" value="{{$.CSRF}}">
+<label for="mem-reason">Reason for retracting</label>
+<input id="mem-reason" name="reason" class="field" required maxlength="200" autocomplete="off" value="{{.ReasonText}}"{{invalid $.Field "mem-reason"}}>
+<p>One line. It is shown to the team in the history. The memory is hidden from search and AI tools, and its history is kept.</p>
+<div class="row"><a class="btn" href="{{.URL}}">Cancel</a><button type="submit" class="btn btn-danger">Retract</button></div>
+</form>
+</details>{{end}}
+</div>{{end}}
+</div>
+<p class="mem-desc mem-lead">{{.Entry.Description}}</p>
+{{if .Entry.Body}}<div class="mem-body">{{.Entry.Body}}</div>{{end}}
+<dl class="facts mem-facts">
+<dt>Saved by</dt><dd>{{.Author}}</dd>
+{{with .Entry.EditedBy}}<dt>Last edited by</dt><dd>{{.}}</dd>
+{{end}}<dt>Saved</dt><dd><time datetime="{{stamp .Entry.CreatedAt}}" title="{{exact .Entry.CreatedAt}}">{{ago .Entry.CreatedAt}}</time></dd>
+<dt>Updated</dt><dd><time datetime="{{stamp .Entry.UpdatedAt}}" title="{{exact .Entry.UpdatedAt}}">{{ago .Entry.UpdatedAt}}</time></dd>
+<dt>Confirmed</dt><dd><time datetime="{{stamp .Entry.ConfirmedAt}}" title="{{exact .Entry.ConfirmedAt}}">{{day .Entry.ConfirmedAt}}</time></dd>
+<dt>Read by AI tools</dt><dd>{{plural .Entry.Uses "time"}}</dd>
+<dt>Number</dt><dd>{{.Entry.ID}}</dd>
+</dl>
+</section>
+
+{{with .Links}}<section class="panel" aria-labelledby="mem-links-h">
+<div class="panel-head"><h2 id="mem-links-h" class="grow">Linked memories</h2><span class="meta">{{plural (len .) "link"}}</span></div>
+<ul class="memlist">{{range .}}
+<li>
+<div class="mem-title"><a class="name" href="{{.URL}}">{{.Name}}</a> <span class="pill pill-kind">{{.Type}}</span>{{if not .Own}} <span class="pill">{{.Layer}}</span>{{end}}</div>
+<p class="mem-desc">{{.Description}}</p>
+</li>{{end}}
+</ul>
+</section>{{end}}
+
+<section class="panel" aria-labelledby="mem-hist-h">
+<div class="panel-head"><h2 id="mem-hist-h" class="grow">History</h2><span class="meta">{{plural (len .History) "version"}}</span></div>
+<ol class="memhist">{{range .History}}
+<li>
+<div class="memhist-head"><strong>{{.Verb}}</strong> by {{.Who}} · <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time><span class="muted"> · version {{.Number}}{{if .Latest}}, newest{{end}}</span></div>
+{{if .Note}}<p class="memhist-note">{{if eq .Action "retract"}}Reason{{else}}Note{{end}}: {{.Note}}</p>{{end}}
+{{if .Diff}}<details class="memhist-diff">
+<summary>Changes in version {{.Number}}</summary>
+<div class="diff wide">{{range .Diff}}{{template "diff-file" .}}{{end}}</div>
+</details>{{end}}
+</li>{{end}}
+</ol>
+</section>
+{{end}}{{end}}

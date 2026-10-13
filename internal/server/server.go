@@ -16,7 +16,8 @@
 // proposals.go, and with WithDeletions the routes for requests to delete a
 // package listed in deletions.go; auth.go lists the routes of `loadout login` and `logout`,
 // manage.go those for managing namespaces, members and machine tokens,
-// wiki.go those of a namespace's wiki page.
+// wiki.go those of a namespace's wiki page and memory.go those of team
+// memory.
 //
 // Every response to a request with a valid token (health included) may
 // carry X-Loadout-CLI-Latest and X-Loadout-CLI-Minimum; see WithCLI.
@@ -70,6 +71,8 @@ type server struct {
 	pages       http.Handler
 	manage      Manage
 	wikis       Wikis
+	memory      Memory
+	mcp         http.Handler
 	log         *slog.Logger
 	version     string
 	// cliLatest and cliMinimum are the loadout releases this registry
@@ -106,6 +109,9 @@ func New(reg Registry, log *slog.Logger, version string, opts ...Option) http.Ha
 	}
 	if s.wikis != nil {
 		s.routeWiki(mux)
+	}
+	if s.hasMemory() {
+		s.routeMemory(mux)
 	}
 
 	// Outermost first: every request gets an id, then is logged, and a

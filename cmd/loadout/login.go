@@ -13,6 +13,7 @@ import (
 	"github.com/petervlad/loadout/internal/config"
 	"github.com/petervlad/loadout/internal/device"
 	"github.com/petervlad/loadout/internal/mail"
+	"github.com/petervlad/loadout/internal/mcpmemory"
 	"github.com/petervlad/loadout/internal/ratelimit"
 	"github.com/petervlad/loadout/internal/registry"
 	"github.com/petervlad/loadout/internal/server"
@@ -39,7 +40,7 @@ const (
 // when LOADOUT_PUBLIC_URL is not set: then the registry serves exactly the
 // token API. It logs which parts are on, never a secret. A mail queue it
 // starts is added to closers. The pages include the admins' server page.
-func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMailer account.Mailer, store *sqlitestore.Store, reg *registry.Service, props *registry.ProposalService, dels *registry.DeletionService, snaps account.Snapshots, wikis *registry.WikiService, roles *account.Roles, closers *closeList) ([]server.Option, error) {
+func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMailer account.Mailer, store *sqlitestore.Store, reg *registry.Service, props *registry.ProposalService, dels *registry.DeletionService, snaps account.Snapshots, wikis *registry.WikiService, roles *account.Roles, mems memoryServices, closers *closeList) ([]server.Option, error) {
 	if login.PublicURL == "" {
 		log.Info("login is off; set LOADOUT_PUBLIC_URL to turn on web and CLI login")
 		return nil, nil
@@ -72,10 +73,14 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		PublicURL: login.PublicURL,
 		Mailer:    queued,
 		Wiki:      wikis,
-		Snapshots: snaps,
-		Deletions: dels,
-		Now:       time.Now,
-		Log:       log,
+		// Signing out everywhere also ends a person's memory tokens.
+		MemoryTokens: mems.Tokens,
+		// A deleted namespace takes its memory with it.
+		MemoryRemover: mems.Service,
+		Snapshots:     snaps,
+		Deletions:     dels,
+		Now:           time.Now,
+		Log:           log,
 	})
 	// Deleting on the web, directly or through a request, needs the backup
 	// folder: both routes take a copy first. Without one the pages leave
@@ -87,6 +92,9 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 	if snaps != nil {
 		deletes, requests = accounts, dels
 	}
+	// The web UI is built before the MCP server, so it reaches the server
+	// through this variable to drop the cached index after a web retract or move.
+	var mcpServer *mcpmemory.Server
 	pages, err := web.New(web.Config{
 		PublicURL: login.PublicURL,
 		DocsURL:   login.DocsURL,
@@ -107,6 +115,14 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 			Wiki:      accounts,
 			Deletes:   deletes,
 			Requests:  requests,
+			// The Team memory switch on Settings and the tokens on Account.
+			Memory:       mems.Service,
+			MemoryTokens: mems.Tokens,
+			MemoryChanged: func() {
+				if mcpServer != nil {
+					mcpServer.InvalidateIndex()
+				}
+			},
 		},
 	}, accounts)
 	if err != nil {
@@ -116,11 +132,17 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		log.Info("simple login is on: sign-in form only, no Google, no sign-up, no mail", "public_url", login.PublicURL)
 	}
 	log.Info("login is on", "public_url", login.PublicURL, "google", google != nil, "email", kind)
+	// The team MCP server, /mcp/t/{ns}. It checks memory tokens itself.
+	mcpServer, err = mcpmemory.New(mems.Service, mems.Tokens, mcpmemory.Options{Log: log})
+	if err != nil {
+		return nil, err
+	}
 	return []server.Option{
 		server.WithDeviceFlow(accounts, ratelimit.New(deviceIPBurst, deviceIPEvery, time.Now)),
 		server.WithPages(pages),
 		server.WithManagement(accounts),
 		server.WithWiki(accounts),
+		server.WithMemory(server.Memory{Tokens: mems.Tokens, Switches: mems.Service, PublicURL: login.PublicURL}, mcpServer),
 	}, nil
 }
 

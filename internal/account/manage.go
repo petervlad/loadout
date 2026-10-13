@@ -96,7 +96,19 @@ func (s *Service) DeleteNamespace(ctx context.Context, actor Actor, name string)
 	if a.Role != RoleAdmin {
 		return forbidden("only admins delete namespaces, signed in on the web or on the registry host")
 	}
-	return s.reg.DeleteNamespace(ctx, name)
+	if err := s.reg.DeleteNamespace(ctx, name); err != nil {
+		return err
+	}
+	// The namespace is gone, so a team made later under the same name must
+	// not inherit its memory. The registry decided the delete was allowed, so
+	// the memory goes only after it.
+	if s.memRemove != nil {
+		if _, err := s.memRemove.RemoveNamespace(ctx, name); err != nil {
+			s.log.ErrorContext(ctx, "namespace deleted but its memory remains", "namespace", name, "error", err)
+			return fmt.Errorf("%s was deleted but its team memory could not be removed. Make a namespace with the same name again and delete it again: %w", name, err)
+		}
+	}
+	return nil
 }
 
 // SetRequireReview turns review-only publishing of a namespace on or off;

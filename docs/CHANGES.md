@@ -43,6 +43,27 @@ fixed. The [user guide](../) explains how to use each one.
   back from them.
 - Feature: The built-in setup skill tells an AI tool to run `loadout update` when asked to
   update loadout.
+- Feature: Team memory. An owner or maintainer switches it on in a team's Settings, and the
+  team gets short typed facts that its members' agents save for each other. The registry
+  serves them as an MCP server at `/mcp/t/TEAM`. It stores text and finds it by words, and
+  it never calls an AI model. A team reads its project's memory too and writes only its own.
+- Feature: `loadout install` and `loadout sync` add the memory server to Claude Code and
+  Copilot for every team that has memory on, and remove it when the team switches it off.
+  `loadout setup --no-memory` stops that and `--memory` allows it again. Other MCP tools
+  use the **Set up** page on the team's Memory tab.
+- Feature: `loadout mcp --team T` is the small program an AI tool starts to reach a team's
+  memory with your memory token. `loadout memory token create|list|revoke` manages the
+  tokens, and a token only works for memory.
+- Feature: A **Memory** tab on each team lists what was saved, searches it, shows what is
+  new this week and the history of an entry. Maintainers and owners can retract a memory or
+  move it up to the project.
+- Feature: `loadout memory import DIR --team T` offers your personal memory files to a
+  team's memory. You pick what is saved.
+- Feature: Anything that looks like a secret is refused before a memory is stored, on your
+  machine and on the registry. `loadout memory purge --id N --data DIR` on the registry
+  host removes a memory and its history for good and lists the backups that still hold it.
+- Feature: Team memory lives in its own `memory.db` next to `registry.db`, and the nightly
+  backup covers both.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->

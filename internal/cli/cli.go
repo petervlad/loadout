@@ -24,6 +24,8 @@ import (
 	"github.com/petervlad/loadout/internal/detect"
 	"github.com/petervlad/loadout/internal/hook"
 	"github.com/petervlad/loadout/internal/install"
+	"github.com/petervlad/loadout/internal/mcpbridge"
+	"github.com/petervlad/loadout/internal/mcpsetup"
 	"github.com/petervlad/loadout/internal/notice"
 	"github.com/petervlad/loadout/internal/rebase"
 	"github.com/petervlad/loadout/internal/registry"
@@ -116,6 +118,19 @@ type Deps struct {
 	// Hooks sets up and removes the session hooks in the AI tools: after
 	// login and on setup --hooks or --no-hooks. Nil leaves them out.
 	Hooks *hook.Service
+	// MemorySetup adds and removes the team memory servers in the AI
+	// tools: after install and sync, and on setup --memory or --no-memory.
+	// Nil leaves them out.
+	MemorySetup *mcpsetup.Service
+	// BackupDir is where the nightly backups are kept (LOADOUT_BACKUP_DIR),
+	// for `memory purge` to name the ones that still hold an entry.
+	BackupDir string
+	// Terminal says whether a command's input is a person at a keyboard.
+	// Nil asks the file itself. Tests set it.
+	Terminal func(in io.Reader) bool
+	// Bridge builds what `loadout mcp` runs. Nil leaves the command failing
+	// with a sentence.
+	Bridge func(cfg mcpbridge.Config) (BridgeRunner, error)
 	// RunShell runs the command of `update`; nil runs it with sh. Tests set it.
 	RunShell func(ctx context.Context, command string, stdout, stderr io.Writer) error
 }
@@ -138,6 +153,9 @@ type Registry struct {
 	Service *registry.Service
 	// Accounts manages users and their memberships.
 	Accounts *account.Service
+	// Memory is the team memory in this data folder, for the operator's
+	// commands. Nil leaves them out.
+	Memory MemoryHost
 	// NewHandler builds what `serve` serves: the HTTP API, and the sign-in
 	// pages when login is configured.
 	NewHandler func() (http.Handler, error)
@@ -191,6 +209,8 @@ func NewRoot(d Deps) *cobra.Command {
 		newRebaseCmd(d),
 		newReviewCmd(d),
 		newWikiCmd(d),
+		newMemoryCmd(d),
+		newMcpCmd(d),
 		newSetupCmd(d),
 		newNoticesCmd(d),
 		newVersionCmd(d),

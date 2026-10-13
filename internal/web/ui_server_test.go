@@ -30,7 +30,7 @@ func fullReport() serverstats.Report {
 		Process: serverstats.Process{Version: "v1.4.0", GoVersion: "go1.27.1", Started: now.Add(-50 * time.Hour), Uptime: 50 * time.Hour, HeapBytes: 12 << 20, SysBytes: 30 << 20, Goroutines: 18},
 		Disk: serverstats.Disk{
 			DataDir: "/var/lib/loadout", FSTotal: 40 << 30, FSFree: 30 << 30,
-			DBBytes: 12 << 20, WALBytes: 4 << 20, DataBytes: 17 << 20, DataFiles: 5,
+			DBs: []serverstats.DBFile{{Name: "registry.db", DBBytes: 12 << 20, WALBytes: 4 << 20}, {Name: "memory.db", DBBytes: 1 << 20}}, DataBytes: 17 << 20, DataFiles: 5,
 		},
 		Counts: serverstats.Counts{
 			Registry: registry.Counts{

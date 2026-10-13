@@ -45,9 +45,10 @@ type Cloud interface {
 
 // Config says where to look.
 type Config struct {
-	// DataDir is the registry's --data folder; DBFile the database in it.
+	// DataDir is the registry's --data folder; DBFiles the databases in it
+	// (registry.db and memory.db), each reported on its own.
 	DataDir string
-	DBFile  string
+	DBFiles []string
 	// BackupDir is where the nightly backups go; empty when not known.
 	BackupDir string
 	Version   string
@@ -134,13 +135,19 @@ type Disk struct {
 	// The filesystem; FSErr says why it could not be read.
 	FSTotal, FSFree uint64
 	FSErr           string
-	// The database, its write-ahead log and shared memory file.
-	DBBytes, WALBytes, SHMBytes int64
-	DBErr                       string
+	// DBs are the databases, in the order of Config.DBFiles.
+	DBs []DBFile
 	// The whole data folder.
 	DataBytes int64
 	DataFiles int
 	DataErr   string
+}
+
+// DBFile is one database, its write-ahead log and shared memory file.
+type DBFile struct {
+	Name                        string
+	DBBytes, WALBytes, SHMBytes int64
+	Err                         string // why the database could not be read
 }
 
 // FSUsed is the used part of the filesystem.
@@ -228,6 +235,24 @@ func (c *Collector) process(now time.Time) Process {
 // folder that grew wild cannot slow the page.
 const maxWalk = 200_000
 
+func (c *Collector) dbFile(name string) DBFile {
+	f := DBFile{Name: name}
+	db := filepath.Join(c.cfg.DataDir, name)
+	if fi, err := os.Stat(db); err != nil {
+		f.Err = reason(err)
+	} else {
+		f.DBBytes = fi.Size()
+	}
+	// The WAL and shared memory files come and go with checkpoints.
+	if fi, err := os.Stat(db + "-wal"); err == nil {
+		f.WALBytes = fi.Size()
+	}
+	if fi, err := os.Stat(db + "-shm"); err == nil {
+		f.SHMBytes = fi.Size()
+	}
+	return f
+}
+
 func (c *Collector) disk() Disk {
 	d := Disk{DataDir: c.cfg.DataDir}
 	if total, free, err := statfs(c.cfg.DataDir); err != nil {
@@ -235,18 +260,8 @@ func (c *Collector) disk() Disk {
 	} else {
 		d.FSTotal, d.FSFree = total, free
 	}
-	db := filepath.Join(c.cfg.DataDir, c.cfg.DBFile)
-	if fi, err := os.Stat(db); err != nil {
-		d.DBErr = reason(err)
-	} else {
-		d.DBBytes = fi.Size()
-	}
-	// The WAL and shared memory files come and go with checkpoints.
-	if fi, err := os.Stat(db + "-wal"); err == nil {
-		d.WALBytes = fi.Size()
-	}
-	if fi, err := os.Stat(db + "-shm"); err == nil {
-		d.SHMBytes = fi.Size()
+	for _, name := range c.cfg.DBFiles {
+		d.DBs = append(d.DBs, c.dbFile(name))
 	}
 	seen, partial := 0, false
 	err := filepath.WalkDir(c.cfg.DataDir, func(path string, e fs.DirEntry, err error) error {

@@ -32,6 +32,8 @@ package web
 //	GET  /account                              profile, teams, appearance
 //	GET  /account/server                       server, costs and counts (admins only)
 //	POST /account/theme                        light, dark or system
+//	POST /t/{ns}/settings/memory               team memory on or off (ui_memory.go)
+//	POST /account/memory-tokens, /account/memory-tokens/revoke   memory tokens, shown once
 //
 // Every page acts as the signed-in user with their role in the namespace
 // (account.Roles.Principal); the registry and account services decide what
@@ -136,6 +138,16 @@ type UI struct {
 	// Wiki serves the namespaces' wiki pages; nil leaves out their
 	// routes, the Wiki tab and the switch on Settings.
 	Wiki Wiki
+	// Memory is the team memory service; nil leaves out the Team memory
+	// switch on Settings and its route.
+	Memory Memory
+	// MemoryTokens makes and revokes the memory tokens of the Account
+	// page; nil leaves the section out.
+	MemoryTokens MemoryTokens
+	// MemoryChanged, if set, is called after the Memory tab retracts or
+	// moves an entry, so the MCP server drops the index it cached
+	// (mcpmemory.Server.InvalidateIndex). Nil leaves the index to expire.
+	MemoryChanged func()
 	// Deletes deletes packages at once for admins; nil leaves out the
 	// delete routes and the package page's Delete section.
 	Deletes Deletes
@@ -230,6 +242,7 @@ func (h *handler) routeUI(mux *http.ServeMux) {
 	if h.ui.Wiki != nil {
 		h.routeWiki(mux)
 	}
+	h.routeMemory(mux)
 }
 
 // team is the request context of a team page: the signed-in user, where
@@ -491,6 +504,8 @@ type teamHeader struct {
 	Tabs bool
 	// Wiki shows the Wiki tab: the namespace's wiki is on.
 	Wiki bool
+	// Memory shows the Memory tab: the namespace's team memory is on.
+	Memory bool
 	// NewTeam shows a New team button on a project the user governs.
 	NewTeam bool
 }
@@ -532,6 +547,12 @@ func (h *handler) renderUI(w http.ResponseWriter, r *http.Request, status int, p
 // renderTeam renders a page of the team t with its header.
 func (h *handler) renderTeam(w http.ResponseWriter, r *http.Request, status int, page, tab string, t team, v uiView) {
 	hd := &teamHeader{Name: t.ns(), Via: t.place.Via, Tab: tab, Tabs: t.member(), Wiki: h.wikiOn(t)}
+	on, err := h.memoryOn(r.Context(), t)
+	if err != nil {
+		h.fail(w, r, err)
+		return
+	}
+	hd.Memory = on
 	hd.NewTeam = t.member() && t.place.Namespace.Kind == registry.KindProject &&
 		t.place.Access.CanCreateChild(registry.KindProject, registry.KindTeam)
 	open := map[string]bool{}

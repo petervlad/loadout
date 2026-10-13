@@ -40,6 +40,9 @@ func (s *session) exec(stdin string, args ...string) (stdout, stderr string, cod
 		}
 		return kv
 	}
+	// The test binary is called loadout.test. A memory server entry names the
+	// running program, and only a program called loadout is loadout's.
+	ext.executable = func() (string, error) { return "/opt/test/bin/loadout", nil }
 	terminal := s.terminal
 	ext.stderrTerminal = func() bool { return terminal }
 	code = runWith(s.t.Context(), args, strings.NewReader(stdin), &out, &errOut, func(k string) string { return env[k] }, s.wd, ext)

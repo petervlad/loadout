@@ -457,3 +457,29 @@ Left as it is:
 - A person who may only look still sees both buttons, disabled, with "Only maintainers of lime approve or reject." under them, as on proposals; hiding them would make the page differ by role in a way the proposal page does not.
 - The error banner sits above the back link, as on every form, not next to the field.
 - The admin on the package page sees "Ask to delete…" beside the red "Delete package…": asking is how an admin gets a second person's review, which they may prefer to deleting at once.
+
+## Memory tab (October 2026)
+
+Team memory on the web, behind the namespace's Team memory switch: `memory.html` (search and New this week), `memory_entry.html` (one memory, links, history), `memory_setup.html` (connect a tool by hand). Routes are `GET /t/{ns}/memory`, `/memory/{id}`, `/memory/setup` and `POST /memory/{id}/retract` and `/move`. All are the usual 404 while the switch is off, through `inMemory`, and the tab shows only while it is on. Looked at with the apple-design checklist and the rampstack accessibility-audit, design-standards and form-strategy skills, in the preview (a seeded `memory.db`), light and dark, at 1280 and 390 px, with a touch screen and without script: the list, a search with and without hits, an unconfirmed memory, a memory with a diff in its history, a retracted one, a memory whose text holds HTML, both popovers open, the setup page, and the entry as a maintainer and as an author.
+
+Decisions:
+
+- **Read only.** Nothing edits a memory. The only forms are the search (GET) and the two popovers. Entry text is escaped text in `.mem-body` (`pre-wrap`), never Markdown and never a link, since agents and people paste anything into it.
+- **Retract and Move to project ask first.** Both are `details.menu` popovers in the Remove pattern, with the consequence in the text. Retract needs a reason (`required`, one line, 200 characters). A refused reason comes back as a 400 with the layout's `role="alert"`, the popover open again, the field `aria-invalid` and `aria-describedby="form-error"`, and the typed reason kept. Move says it cannot be moved back and that only the author and the project's maintainers can retract it afterwards.
+- **Buttons only for those who may.** `memory.Service.History` returns `CanRetract` and `CanMove` from the same rules `Retract` and `Move` check, so the page never offers what the service refuses. A retracted memory has neither and shows a notice with who, when and why.
+- **History** lists versions newest first: action, who, when, the note or reason, and a native `details` "Changes in version N" holding the line diff from `textdiff` (name, description, type, team, links, then the body). A confirm or a retract changes no text, so it has no diff. Works without script.
+- **The unconfirmed marker** is a `pill-warn` "Unconfirmed since 13 Mar 2026" in lists and on the entry. Memories are never hidden for it.
+- **Search** is a plain GET form with a visible Search button, a type select and, when a project is above, a team select. No autosubmit, so nothing depends on script. With no query the page shows New this week (7 days, newest first), filtered by the same selects.
+- **Setup page** lists the endpoint, a curl test, the bridge command, an HTTP config with an `Authorization` header and the CA steps. Code sits in `pre.cmd.snippet` that scrolls inside itself (focusable, `tabindex="0"`). Copy buttons are `js-only`, and the text is selectable without them. It never prints a token. The page cannot show the CA's fingerprint, so it tells the person to compare it with the one their admin gave them.
+- Colour: no new tokens. Pills, `--warn-*`, `--bad-*`, the diff colours and `--panel-alt` were checked in both themes. No script, inline style or handler was added, and the console showed no CSP violation.
+
+Checked and kept:
+
+- 390 px: the tab bar still fits five tabs, lists and the history stack, nothing scrolls sideways, the popovers open inside the screen. Touch: buttons and `summary` rows are 44 px (`.memhist-diff > summary` added to the coarse-pointer rule).
+- Search field and selects have visible-hidden labels. Headings go h1 (team), h2 per panel. The current tab has `aria-current="page"`.
+
+Left as it is:
+
+- The author keeps the Retract button after a memory moves to the project, since the service allows it. A maintainer of the team does not, and the Move popover says so.
+- Authors show as their display name, else the email they had when they saved, like the wiki.
+- No pagination: lists stop at 50 and say so.

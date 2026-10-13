@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/url"
 	"os"
@@ -47,6 +48,16 @@ func Open(ctx context.Context, path string, log *slog.Logger) (*Store, error) {
 	if log == nil {
 		log = slog.New(slog.DiscardHandler)
 	}
+	db, err := openDB(ctx, path, log, migrationFiles, "migrations")
+	if err != nil {
+		return nil, err
+	}
+	return &Store{db: db, log: log}, nil
+}
+
+// openDB creates the file, opens the pool and applies the migrations of one
+// folder. extra pragmas run on every new connection beside the common ones.
+func openDB(ctx context.Context, path string, log *slog.Logger, fsys fs.FS, dir string, extra ...string) (*sql.DB, error) {
 	abs, err := filepath.Abs(path)
 	if err != nil {
 		return nil, fmt.Errorf("open store %s: %w", path, err)
@@ -54,7 +65,7 @@ func Open(ctx context.Context, path string, log *slog.Logger) (*Store, error) {
 	if err := createFile(abs); err != nil {
 		return nil, fmt.Errorf("open store %s: %w", abs, err)
 	}
-	db, err := sql.Open(driverName, dsn(abs))
+	db, err := sql.Open(driverName, dsn(abs, extra...))
 	if err != nil {
 		return nil, fmt.Errorf("open store %s: %w", abs, err)
 	}
@@ -65,11 +76,10 @@ func Open(ctx context.Context, path string, log *slog.Logger) (*Store, error) {
 	db.SetMaxIdleConns(8)
 	db.SetConnMaxIdleTime(5 * time.Minute)
 
-	s := &Store{db: db, log: log}
-	if err := s.migrate(ctx); err != nil {
+	if err := migrate(ctx, db, log, fsys, dir); err != nil {
 		return nil, errors.Join(fmt.Errorf("open store %s: %w", abs, err), db.Close())
 	}
-	return s, nil
+	return db, nil
 }
 
 // Close closes the database.
@@ -104,12 +114,15 @@ func createFile(path string) error {
 // _txlock=immediate makes every transaction take the write lock at BEGIN,
 // so a transaction never has to upgrade a read lock, which is the case
 // busy_timeout cannot help with.
-func dsn(path string) string {
+func dsn(path string, extra ...string) string {
 	q := url.Values{}
 	q.Add("_pragma", "busy_timeout(5000)")
 	q.Add("_pragma", "journal_mode(WAL)")
 	q.Add("_pragma", "synchronous(NORMAL)")
 	q.Add("_pragma", "foreign_keys(ON)")
+	for _, p := range extra {
+		q.Add("_pragma", p)
+	}
 	q.Set("_txlock", "immediate")
 	u := url.URL{Scheme: "file", Path: filepath.ToSlash(path), RawQuery: q.Encode()}
 	return u.String()

@@ -126,6 +126,16 @@ same lines the file holds conflict markers for you to resolve.`,
 			return nil
 		},
 	}
+	// Every form of install ends by making the AI tools' team memory match
+	// the registries, once.
+	installPackages := cmd.RunE
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if err := installPackages(cmd, args); err != nil {
+			return err
+		}
+		d.ensureMemory(cmd)
+		return nil
+	}
 	f := cmd.Flags()
 	f.StringSliceVar(&targets, "target", nil, fmt.Sprintf("AI tools to install into (available: %v)", d.Installer.Targets()))
 	f.StringVar(&scope, "scope", string(target.ScopeUser), "user (your home) or project (the current repo)")

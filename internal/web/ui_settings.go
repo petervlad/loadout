@@ -44,6 +44,9 @@ type settingsView struct {
 	// choose its course.
 	Wiki    bool
 	CanWiki bool
+	// Memory is the team memory switch; CanMemory lets the viewer turn it.
+	Memory    bool
+	CanMemory bool
 	// Course is the course form, for those who may choose it.
 	Course *courseForm
 	// CanTiers lets the viewer change the model settings.
@@ -153,6 +156,15 @@ func (h *handler) renderSettings(w http.ResponseWriter, r *http.Request, t team,
 	v.CanReview = a.CanSetReview()
 	v.Wiki = t.place.Namespace.Wiki
 	v.CanWiki = a.CanSetWiki() && h.ui.Wiki != nil
+	v.CanMemory = a.CanSetMemory() && h.ui.Memory != nil
+	if v.CanMemory {
+		on, err := h.ui.Memory.Enabled(r.Context(), t.ns())
+		if err != nil {
+			h.fail(w, r, err)
+			return
+		}
+		v.Memory = on
+	}
 	v.CanTiers = a.CanSetTiers()
 	v.CanList = a.CanListMembers()
 	v.Query = strings.TrimSpace(r.URL.Query().Get("q"))
@@ -308,6 +320,10 @@ func settingsNotice(ns string, q url.Values) string {
 		return "The wiki is on. Open the Wiki tab to write the first version."
 	case "wiki-off":
 		return "The wiki is off. Its history is kept if you turn it on again."
+	case "memory-on":
+		return "Team memory is on. Members create a memory token on their Account page to connect their AI tools."
+	case "memory-off":
+		return "Team memory is off. What was saved is kept, and comes back if you turn it on again."
 	case "course-set":
 		if id, err := pack.ParseID(q.Get("course")); err == nil {
 			return "The wiki shows " + id.String() + " as its course."

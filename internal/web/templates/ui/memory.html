@@ -1,0 +1,46 @@
+{{define "content"}}{{with .Page}}
+<section class="panel" aria-labelledby="mem-search-h">
+<div class="panel-head">
+<div class="grow"><h2 id="mem-search-h">Search team memory</h2><p>Short facts your AI tools saved for {{.Namespace}}{{if .Layers}} and the project above{{end}}. They are read-only here.</p></div>
+<a class="btn" href="{{.Base}}/setup">Connect a tool</a>
+</div>
+<form class="memsearch" role="search" method="get" action="{{.Base}}">
+<div class="memsearch-q">
+<label class="vh" for="mem-q">Search words</label>
+<input id="mem-q" name="q" type="search" class="field" placeholder="Search names, descriptions and text" value="{{.Query}}" autocomplete="off" maxlength="200">
+</div>
+<div class="memsearch-filters">
+<label class="vh" for="mem-type">Type</label>
+<select id="mem-type" name="type" class="sel">{{range .Types}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+{{with .Layers}}<label class="vh" for="mem-layer">Team</label>
+<select id="mem-layer" name="layer" class="sel"><option value="">All teams</option>{{$cur := $.Page.Layer}}{{range .}}<option value="{{.}}"{{if eq . $cur}} selected{{end}}>{{.}}</option>{{end}}</select>{{end}}
+<button type="submit" class="btn btn-primary">Search</button>
+</div>
+</form>
+</section>
+
+<section class="panel" aria-labelledby="mem-list-h">
+<div class="panel-head">
+<h2 id="mem-list-h" class="grow">{{if .Searched}}Results for “{{.Query}}”{{else}}New this week{{end}}</h2>
+{{if .Rows}}<span class="meta">{{len .Rows}} {{if eq (len .Rows) 1}}memory{{else}}memories{{end}}</span>{{end}}
+{{if or .Searched .Filtered}}<a href="{{.Base}}">Clear</a>{{end}}
+</div>
+{{if .Rows}}<ul class="memlist">{{range .Rows}}
+<li>
+<div class="mem-title"><a class="name" href="{{.URL}}">{{.Name}}</a> <span class="pill pill-kind">{{.Type}}</span>{{if not .Own}} <span class="pill" title="This memory belongs to the project above">{{.Layer}}</span>{{end}}{{if .Unconfirmed}} <span class="pill pill-warn">Unconfirmed since {{day .ConfirmedAt}}</span>{{end}}</div>
+<p class="mem-desc">{{.Description}}</p>
+<p class="mem-meta">{{.Author}}{{with .EditedBy}} · Edited by {{.}}{{end}} · Saved <time datetime="{{stamp .CreatedAt}}" title="{{exact .CreatedAt}}">{{ago .CreatedAt}}</time>{{if .Edited}} · Updated <time datetime="{{stamp .UpdatedAt}}" title="{{exact .UpdatedAt}}">{{ago .UpdatedAt}}</time>{{end}}</p>
+</li>{{end}}
+</ul>
+{{if .Full}}<p class="panel-foot">This list stops at {{len .Rows}} memories. Narrow the search to see others.</p>{{end}}
+{{else if .Searched}}<div class="empty">
+<h3>No memory matches “{{.Query}}”</h3>
+<p>The search looks at the name, the description and the text of each memory, and finds memories that have all your words, or else any of them.</p>
+<a href="{{.Base}}">Show what is new</a>
+</div>
+{{else}}<div class="empty">
+<h3>Nothing new this week</h3>
+<p>{{if .Filtered}}No memory of this type or team was saved or changed in the last 7 days. {{end}}Search above to find older ones. AI tools save a memory when they learn something the whole team should know.</p>
+</div>{{end}}
+</section>
+{{end}}{{end}}

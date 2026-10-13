@@ -22,6 +22,7 @@ import (
 	"github.com/petervlad/loadout/internal/buildinfo"
 	"github.com/petervlad/loadout/internal/builtin"
 	"github.com/petervlad/loadout/internal/cli"
+	"github.com/petervlad/loadout/internal/client"
 	"github.com/petervlad/loadout/internal/cliupdate"
 	"github.com/petervlad/loadout/internal/config"
 	"github.com/petervlad/loadout/internal/detect"
@@ -30,6 +31,9 @@ import (
 	"github.com/petervlad/loadout/internal/install"
 	"github.com/petervlad/loadout/internal/lock"
 	"github.com/petervlad/loadout/internal/logging"
+	"github.com/petervlad/loadout/internal/mcpbridge"
+	"github.com/petervlad/loadout/internal/mcpsetup"
+	"github.com/petervlad/loadout/internal/memory"
 	"github.com/petervlad/loadout/internal/notice"
 	"github.com/petervlad/loadout/internal/notify/pushover"
 	"github.com/petervlad/loadout/internal/rebase"
@@ -188,6 +192,30 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		fmt.Fprintln(stderr, "error:", err)
 		return 1
 	}
+	remotes := remote.NewStore(cfg.StateDir, getenv)
+	memorySetup, err := mcpsetup.New(mcpsetup.Options{
+		Home:       cfg.Home,
+		WishPath:   filepath.Join(cfg.StateDir, "mcp.yaml"),
+		Executable: executable,
+		LookPath:   lookPath,
+		Tokens: memoryTokens{
+			remotes: remotes,
+			newClient: func(r remote.Remote, loginToken string) (*client.Client, error) {
+				opts := []client.Option{client.WithUserAgent("loadout/" + build.Raw())}
+				if r.CAFile != "" {
+					opts = append(opts, client.WithCAFile(r.CAFile))
+				}
+				return client.New(r.URL, loginToken, opts...)
+			},
+			label: cli.DefaultTokenLabel(),
+			now:   time.Now,
+		},
+		Log: log,
+	}, claudeAdapter, copilotAdapter)
+	if err != nil {
+		fmt.Fprintln(stderr, "error:", err)
+		return 1
+	}
 	rebaseRecords := rebase.NewRecords(cfg.StateDir)
 	// What registries say about loadout releases, kept between runs; built
 	// from a file and this build only, so it reaches no registry itself.
@@ -203,7 +231,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		Releases:  releases,
 		Detector:  detector,
 		Builtins:  builtins,
-		Remotes:   remote.NewStore(cfg.StateDir, getenv),
+		Remotes:   remotes,
 		Log:       log,
 		StateDir:  cfg.StateDir,
 		Home:      cfg.Home,
@@ -218,6 +246,13 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		NewSyncer: func(connect update.Connector) cli.Syncer {
 			return update.New(installer, connect, notifier, memory, log)
 		},
+		Bridge: func(c mcpbridge.Config) (cli.BridgeRunner, error) {
+			b, err := mcpbridge.New(c)
+			if err != nil {
+				return nil, err
+			}
+			return b, nil
+		},
 		OpenRegistry: registryOpener(log, cfg.Login, cfg.Stats, cfg.Proxies, build, ext.mailer),
 		Config:       cfg,
 		Environ:      ext.environ,
@@ -230,10 +265,12 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		Sleep:   ext.sleep,
 		Wiki:    wiki.NewSyncer(wiki.NewCheckouts(cfg.StateDir)),
 		// Built from local files only: notices never reach a registry.
-		Notices: notice.New(memory, installer),
-		Hooks:   hooks,
-		Updates: updates,
-		Pusher:  pusher,
+		Notices:     notice.New(memory, installer),
+		Hooks:       hooks,
+		MemorySetup: memorySetup,
+		Updates:     updates,
+		BackupDir:   cfg.Stats.BackupDir,
+		Pusher:      pusher,
 		NewRebaser: func(reg rebase.Registry, url string) cli.Rebaser {
 			return rebase.New(reg, rebaseRecords, url, time.Now)
 		},
@@ -298,10 +335,21 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 			return cli.Registry{}, nil, err
 		}
 		closers := &closeList{store}
+		// Team memory has its own file, so a bug or a migration there cannot
+		// damage packages.
+		mem, err := sqlitestore.OpenMemory(ctx, filepath.Join(dataDir, memoryDBFile), log)
+		if err != nil {
+			return cli.Registry{}, nil, errors.Join(err, store.Close())
+		}
+		closers.add(mem)
 		// Roles answer, on every request with a login token, what its user
 		// may do now, and who owns a namespace (owners approve their own
-		// proposals).
+		// proposals). They answer team memory's rights too.
 		roles := account.NewRoles(store, store)
+		mems, err := newMemoryServices(mem, store, roles, log)
+		if err != nil {
+			return cli.Registry{}, nil, errors.Join(err, closers.Close())
+		}
 		svc := registry.NewService(store, store, store, time.Now, log, registry.WithMemberships(roles), registry.WithOwnerHints(roles))
 		props := registry.NewProposalService(store, store, time.Now, log, registry.WithAccess(svc), registry.WithOwners(roles))
 		wikis := registry.NewWikiService(store, store, time.Now, log)
@@ -311,7 +359,7 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 		hostDeletions := registry.NewDeletionService(store, store, time.Now, log)
 		// The admin commands on the host need no mail or device flow; the
 		// public URL goes into the sign-in link of member invite.
-		admin := account.NewService(store, svc, roles, device.New(time.Now), account.Options{PublicURL: login.PublicURL, Wiki: wikis, Deletions: hostDeletions, Now: time.Now, Log: log})
+		admin := account.NewService(store, svc, roles, device.New(time.Now), account.Options{PublicURL: login.PublicURL, Wiki: wikis, MemoryTokens: mems.Tokens, MemoryRemover: mems.Service, Deletions: hostDeletions, Now: time.Now, Log: log})
 		newHandler := func() (http.Handler, error) {
 			// Approving a deletion saves a copy of the database first, so
 			// it needs the backup folder; without one approvals are refused
@@ -323,7 +371,7 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 			}
 			dels := registry.NewDeletionService(store, store, time.Now, log, dopts...)
 			opts := []server.Option{server.WithProposals(props), server.WithDeletions(dels), server.WithCLI(advertised(build), server.MinimumCLI())}
-			more, err := loginOptions(log, login, statsSetup{Stats: stats, DataDir: dataDir, Build: build}, testMailer, store, svc, props, dels, snaps, wikis, roles, closers)
+			more, err := loginOptions(log, login, statsSetup{Stats: stats, DataDir: dataDir, Build: build}, testMailer, store, svc, props, dels, snaps, wikis, roles, mems, closers)
 			if err != nil {
 				return nil, err
 			}
@@ -341,8 +389,29 @@ func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, pr
 		firstAdmin := func(ctx context.Context, configured string) (account.FirstAdmin, error) {
 			return admin.EnsureFirstAdmin(ctx, store, configured)
 		}
-		return cli.Registry{Service: svc, Accounts: admin, NewHandler: newHandler, FirstAdmin: firstAdmin}, closers, nil
+		return cli.Registry{Service: svc, Accounts: admin, Memory: mems.Service, NewHandler: newHandler, FirstAdmin: firstAdmin}, closers, nil
 	}
+}
+
+// memoryServices are the team memory parts the registry's other services
+// share: the rules, and the tokens that sign a person in to the MCP server.
+type memoryServices struct {
+	Service *memory.Service
+	Tokens  *memory.Tokens
+}
+
+// newMemoryServices builds them over memory.db. roles answer a person's
+// rights, store tells whether a token's person still exists.
+func newMemoryServices(mem *sqlitestore.MemoryStore, store *sqlitestore.Store, roles *account.Roles, log *slog.Logger) (memoryServices, error) {
+	svc, err := memory.NewService(mem, mem.Switches(), roles, time.Now, log)
+	if err != nil {
+		return memoryServices{}, err
+	}
+	tokens, err := memory.NewTokens(mem, account.NewMemoryUsers(store), time.Now, log)
+	if err != nil {
+		return memoryServices{}, err
+	}
+	return memoryServices{Service: svc, Tokens: tokens}, nil
 }
 
 // resolvedExecutable is the running binary's path with links resolved,

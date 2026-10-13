@@ -302,20 +302,28 @@ func hostSection(h serverstats.Host) sectionView {
 	return sectionView{Facts: facts, Hint: hint}
 }
 
+// dbFact is one database file: its size, and any log not yet merged into it.
+func dbFact(f serverstats.DBFile) fact {
+	db := fact{Label: "Database " + f.Name, Value: bytesText(f.DBBytes), Note: f.Name}
+	switch {
+	case f.Err != "":
+		db.Value, db.Note = "Unknown", f.Err
+	case f.WALBytes > 0:
+		db.Note = f.Name + ", and " + bytesText(f.WALBytes) + " of write-ahead log not yet merged into it"
+	}
+	return db
+}
+
 func storageFacts(d serverstats.Disk, c serverstats.Counts) (diskView, []fact) {
 	dv := diskView{Err: d.FSErr}
 	if d.FSErr == "" {
 		dv.Shown, dv.Percent = true, d.UsedPercent()
 		dv.Text = fmt.Sprintf("%s used of %s, %s free", bytesText(int64(d.FSUsed())), bytesText(int64(d.FSTotal)), bytesText(int64(d.FSFree))) //nolint:gosec // G115: disks are smaller than 8 EB
 	}
-	db := fact{Label: "Database", Value: bytesText(d.DBBytes), Note: "registry.db"}
-	switch {
-	case d.DBErr != "":
-		db.Value, db.Note = "Unknown", d.DBErr
-	case d.WALBytes > 0:
-		db.Note = "registry.db, and " + bytesText(d.WALBytes) + " of write-ahead log not yet merged into it"
+	facts := []fact{{Label: "Data folder", Value: d.DataDir}}
+	for _, f := range d.DBs {
+		facts = append(facts, dbFact(f))
 	}
-	facts := []fact{{Label: "Data folder", Value: d.DataDir}, db}
 	if c.Err == "" {
 		rc := c.Registry
 		facts = append(facts, fact{

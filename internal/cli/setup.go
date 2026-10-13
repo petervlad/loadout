@@ -19,16 +19,18 @@ const noToolLine = "No Claude Code or Copilot found here (~/.claude, ~/.copilot)
 
 func newSetupCmd(d Deps) *cobra.Command {
 	var (
-		skills  bool
-		host    bool
-		hooks   bool
-		noHooks bool
-		targets []string
-		force   bool
+		skills   bool
+		host     bool
+		hooks    bool
+		noHooks  bool
+		memory   bool
+		noMemory bool
+		targets  []string
+		force    bool
 	)
 	cmd := &cobra.Command{
-		Use:   "setup --skills | --host-skills | --hooks | --no-hooks",
-		Short: "Install loadout's own skills, or the session hooks, in your AI tools",
+		Use:   "setup --skills | --host-skills | --hooks | --no-hooks | --memory | --no-memory",
+		Short: "Install loadout's own skills, the session hooks or team memory in your AI tools",
 		Long: `--skills installs the skills that come with this loadout (loadout-setup,
 loadout-author, loadout-review, loadout-admin) for your user, into every AI
 tool found (~/.claude, ~/.copilot), or into the tools given with --target.
@@ -47,22 +49,36 @@ and Copilot (~/.copilot/hooks/loadout.json) that runs loadout notices, so a
 new session says when your edits hold an update back, or a newer loadout
 is out. It only reads files
 on this machine. loadout login sets them up too; --no-hooks removes them,
-and login then leaves them out.`,
+and login then leaves them out.
+
+--memory and --no-memory choose whether install and sync add your teams'
+memory server to your AI tools (Claude Code, Copilot) when a team has team
+memory on. --no-memory removes the entries loadout added and keeps them
+out; --memory allows them again and adds them now. --target limits either
+to one tool. Nothing else in the tools' files is touched.`,
 		Example: `  loadout setup --skills
   loadout setup --skills --target claude
   loadout setup --host-skills
   loadout setup --hooks
-  loadout setup --no-hooks`,
+  loadout setup --no-hooks
+  loadout setup --no-memory --target copilot`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			switch {
-			case !skills && !host && !hooks && !noHooks:
-				return errors.New("nothing to set up; pass --skills for loadout's own skills, --host-skills for the skills that set up a registry, --hooks for the session hooks, or --no-hooks to remove them")
+			case !skills && !host && !hooks && !noHooks && !memory && !noMemory:
+				return errors.New("nothing to set up; pass --skills for loadout's own skills, --host-skills for the skills that set up a registry, --hooks for the session hooks, --memory for team memory, or --no-hooks or --no-memory to remove them")
 			case hooks && noHooks:
 				return errors.New("--hooks and --no-hooks contradict each other; pass one")
+			case memory && noMemory:
+				return errors.New("--memory and --no-memory contradict each other; pass one")
 			}
 			if sets := askedSets(skills, host); len(sets) > 0 {
 				if err := setupSkills(cmd, d, sets, targets, force); err != nil {
+					return err
+				}
+			}
+			if memory || noMemory {
+				if err := setupMemory(cmd, d, targets, memory); err != nil {
 					return err
 				}
 			}
@@ -77,6 +93,8 @@ and login then leaves them out.`,
 	f.BoolVar(&host, "host-skills", false, "install the skills that set up a loadout registry of your own")
 	f.BoolVar(&hooks, "hooks", false, "set up the session hooks that say when your edits hold an update back, or a newer loadout is out")
 	f.BoolVar(&noHooks, "no-hooks", false, "remove the session hooks; login then leaves them out")
+	f.BoolVar(&memory, "memory", false, "add your teams' memory server to your AI tools, and keep doing so")
+	f.BoolVar(&noMemory, "no-memory", false, "remove the team memory servers loadout added; install and sync then leave them out")
 	f.StringSliceVar(&targets, "target", nil, "AI tools to set up (default: every tool found)")
 	f.BoolVar(&force, "force", false, "overwrite a built-in skill you edited")
 	return cmd

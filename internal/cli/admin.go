@@ -24,6 +24,7 @@ type manager interface {
 	SetRequireReview(ctx context.Context, name string, on bool) (api.Namespace, error)
 	SetWiki(ctx context.Context, name string, on bool) (api.Namespace, error)
 	SetCourse(ctx context.Context, name, course string) (api.Namespace, error)
+	SetMemory(ctx context.Context, name string, on bool) (api.Namespace, error)
 	NamespaceTiers(ctx context.Context, namespace string) (api.TiersResponse, error)
 	SetTiers(ctx context.Context, namespace string, cells []api.TierCell) (api.TiersResponse, error)
 	Members(ctx context.Context, namespace string) ([]api.Member, error)
@@ -114,6 +115,12 @@ func (h hostManager) SetRequireReview(ctx context.Context, name string, on bool)
 func (h hostManager) SetWiki(ctx context.Context, name string, on bool) (api.Namespace, error) {
 	ns, err := h.a.SetWiki(ctx, account.Operator(), name, on)
 	return apiNamespace(ns), err
+}
+
+// SetMemory is refused on the host: the switch is a person's to turn, and the
+// memory service checks their role, which the operator has none of.
+func (h hostManager) SetMemory(_ context.Context, name string, _ bool) (api.Namespace, error) {
+	return api.Namespace{}, fmt.Errorf("team memory of %s is turned by an owner or maintainer, not on the registry host. Sign in with loadout login and run this with --remote", name)
 }
 
 func (h hostManager) SetCourse(ctx context.Context, name, course string) (api.Namespace, error) {

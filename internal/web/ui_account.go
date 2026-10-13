@@ -34,6 +34,9 @@ type accountView struct {
 	// FirstAdmin shows the reminder to change the generated password; the
 	// registry does not know whether it was changed.
 	FirstAdmin bool
+	// MemoryTokens is the section for memory tokens; nil when this
+	// registry has no team memory.
+	MemoryTokens *memoryTokensView
 }
 
 // accountMembership is one of the user's roles, with whether its page can
@@ -50,6 +53,19 @@ func (h *handler) uiAccount(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/auth/login?"+url.Values{"next": {"/account"}}.Encode(), http.StatusSeeOther)
 		return
 	}
+	notice := ""
+	switch r.URL.Query().Get("done") {
+	case "theme":
+		notice = "Appearance saved."
+	case "memory-revoked":
+		notice = "The memory token was revoked. A tool using it can no longer reach team memory."
+	}
+	h.renderAccount(w, r, u, http.StatusOK, notice, "", nil)
+}
+
+// renderAccount renders the account page. created is a memory token just
+// made, whose secret the page shows this once.
+func (h *handler) renderAccount(w http.ResponseWriter, r *http.Request, u account.User, status int, notice, errText string, created *newMemoryToken) {
 	ms, err := h.accounts.Memberships(r.Context(), u.ID)
 	if err != nil {
 		h.fail(w, r, err)
@@ -68,11 +84,15 @@ func (h *handler) uiAccount(w http.ResponseWriter, r *http.Request) {
 	for _, m := range ms {
 		v.Memberships = append(v.Memberships, accountMembership{Namespace: m.Namespace, Role: m.Role, Since: m.CreatedAt})
 	}
-	notice := ""
-	if r.URL.Query().Get("done") == "theme" {
-		notice = "Appearance saved."
+	if v.MemoryTokens, err = h.memoryTokensView(r, u.ID, created); err != nil {
+		h.fail(w, r, err)
+		return
 	}
-	h.renderUI(w, r, http.StatusOK, "account.html", u, places, "", uiView{Title: "Account", AccountCurrent: true, Notice: notice, Page: v})
+	field := ""
+	if errText != "" {
+		field = "mem-label"
+	}
+	h.renderUI(w, r, status, "account.html", u, places, "", uiView{Title: "Account", AccountCurrent: true, Notice: notice, Error: errText, Field: field, Page: v})
 }
 
 // setTheme stores the appearance in a cookie; the pages read it to set

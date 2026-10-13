@@ -47,10 +47,11 @@
 <h1 class="title">{{.Name}}</h1>
 {{if .Via}}<p class="via">You read {{.Name}} through <a href="/t/{{.Via}}">{{.Via}}</a>.</p>{{end}}
 </div>
-{{if or .Tabs .Wiki}}<nav class="tabs" aria-label="Team sections">
+{{if or .Tabs .Wiki .Memory}}<nav class="tabs" aria-label="Team sections">
 <a href="/t/{{.Name}}"{{if eq .Tab "packages"}} aria-current="page"{{end}}>Packages</a>
 {{if .Tabs}}<a href="/t/{{.Name}}/reviews"{{if eq .Tab "reviews"}} aria-current="page"{{end}}>Reviews{{if .Reviews}}<span class="count">{{.Reviews}}<span class="vh"> open</span></span>{{end}}</a>
 {{end}}{{if .Wiki}}<a href="/t/{{.Name}}/wiki"{{if eq .Tab "wiki"}} aria-current="page"{{end}}>Wiki</a>
+{{end}}{{if .Memory}}<a href="/t/{{.Name}}/memory"{{if eq .Tab "memory"}} aria-current="page"{{end}}>Memory</a>
 {{end}}{{if .Tabs}}<a href="/t/{{.Name}}/settings"{{if eq .Tab "settings"}} aria-current="page"{{end}}>Settings</a>
 {{end}}</nav>{{end}}
 <div class="head-fill"></div>

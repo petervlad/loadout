@@ -233,6 +233,8 @@ type Namespace struct {
 	Kind          LayerKind `json:"kind"`
 	RequireReview bool      `json:"require_review"`
 	Wiki          bool      `json:"wiki"`
+	// Memory is whether the namespace has team memory on.
+	Memory bool `json:"memory"`
 	// Course is the knowledge base the wiki shows as its course, as
 	// "team/name"; empty when the namespace sets none of its own.
 	Course string `json:"course,omitempty"`
@@ -249,6 +251,7 @@ type Namespace struct {
 type NamespaceSettings struct {
 	RequireReview *bool `json:"require_review,omitempty"`
 	Wiki          *bool `json:"wiki,omitempty"`
+	Memory        *bool `json:"memory,omitempty"`
 	// Course is a knowledge base as "team/name"; "" clears it.
 	Course *string `json:"course,omitempty"`
 }

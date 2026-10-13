@@ -597,3 +597,46 @@ func TestBackupPrunesDeleteCopies(t *testing.T) {
 		t.Errorf("the new copy was removed: %v", err)
 	}
 }
+
+// TestBackupHoldsMemoryDB: memory.db sits beside registry.db and the nightly
+// script copies both into the archive, each passing its integrity check and
+// still holding its rows.
+func TestBackupHoldsMemoryDB(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("loadout-backup.sh is a POSIX shell script")
+	}
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 is not installed")
+	}
+	rows := map[string]string{"registry.db": "package", "memory.db": "fact"}
+	data, dest := t.TempDir(), t.TempDir()
+	for name, row := range rows {
+		stmts := "PRAGMA journal_mode=WAL; CREATE TABLE t (v TEXT); INSERT INTO t VALUES ('" + row + "');"
+		out, err := exec.CommandContext(t.Context(), "sqlite3", filepath.Join(data, name), stmts).CombinedOutput() //nolint:gosec // G204: a fixed command on a temp folder
+		if err != nil {
+			t.Fatalf("sqlite3 %s: %v\n%s", name, err, out)
+		}
+	}
+	cmd := exec.CommandContext(t.Context(), "sh", "loadout-backup.sh")
+	cmd.Env = append(os.Environ(), "LOADOUT_DATA="+data, "LOADOUT_BACKUP_DIR="+dest)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("loadout-backup.sh: %v\n%s", err, out)
+	}
+	archives, err := filepath.Glob(filepath.Join(dest, "loadout-*.tar.gz"))
+	if err != nil || len(archives) != 1 {
+		t.Fatalf("archives = %v, %v, want one", archives, err)
+	}
+	restored := t.TempDir()
+	if out, err := exec.CommandContext(t.Context(), "tar", "-C", restored, "-xzf", archives[0]).CombinedOutput(); err != nil {
+		t.Fatalf("tar: %v\n%s", err, out)
+	}
+	for name, row := range rows {
+		out, err := exec.CommandContext(t.Context(), "sqlite3", filepath.Join(restored, name), "PRAGMA integrity_check; SELECT v FROM t;").CombinedOutput() //nolint:gosec // G204: a fixed command on a temp folder
+		if err != nil {
+			t.Fatalf("restored %s: %v\n%s", name, err, out)
+		}
+		if got := strings.Fields(string(out)); len(got) != 2 || got[0] != "ok" || got[1] != row {
+			t.Errorf("restored %s says %q, want ok and %q", name, strings.TrimSpace(string(out)), row)
+		}
+	}
+}

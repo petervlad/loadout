@@ -207,7 +207,7 @@ Keep them in your `LOADOUT_ENV_FILE` (a deploy that installs a file replaces the
 
 ## 7. Backups
 
-`loadout-backup.timer` runs nightly at about 03:15. It copies each SQLite database with `sqlite3 .backup` (consistent while the server runs), adds the other files from `/var/lib/loadout`, and writes `/var/backups/loadout/loadout-<UTC time>.tar.gz`. Archives older than 14 days are deleted.
+`loadout-backup.timer` runs nightly at about 03:15. It copies each SQLite database (`registry.db` for packages and accounts, `memory.db` for team memory) with `sqlite3 .backup` (consistent while the server runs), adds the other files from `/var/lib/loadout`, and writes `/var/backups/loadout/loadout-<UTC time>.tar.gz`. Archives older than 14 days are deleted.
 
 ```sh
 sudo systemctl start loadout-backup.service   # back up now
@@ -219,7 +219,7 @@ The backups live on the same disk. Copy them off the machine (your provider's sn
 
 The server also saves a `before-delete-*.db` copy of the database here before a package is deleted on the web (an admin deleting at once, or a maintainer or owner approving a deletion request); the backup job prunes them after the same 14 days. The requests and who decided them stay in the `deletions` table of the database. To undo such a delete, stop the service, copy that file over `/var/lib/loadout/registry.db`, remove `registry.db-wal` and `registry.db-shm`, `chown loadout:loadout` the file and start the service.
 
-Restore:
+Restore everything, both `registry.db` and `memory.db`:
 
 ```sh
 sudo systemctl stop loadout
@@ -228,6 +228,22 @@ sudo tar -C /var/lib/loadout -xzf /var/backups/loadout/loadout-<time>.tar.gz
 sudo chown -R loadout:loadout /var/lib/loadout
 sudo systemctl start loadout
 ```
+
+Restore `memory.db` alone, for example after a bad migration, without rolling packages and accounts back. Packages stay as they are now, and memory returns to the state of the archive:
+
+```sh
+sudo systemctl stop loadout
+mkdir /tmp/loadout-restore
+sudo tar -C /tmp/loadout-restore -xzf /var/backups/loadout/loadout-<time>.tar.gz ./memory.db
+sudo cp /tmp/loadout-restore/memory.db /var/lib/loadout/memory.db
+sudo rm -f /var/lib/loadout/memory.db-wal /var/lib/loadout/memory.db-shm
+sudo chown loadout:loadout /var/lib/loadout/memory.db
+sudo chmod 600 /var/lib/loadout/memory.db
+rm -r /tmp/loadout-restore
+sudo systemctl start loadout
+```
+
+Remove the `-wal` and `-shm` files, since they belong to the database you replaced. A memory purged after the archive was made is back in the restored file, so purge it again. An archive made before memory existed has no `memory.db`. In that case leave the current file alone, or delete it and the server creates an empty one at the next start.
 
 ## Operate
 

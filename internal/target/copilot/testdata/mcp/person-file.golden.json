@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "tools": ["*"]
+    },
+    "loadout-memory-lime": {
+      "type": "local",
+      "command": "loadout",
+      "args": [
+        "mcp",
+        "--team",
+        "lime"
+      ],
+      "tools": [
+        "*"
+      ]
+    }
+  },
+  "ratio": 1.50e3,
+  "note": "caf\u00e9 <&>"
+}
