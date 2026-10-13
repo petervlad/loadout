@@ -1,6 +1,6 @@
 # What's new
 
-Status: built and deployed (2026-10-05). Planned 2026-10-04; the page is at https://loadout.lat/docs/whats-new/ and the entries live in `docs/CHANGES.md`.
+Status: built and deployed (2026-10-05). Planned 2026-10-04. The page is at https://loadout.lat/docs/whats-new/ and the entries live in `docs/CHANGES.md`.
 
 ## Goal
 
@@ -13,9 +13,9 @@ The history up to now is written once from the git commits. From then on, adding
 entries is a step of the deploy: the `loadout-deploy` skill drafts them from the commits
 since the last deploy, the user edits them, and they ship with the deploy.
 
-The one rule holds. The page is static HTML built by pandoc; the registry and the CLI
+The one rule holds. The page is static HTML built by pandoc. The registry and the CLI
 never touch it. The drafting of entries happens in the developer's own Claude Code, on
-their own machine, while running the deploy skill; nothing in loadout calls a model or
+their own machine, while running the deploy skill. Nothing in loadout calls a model or
 holds a key.
 
 ## Decided
@@ -43,11 +43,11 @@ each other from the docs sidebar.
   `docs/guide/page.html` and the Lua filters `table.lua` (wrap tables so they scroll on a
   phone) and `sections.lua` (each level-2 chapter becomes a `<details>`), writes
   `deploy/site/docs/index.html` and copies `docs.js`. The generated files are committed
-  (`git ls-files deploy/site`); CI has no pandoc and never builds them.
+  (`git ls-files deploy/site`). CI has no pandoc and never builds them.
 - `page.html` holds the whole look inline (the site's CSP allows inline style and
   `script-src 'self'` only): the registry's tokens in light, dark and increased contrast,
   a sidebar with the contents above 900 px and a folding "Contents" menu below it. The
-  brand link points to `#top`; `docs.js` points it back to the registry page named in
+  brand link points to `#top`. `docs.js` points it back to the registry page named in
   `?from` when that page is on a loadout site. `docs.js` already copes with a page that
   has no `#chapter-tools`.
 - `deploy/deploy.sh` tars `deploy/site` and swaps it into `/var/www/loadout-site` in one
@@ -60,11 +60,11 @@ each other from the docs sidebar.
   it. Below 760 px (`static/style.css`) the sidebar becomes a top bar: the brand, then
   Docs as an icon (its word visually hidden by `.side-docs-label`, still the accessible
   name) pushed right by `margin-left: auto`, then the account item with its name capped
-  at 140 px; the projects and teams wrap onto a second, scrolling row (`.side-nav`,
+  at 140 px. The projects and teams wrap onto a second, scrolling row (`.side-nav`,
   `order: 3`). At 390 px that first row holds about 32 px of padding, a 98 px brand, a
   36 px Docs icon, a 176 px account item (10 + 16 + 10 + 140) and two 4 px gaps: 350 px,
   leaving 40 px. One more 36 px icon and its gap would use all of it, so a long name
-  would push the row to wrap. (These widths are estimates from the CSS; the screenshot
+  would push the row to wrap. (These widths are estimates from the CSS, the screenshot
   review measures them.)
 - There are no git tags. `Makefile` and `deploy.sh` take the version from
   `git describe --tags --always --dirty`, and `builtin.Version` turns that string into
@@ -74,7 +74,7 @@ each other from the docs sidebar.
   names `before-YYYYMMDD-HHMM.db` on the VM, which are taken only when a deploy migrates
   (or when unsure).
 - Commit dates on `main`: 52 on 28 September, 134 on 29 September, 2 on 30 September, 3
-  on 1 October, 24 on 3 October, 1 on 4 October; 8 more on `stale-proposals`.
+  on 1 October, 24 on 3 October, 1 on 4 October. 8 more on `stale-proposals`.
 
 ## Design
 
@@ -82,7 +82,7 @@ each other from the docs sidebar.
 
 Markdown, not YAML. Reasons:
 
-- The page is built by pandoc, which reads Markdown already; YAML would need a generator
+- The page is built by pandoc, which reads Markdown already. YAML would need a generator
   (a Go program, or a pandoc metadata template) for what is a list of sentences.
 - The file is edited by hand at every deploy, in the middle of a terminal session. A
   bulleted list with a word in front is the easiest thing to edit and to review in a diff,
@@ -131,7 +131,7 @@ Rules the test enforces:
   in a section.
 - No em-dash anywhere.
 
-The marker is a comment so the page stays about what users get; the filter drops it from
+The marker is a comment so the page stays about what users get. The filter drops it from
 the HTML.
 
 ### Knowing "since the last deploy": a marker in the file, not a git tag
@@ -139,7 +139,7 @@ the HTML.
 The newest `<!-- through HASH -->` names the last shipped commit, and the next draft reads
 `git log --no-merges HASH..HEAD`. Recommended over a tag per deploy because:
 
-- One source of truth, committed and reviewed with the entries it belongs to; nothing to
+- One source of truth, committed and reviewed with the entries it belongs to. Nothing to
   push separately, nothing lost on another machine.
 - A tag would change the version every binary reports: `git describe --tags` in
   `Makefile` and `deploy.sh` would pick `deploy-2026-10-04` as the nearest tag, and once
@@ -148,12 +148,12 @@ The newest `<!-- through HASH -->` names the last shipped commit, and the next d
 - The newest date alone is not precise: two deploys in a day, or a commit dated before
   the previous deploy but merged after it, would be missed or repeated.
 
-A deploy with nothing user-facing adds no section, so its marker does not move; the next
+A deploy with nothing user-facing adds no section, so its marker does not move. The next
 draft sees those commits again and drops them again. That costs a few lines of reading
 and keeps the rule "every section has items".
 
 If `HASH` is not an ancestor of `HEAD` (history rewritten), the helper script stops and
-says so; the person picks the range by hand.
+says so. The person picks the range by hand.
 
 ### The helper script: `scripts/changes-since.sh`
 
@@ -168,7 +168,7 @@ hints.
 - Adds a hint per commit from its files: `tests only` (only `*_test.go` and
   `testdata/`), `plan` (only `docs/plans/`), `site only` (only `deploy/site/` and
   `docs/CHANGES.md`, which is the previous changes commit itself). Lint and refactor
-  commits cannot be told apart by their files; the subject is left to the drafter.
+  commits cannot be told apart by their files. The subject is left to the drafter.
 - `--all` reads from the root commit, for the backfill. `--since HASH` overrides the
   marker.
 
@@ -189,7 +189,7 @@ one site.
   for, and older ones are one scroll away.
 - Each item shows its tag as a small label before the sentence: "Feature" or "Fix", in
   text, so the tag does not rely on colour. Features use the existing `--own-bg` and
-  `--own-text` tokens; fixes get a neutral pair (`--fix-bg`, `--fix-text`) added to
+  `--own-text` tokens. Fixes get a neutral pair (`--fix-bg`, `--fix-text`) added to
   `:root`, the dark block and both increased-contrast blocks, with AA contrast checked in
   each.
 - Each `h3` wraps its text in `<time datetime="2026-10-04">`.
@@ -199,12 +199,12 @@ one site.
 A Lua filter used only for the changes page:
 
 - `RawBlock` of format `html` that is a `<!-- through ... -->` comment: removed.
-- `BulletList` items: the first inline of the first block must be `Feature:` or `Fix:`;
-  it becomes `<span class="tag tag-feature">Feature</span>` (or `tag-fix`). Any other
+- `BulletList` items: the first inline of the first block must be `Feature:` or `Fix:`.
+  It becomes `<span class="tag tag-feature">Feature</span>` (or `tag-fix`). Any other
   item stops the build with `error("untagged item: ...")`, so a malformed file cannot
   ship from a careless rebuild.
 - Level-3 headers: the text is parsed (`D Month YYYY`, a month table) and wrapped in a
-  `<time>` element; a heading it cannot parse also stops the build.
+  `<time>` element. A heading it cannot parse also stops the build.
 
 ### `docs/guide/page.html`
 
@@ -296,19 +296,19 @@ icons. No `aria-current`: the page is on another site.
   the account. The token already has light, dark and increased-contrast values (5.7:1 in
   light, measured in the September review).
 - Phones (the `max-width: 760px` block):
-  - `.side-news-label` is visually hidden like `.side-docs-label`; the word stays the
+  - `.side-news-label` is visually hidden like `.side-docs-label`. The word stays the
     accessible name. Both become icon buttons in the top row.
-  - Margins: `.side-user, .side-docs { margin-left: auto; }` stays; add
+  - Margins: `.side-user, .side-docs { margin-left: auto; }` stays. Add
     `.side-docs + .side-news, .side-news + .side-user { margin-left: 0; }` (replacing
     `.side-docs + .side-user`), so the three sit together on the right.
   - The account name cap goes from 140 px to 112 px. The row at 390 px becomes 32 px of
     padding, a 98 px brand, two 36 px icons, a 148 px account item (10 + 16 + 10 + 112)
     and three 4 px gaps: 362 px, leaving 28 px. A long name truncates with an ellipsis as
-    today, 28 px sooner; "Sign in" for a visitor is far shorter.
+    today, 28 px sooner. "Sign in" for a visitor is far shorter.
   - Below 375 px (`@media (max-width: 374px)`) the cap drops to 84 px, so a 360 px phone
     keeps one row too. If a phone is narrower still, `.side` already has
     `flex-wrap: wrap`, so the account item wraps under the brand instead of overflowing.
-  - On touch (`pointer: coarse`) every `.side-item` is already at least 44 px tall; the
+  - On touch (`pointer: coarse`) every `.side-item` is already at least 44 px tall. The
     icon items are 36 px wide, as Docs is today, which the September review accepted.
     The review checks whether two of them side by side are still easy to hit, and widens
     both to 44 px (with the account cap at 104 px) if not.
@@ -345,7 +345,7 @@ agent), and doing them once does not justify code that would never run again.
    not committed). The hints mark tests-only, plan and site-only commits.
 2. Group by day: 28 September, 29 September, 30 September, 1 October, 3 October, and the
    day `stale-proposals` ships. No record of the early deploys exists, so a day is the
-   honest unit; 28 September becomes one "First release" section that says what loadout
+   honest unit. 28 September becomes one "First release" section that says what loadout
    did on day one, in at most eight items, instead of 52.
 3. Per day, merge commits about one feature into one item, tag it, and write it as a
    user would say it: what they can now do, where (web, CLI command), not which package
@@ -360,7 +360,7 @@ agent), and doing them once does not justify code that would never run again.
    '/usr/local/bin/loadout version'` (read-only), which prints the deployed
    `git describe` hash. Commits after it belong to the next deploy's draft, not the
    backfill.
-7. The user reads and edits the whole file; then build, test and commit it.
+7. The user reads and edits the whole file, then build, test and commit it.
 
 Expected size: 30 to 60 items across six sections.
 
@@ -410,11 +410,11 @@ Expected size: 30 to 60 items across six sections.
    curl -s -o /dev/null -w '%{http_code}\n' https://loadout.lat/docs/whats-new/
    ```
 
-5. Rules: the existing line "The docs page ships with the deploy (`deploy/site`);
-   rebuild it first with `sh docs/guide/build.sh` if `docs/GUIDE.md` changed." becomes
-   "The docs pages ship with the deploy (`deploy/site`); rebuild them with
+5. Rules: the existing line "The docs page ships with the deploy (`deploy/site`).
+   Rebuild it first with `sh docs/guide/build.sh` if `docs/GUIDE.md` changed." becomes
+   "The docs pages ship with the deploy (`deploy/site`). Rebuild them with
    `sh docs/guide/build.sh` whenever `docs/GUIDE.md` or `docs/CHANGES.md` changed." And a
-   new rule: "The What's new draft is the user's to approve; never commit it unseen."
+   new rule: "The What's new draft is the user's to approve. Never commit it unseen."
 
 The changes commit lands on `main` before the deploy, so `deploy.sh` builds the binary
 from the same tree that holds the entries, and step 4 pushes both together.
@@ -430,18 +430,18 @@ Each step leaves `make check` green and could ship on its own.
    the second run in `build.sh`, the Caddy redirect. Rebuild both pages and commit the
    output. UI review (below), recorded in `docs/UI.md`.
 3. Helper. `scripts/changes-since.sh` with `--all` and `--since`.
-4. Backfill. The manual pass above; the user edits; the newest marker checked against
-   the live version; rebuild and commit.
+4. Backfill. The manual pass above. The user edits. The newest marker checked against
+   the live version. Rebuild and commit.
 5. Deploy skill. The edits above.
 6. Docs. `docs/ARCHITECTURE.md` lists `CHANGES.md` in its table of technical docs and
-   the page in the site diagram; `docs/GUIDE.md` gains one sentence in its intro
-   pointing to What's new; the guide is rebuilt. Propose to the user (not edit
+   the page in the site diagram. `docs/GUIDE.md` gains one sentence in its intro
+   pointing to What's new. The guide is rebuilt. Propose to the user (not edit
    unasked) a line in `CLAUDE.md` under "Read first" for `docs/CHANGES.md`.
 7. Registry link. `whatsNewURL`, `uiView.WhatsNewURL`, `renderUI`, the layout item and
    `icon-news`, the CSS above, the web tests below. Screenshots with the
    `loadout-preview` skill, then the apple-design review and `accessibility-audit`,
    recorded in `docs/UI.md`. `docs/DESIGN.md` (the sidebar paragraph under the web pages)
-   and `docs/GUIDE.md` ("The website") name the new item; rebuild the guide. This step
+   and `docs/GUIDE.md` ("The website") name the new item. Rebuild the guide. This step
    comes after step 2, so the page it points to is in the tree and ships in the same
    deploy as the link at the latest.
 8. Ship with the next deploy, using the new step for the first time (its draft should
@@ -453,20 +453,20 @@ Each step leaves `make check` green and could ship on its own.
 - `docs/guide/changes_test.go`, package `guide_test` (a folder with only a test file,
   like `deploy/deploy_test.go`), so `go test ./...` and CI check the file without
   pandoc. Table-driven over small inputs for the parser, plus one test on the real file:
-  - accepts the example above; refuses an untagged item, `Feature` without the colon, a
+  - accepts the example above. Refuses an untagged item, `Feature` without the colon, a
     missing full stop, an em-dash, months or days out of order, a day under the wrong
     month, a duplicate date, a missing or malformed marker, an empty section, a fix
-    before a feature, a second `#` title;
-  - the real `docs/CHANGES.md` passes;
+    before a feature, a second `#` title.
+  - the real `docs/CHANGES.md` passes.
   - drift: the committed `deploy/site/docs/whats-new/index.html` contains every date of
     the file (as `datetime="YYYY-MM-DD"`) and exactly as many tag labels as the file has
     items, so a forgotten rebuild fails the check.
-- `build.sh` fails on a malformed file through `changes.lua`; tried once by hand with an
+- `build.sh` fails on a malformed file through `changes.lua`. Tried once by hand with an
   untagged item.
 - `scripts/changes-since.sh`: run against this repository with a known marker, and with
   a marker that is not an ancestor (it must stop). It has no Go test: the deploy skill
   uses it with a person watching, and the format test guards what it feeds.
-- Caddy: `caddy adapt` already runs inside `deploy.sh`; `deploy_test.go` keeps passing
+- Caddy: `caddy adapt` already runs inside `deploy.sh`. `deploy_test.go` keeps passing
   because the site tar picks up the new folder without a change.
 - UI review of both docs pages with the `loadout-preview` skill (`scripts/preview`) and
   the apple-design checklist, then `accessibility-audit`: light, dark, increased
@@ -478,17 +478,17 @@ Each step leaves `make check` green and could ship on its own.
   - a signed-in team page with a query (`/t/lime?kind=skill`) has
     `class="side-item side-news" href="https://loadout.lat/docs/whats-new/?from=http%3A%2F%2Flocalhost%2Ft%2Flime%3Fkind%3Dskill"`
     and `<span class="side-news-label">What's new</span></a>` (the template escapes the
-    apostrophe; the test asserts whatever `html/template` writes, checked once);
+    apostrophe. The test asserts whatever `html/template` writes, checked once).
   - the order in the page is Docs, then What's new, then the account item (`side-user`),
-    by index in the body;
+    by index in the body.
   - a visitor who is not signed in gets the link on `/skills` with its own `from`
-    (`ui_skills_test.go`), before the Sign in item;
-  - the link never carries `aria-current`;
+    (`ui_skills_test.go`), before the Sign in item.
+  - the link never carries `aria-current`.
   - a page rendered without a sidebar (`Bare`) has no link.
 - Registry link review with the `loadout-preview` skill: screenshots of a team page and
   `/skills` at 390 px (signed in with a long name, and signed out), 360 px, 800 px and
   1440 px, light and dark, increased contrast, touch and keyboard (tab order: Docs, What's
-  new, account), without JavaScript; then the apple-design checklist (hit targets,
+  new, account), without JavaScript, then the apple-design checklist (hit targets,
   grouping, icon legibility) and `accessibility-audit` (accessible names of the icon-only
   links on phones, focus ring, contrast of `--muted-2` on `--sidebar`). Findings and
   measurements recorded in the same `docs/UI.md` section.
@@ -498,16 +498,16 @@ Each step leaves `make check` green and could ship on its own.
 ## Risks
 
 - Leaking internals on a public page: commit subjects name packages, clients and
-  security details. The drafting rules forbid them and the user approves every draft;
-  the backfill gets a full read before it is committed.
+  security details. The drafting rules forbid them and the user approves every draft.
+  The backfill gets a full read before it is committed.
 - A wrong first marker (step 4) makes the first deploy draft repeat or miss commits.
   Checking it against `loadout version` on the VM removes the guess.
-- History rewrite on `main` orphans the marker; the script stops instead of drafting
+- History rewrite on `main` orphans the marker. The script stops instead of drafting
   from a wrong range.
 - Forgetting to rebuild after editing `CHANGES.md`: the drift test fails in `make check`,
   which the deploy skill runs right after.
 - pandoc versions differ between machines and produce noisy diffs in the generated HTML.
-  The same risk exists for the guide today; the build stays pinned to pandoc 3.
+  The same risk exists for the guide today. The build stays pinned to pandoc 3.
 - The deploy gets slower and needs the user present. That is the point (they approve
   the words), and a deploy with nothing user-facing costs one sentence.
 - The phone top bar gets tighter: account names truncate 28 px sooner, and a phone under
@@ -537,5 +537,5 @@ Each step leaves `make check` green and could ship on its own.
 - Showing the entries inside the registry, or per-registry entries for self-hosted
   registries.
 - Release notes for `v*` releases on GitHub (goreleaser's changelog stays as it is).
-- Any generation of entries by the registry or the CLI; drafting stays in the
+- Any generation of entries by the registry or the CLI. Drafting stays in the
   developer's own tool.

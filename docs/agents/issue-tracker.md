@@ -12,7 +12,7 @@ loadout keeps its work in the repo, not in GitHub Issues.
 
 ## When a skill says "publish to the issue tracker"
 
-A spec goes to `docs/plans/<feature-slug>.md`; a ticket goes to `.scratch/<feature-slug>/issues/`.
+A spec goes to `docs/plans/<feature-slug>.md`. A ticket goes to `.scratch/<feature-slug>/issues/`.
 
 ## When a skill says "fetch the relevant ticket"
 
@@ -24,6 +24,6 @@ Used by `/wayfinder`.
 
 - **Map**: `.scratch/<effort>/map.md` (Notes / Decisions so far / Fog).
 - **Child ticket**: `.scratch/<effort>/issues/NN-<slug>.md` with the question in the body and a `Type:` line (`research`, `prototype`, `grilling` or `task`).
-- **Frontier**: open, unblocked and unclaimed tickets in that folder; the lowest number wins.
+- **Frontier**: open, unblocked and unclaimed tickets in that folder. The lowest number wins.
 - **Claim**: add `Claimed by:` as the session's first write.
 - **Resolve**: write the answer in the ticket, set `Status: done`, then add a one-line pointer to the map's Decisions so far.

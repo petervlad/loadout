@@ -41,7 +41,7 @@
 </table>
 </section>{{end}}
 <section class="panel" aria-labelledby="main-h">
-<div class="panel-head"><div class="grow"><h2 id="main-h">{{if .Generated}}Generated {{end}}{{.MainName}} in {{.Version}}</h2>{{if .Generated}}<p>loadout writes this index from the documents; tools read it to find the one a task needs.</p>{{end}}</div>
+<div class="panel-head"><div class="grow"><h2 id="main-h">{{if .Generated}}Generated {{end}}{{.MainName}} in {{.Version}}</h2>{{if .Generated}}<p>loadout writes this index from the documents, and tools read it to find the one a task needs.</p>{{end}}</div>
 {{if not .Generated}}<a class="btn" href="{{.Base}}/files/{{.MainName}}">Preview<span class="vh"> {{.MainName}}</span></a>
 <a class="btn" href="{{.Base}}/raw/{{.MainName}}">{{template "icon-download"}}Download<span class="vh"> {{.MainName}}</span></a>{{end}}</div>
 <pre class="markdown">{{.Main}}</pre>

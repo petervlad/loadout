@@ -2,7 +2,7 @@
 
 Shape: [VM](../shapes/vm.md). Tool: `aws` (AWS CLI v2).
 
-Verified how: not run end to end. Written from AWS's documentation and CLI reference and checked against loadout's deploy files, on 2026-10-07. The Lightsail commands match the CLI reference page for each command; the EC2 image lookup uses a filter name from memory and has not been checked against Canonical's current naming. Nobody has created an instance with these exact commands, so if a flag or output differs from what `aws ... help` shows, trust the help and the documentation (below) and say what you changed.
+Verified how: not run end to end. Written from AWS's documentation and CLI reference and checked against loadout's deploy files, on 2026-10-07. The Lightsail commands match the CLI reference page for each command. The EC2 image lookup uses a filter name from memory and has not been checked against Canonical's current naming. Nobody has created an instance with these exact commands, so if a flag or output differs from what `aws ... help` shows, trust the help and the documentation (below) and say what you changed.
 
 Sources:
 - https://docs.aws.amazon.com/cli/latest/reference/lightsail/ (create-instances, import-key-pair, put-instance-public-ports, allocate-static-ip, attach-static-ip, create-instance-snapshot)
@@ -13,10 +13,10 @@ Sources:
 
 ## Before you start
 
-- An AWS account and `aws` v2 with working credentials for it. The person sets that up themselves (`aws configure`, or `aws configure sso` then `aws sso login`) and you check with `aws sts get-caller-identity`; read nothing from `~/.aws`. Ask which profile and region to use, and pass `--region REGION` and `--profile NAME` on every command (or have the person export `AWS_PROFILE` and `AWS_REGION` in their own shell).
+- An AWS account and `aws` v2 with working credentials for it. The person sets that up themselves (`aws configure`, or `aws configure sso` then `aws sso login`) and you check with `aws sts get-caller-identity`. Read nothing from `~/.aws`. Ask which profile and region to use, and pass `--region REGION` and `--profile NAME` on every command (or have the person export `AWS_PROFILE` and `AWS_REGION` in their own shell).
 - The person's public key (a `.pub` file). Lightsail's `import-key-pair` accepts only an `ssh-rsa` key (its CLI reference says so, checked 2026-10-07), while EC2 takes RSA or ED25519. For Lightsail the person needs an RSA key: `ssh-keygen -t rsa -b 4096 -f ~/.ssh/loadout_rsa` in their own terminal (they choose the passphrase), then `ssh-add ~/.ssh/loadout_rsa` so `ssh` and `deploy.sh` find it. You only ever read `loadout_rsa.pub`.
 - AWS blocks outgoing port 25 for EC2, and throttles it on Lightsail. Port 587 is not affected: SES and any other provider on 587 with STARTTLS work (checked 2026-10-07).
-- Lightsail is a flat monthly bundle in one region; EC2 is billed per resource. Prefer Lightsail unless the person already has a VPC to put this in.
+- Lightsail is a flat monthly bundle in one region. EC2 is billed per resource. Prefer Lightsail unless the person already has a VPC to put this in.
 
 ## Create the machine
 
@@ -40,7 +40,7 @@ aws lightsail attach-static-ip --static-ip-name loadout-ip --instance-name loado
 aws lightsail get-static-ip --static-ip-name loadout-ip --query 'staticIp.ipAddress' --output text
 ```
 
-`BUNDLE_ID` and `ZONE` come from the lists above. A static IP stays when the instance is replaced and is free while attached; one left unattached is billed, so it is in the tear down list. Wait until `aws lightsail get-instance --instance-name loadout --query 'instance.state.name' --output text` says `running`. Record the instance, key pair and static IP names.
+`BUNDLE_ID` and `ZONE` come from the lists above. A static IP stays when the instance is replaced and is free while attached. One left unattached is billed, so it is in the tear down list. Wait until `aws lightsail get-instance --instance-name loadout --query 'instance.state.name' --output text` says `running`. Record the instance, key pair and static IP names.
 
 ### EC2 (an existing VPC)
 
@@ -55,7 +55,7 @@ aws ec2 allocate-address --domain vpc
 aws ec2 associate-address --instance-id INSTANCE_ID --allocation-id ALLOCATION_ID
 ```
 
-`099720109477` is Canonical's account. For an Arm machine use a `t4g` type, the `arm64` image name and `LOADOUT_ARCH=arm64`. A `t3.micro` has 1 GB of memory; the person may prefer `t3.small` (2 GB). The cloud-init file is the [VM shape](../shapes/vm.md)'s, with the key replaced; it creates `admin`. Without user data the default user is `ubuntu`.
+`099720109477` is Canonical's account. For an Arm machine use a `t4g` type, the `arm64` image name and `LOADOUT_ARCH=arm64`. A `t3.micro` has 1 GB of memory. The person may prefer `t3.small` (2 GB). The cloud-init file is the [VM shape](../shapes/vm.md)'s, with the key replaced. It creates `admin`. Without user data the default user is `ubuntu`.
 
 ## Firewall
 
@@ -76,7 +76,7 @@ aws ec2 authorize-security-group-ingress --group-id SG_ID --ip-permissions 'IpPr
 
 ## Name
 
-[dns.md](../dns.md): an A record to the static IP (Lightsail) or the Elastic IP (EC2), or `<ip-with-dashes>.sslip.io`. The person may keep DNS in Route 53; ask before changing it.
+[dns.md](../dns.md): an A record to the static IP (Lightsail) or the Elastic IP (EC2), or `<ip-with-dashes>.sslip.io`. The person may keep DNS in Route 53. Ask before changing it.
 
 ## Deploy
 
@@ -90,7 +90,7 @@ The [VM shape](../shapes/vm.md), step 3, with `LOADOUT_HOST` the static or elast
 
 ## Cost
 
-Lightsail bundles with a public IPv4 address, from the pricing page checked 2026-10-07: 5 USD (512 MB), 7 USD (1 GB, 2 vCPU, 40 GB disk, 2 TB transfer), 12 USD (2 GB). One 1 GB bundle is enough, so about 7 USD per month. Snapshots cost 0.05 USD per GB per month. The static IP is included while attached. Data transfer beyond the bundle's allowance is billed; a registry does not come near it. EC2 is billed by the hour for the instance, its volume and an Elastic IP; `t3.micro` in most regions is under 10 USD per month plus the volume, but read the current price (https://aws.amazon.com/ec2/pricing/on-demand/) and tell the person.
+Lightsail bundles with a public IPv4 address, from the pricing page checked 2026-10-07: 5 USD (512 MB), 7 USD (1 GB, 2 vCPU, 40 GB disk, 2 TB transfer), 12 USD (2 GB). One 1 GB bundle is enough, so about 7 USD per month. Snapshots cost 0.05 USD per GB per month. The static IP is included while attached. Data transfer beyond the bundle's allowance is billed. A registry does not come near it. EC2 is billed by the hour for the instance, its volume and an Elastic IP. `t3.micro` in most regions is under 10 USD per month plus the volume, but read the current price (https://aws.amazon.com/ec2/pricing/on-demand/) and tell the person.
 
 ## Tear down
 

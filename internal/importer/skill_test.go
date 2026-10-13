@@ -15,14 +15,14 @@ import (
 
 func TestSkills(t *testing.T) {
 	out := t.TempDir()
-	src := filepath.Join("testdata", "skills", "zuul-triage")
+	src := filepath.Join("testdata", "skills", "build-triage")
 	results, err := Skills([]string{src}, Options{Team: "lime", Out: out, Version: semver.New(1, 0, 0)})
 	if err != nil {
 		t.Fatalf("Skills() error: %v", err)
 	}
 	r := results[0]
-	if r.ID.String() != "lime/zuul-triage" || r.Kind != pack.KindSkill {
-		t.Errorf("Skills() = %s %s, want lime/zuul-triage skill", r.ID, r.Kind)
+	if r.ID.String() != "lime/build-triage" || r.Kind != pack.KindSkill {
+		t.Errorf("Skills() = %s %s, want lime/build-triage skill", r.ID, r.Kind)
 	}
 	if diff := cmp.Diff([]string{"kept fields allowed-tools, metadata, compatibility as they are; loadout does not read them"}, r.Notices); diff != "" {
 		t.Errorf("Skills() notices mismatch (-want +got):\n%s", diff)
@@ -39,7 +39,7 @@ func TestSkills(t *testing.T) {
 	}
 	// SKILL.md is copied byte for byte, the hidden file is left behind.
 	files := p.Files()
-	if want := readTestdata(t, "skills/zuul-triage/SKILL.md"); string(files[skill.File]) != string(want) {
+	if want := readTestdata(t, "skills/build-triage/SKILL.md"); string(files[skill.File]) != string(want) {
 		t.Errorf("SKILL.md =\n%s\nwant it copied as it is:\n%s", files[skill.File], want)
 	}
 	wantPaths := []string{pack.ManifestFile, skill.File, "references/errors.md"}

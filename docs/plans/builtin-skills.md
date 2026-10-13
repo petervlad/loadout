@@ -27,16 +27,16 @@ sometimes. Every skill carries the same guardrails:
   propose, review approve, reject or withdraw, member invite, add, set or
   remove, namespace set, token create or revoke.
 - Never read, print or pass a token. The person runs `loadout login`
-  themselves; never open `~/.loadout/credentials.yaml`.
+  themselves. Never open `~/.loadout/credentials.yaml`.
 - Never pass `--force` over an edited file without asking.
-- `loadout review` runs a teammate's package with the tool's full access;
-  say so and offer `--safe`.
+- `loadout review` runs a teammate's package with the tool's full access.
+  Say so and offer `--safe`.
 - The one rule: loadout never runs a model and holds no AI key.
 
 Company specifics (registry address, which team to join, local rules) are
 not in these skills. Each skill tells the agent to look for an installed
 skill named `<project>-loadout` or `loadout-local` and prefer it. A project
-publishes that as a normal L0 skill; the guide shows how.
+publishes that as a normal L0 skill. The guide shows how.
 
 ## Where the text lives
 
@@ -57,10 +57,10 @@ with a generated manifest, so the skill format is validated by the same
   touched by the built-in pass, so a registry team that happens to be called
   `loadout` is never mistaken for them (its entry has a URL as source and is
   left alone).
-- Version: the CLI version (`v1.4.0-3-gabc` counts as `1.4.0`); a build
+- Version: the CLI version (`v1.4.0-3-gabc` counts as `1.4.0`). A build
   without a release version (`dev`) uses `0.0.1`. The digest covers the
   manifest and the text, so any change to the text is a new digest.
-- Policy `auto`; `loadout policy loadout/loadout-setup pin` holds a version.
+- Policy `auto`. `loadout policy loadout/loadout-setup pin` holds a version.
 
 ## Behaviour
 
@@ -69,18 +69,18 @@ with a generated manifest, so the skill format is validated by the same
 detector. Consumers own interfaces with only what they call.
 
 - `loadout login`: after a successful sign-in, `Want` then `Ensure`. A
-  failure only warns; the sign-in stands.
+  failure only warns. The sign-in stands.
 - `Ensure`: nothing unless wanted. For each skill that is not declined and
   not a registry package's entry: install for the detected tools when it is
   missing, when the digest differs from the lock (a new CLI), or when a tool
   appeared that it is not installed for. An up-to-date install is not touched,
-  so an edited `SKILL.md` never blocks or nags until there is a new version;
-  then the installer refuses to overwrite it and the report says so.
+  so an edited `SKILL.md` never blocks or nags until there is a new version.
+  Then the installer refuses to overwrite it and the report says so.
 - No tool folder (`~/.claude`, `~/.copilot`): nothing is written and no
   folder is created. Login prints one line naming both tools, the next
   `loadout sync`, and `loadout setup --skills --target claude`. The wish is
   already recorded (`wanted`), so `sync` installs once a folder appears.
-- `loadout sync`: after the registry pass, `Ensure`; quiet when nothing
+- `loadout sync`: after the registry pass, `Ensure`. Quiet when nothing
   changed or no tool is found (cron).
 - `loadout setup --skills [--target claude,copilot] [--force]`: clears the
   opt-outs, sets `wanted` and installs now, for the given targets (which may
@@ -102,13 +102,13 @@ the packs (`skill.Parse`, name equals folder, description limits).
 
 ## Tests
 
-- `internal/builtin`: packs build; Ensure installs, is quiet when unchanged,
+- `internal/builtin`: packs build. Ensure installs, is quiet when unchanged,
   updates on a new version, keeps an edited file, respects declined and pin,
   installs for a tool that appears, does nothing without a tool and without
-  wanted; Setup with targets.
-- `cmd/loadout` e2e: login installs them; login on a machine with no tool
-  folders prints the line and creates nothing; sync after `~/.claude`
-  appears installs them; uninstall then login does not reinstall; `setup
+  wanted. Setup with targets.
+- `cmd/loadout` e2e: login installs them. Login on a machine with no tool
+  folders prints the line and creates nothing. Sync after `~/.claude`
+  appears installs them. Uninstall then login does not reinstall. `setup
   --skills` brings it back.
 
 ## Website (added during the work)
@@ -119,16 +119,16 @@ the packs (`skill.Parse`, name equals folder, description limits).
   site shows what the registry build ships.
 - A sidebar entry above the projects, "loadout skills", marked "Built in".
 - Not a namespace: `registry.Reserved` refuses new namespaces `loadout` and
-  `skills`; the API server mounts `/skills` on the pages.
+  `skills`. The API server mounts `/skills` on the pages.
 
 ## Docs
 
 GUIDE.md: a section on the built-in skills and on writing a project's local
-skill; command reference; troubleshooting. DESIGN.md: the package, the lock
+skill. Command reference. Troubleshooting. DESIGN.md: the package, the lock
 identity, the rules. README: one paragraph.
 
 ## Not in this step
 
 - Project-scope built-ins (a repository can install the project's own
   `loadout-local` skill with `--scope project` already).
-- Translating the skills; they are English like the CLI.
+- Translating the skills. They are English like the CLI.

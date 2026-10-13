@@ -7,16 +7,16 @@ Status: built and deployed (2026-09-29).
 - Context comes from the registry (latest release of every package in the team's
   layers), not from the reviewer's lock: the same for every reviewer, listed exactly in
   the report, and it works for someone who installed nothing.
-- `loadout review PKG` uploads by default when the "to" side is an open proposal;
+- `loadout review PKG` uploads by default when the "to" side is an open proposal.
   `--no-upload` keeps it local. The upload line names the proposal and the team that sees
   it, since full access can put the reviewer's own files into answers.
-- Copilot in safe mode stays as it is and gets the notice (see Caveat); no read-only tool
+- Copilot in safe mode stays as it is and gets the notice (see Caveat). No read-only tool
   list is added for it. Full access is the normal way to review.
 - The warning before a full-access run names the author by the email in their token
-  label (`alice@example.com via loadout login` shown as `alice@example.com`); the API
+  label (`alice@example.com via loadout login` shown as `alice@example.com`). The API
   gets no display names.
-- Only the person who added a prompt edits or removes it. Maintainers get no override;
-  the activity list shows who added what.
+- Only the person who added a prompt edits or removes it. Maintainers get no override.
+  The activity list shows who added what.
 
 ## Goal
 
@@ -27,9 +27,9 @@ other skills and knowledge bases. The result lands on the proposal page. Three c
 
 1. Compare runs each side with the team's packages beside it, and without the restricted
    permission mode unless `--safe` is given.
-2. Prompts live on the registry as a list people edit on the proposal page; compare always
+2. Prompts live on the registry as a list people edit on the proposal page. Compare always
    uses the current list.
-3. `loadout review PKG` picks the two versions itself; `review compare ID` stays.
+3. `loadout review PKG` picks the two versions itself. `review compare ID` stays.
 
 The one rule holds: the registry stores text and never runs anything. Every run still
 starts on the reviewer's machine, in their own Claude Code or Copilot CLI, on their
@@ -45,9 +45,9 @@ package under review, and `--permission-mode dontAsk` refused reading `koala-kb`
 ### review: modes, context and a richer report
 
 - `review.Mode` (`ModeFull`, `ModeSafe`), a field of `Options` and of `Request`. The
-  zero value is invalid (`Compare` refuses it), so no caller gets full access by accident;
-  the CLI sets it from `--safe`.
-- Runners map the mode to flags; nothing else knows them:
+  zero value is invalid (`Compare` refuses it), so no caller gets full access by accident.
+  The CLI sets it from `--safe`.
+- Runners map the mode to flags. Nothing else knows them:
 
 | Runner | Full (default) | Safe (`--safe`, today's behaviour) |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ type Caveat interface {
 - Hide: the reviewer may have the package under review installed for their user
   (`~/.claude/skills/NAME`), and Claude Code runs a personal skill over a project skill
   of the same name, so both sides could see the reviewer's copy. `Request.Hide` lists
-  skill names to turn off for the run; the Claude runner passes them as
+  skill names to turn off for the run. The Claude runner passes them as
   `--settings '{"skillOverrides":{"NAME":"off"}}'`, a per-run setting that changes no
   file and keeps the reviewer's login. Each side is rendered as `current-NAME` or
   `candidate-NAME`, so only the reviewer's own copy is hidden. `Compare` sets Hide to the
@@ -122,7 +122,7 @@ type ContextPackage struct {
 ### reviewplan (new package): which two versions, which context
 
 `internal/cli` must not hold the selection rules, and `review` should stay free of the
-registry, so a new package resolves a request into a plan. It owns its interfaces;
+registry, so a new package resolves a request into a plan. It owns its interfaces.
 `*client.Client` and `*release.Service` satisfy them.
 
 ```go
@@ -154,19 +154,19 @@ type Plan struct {
 
 Rules, in `Planner.Resolve`:
 
-- From, by default: the reviewer's installed version (`Installs`; the highest version if
-  several scopes differ, said in `Notes`); a folder install or a version the registry no
-  longer has falls back to the latest release; nothing installed also means the latest
+- From, by default: the reviewer's installed version (`Installs`, the highest version if
+  several scopes differ, said in `Notes`). A folder install or a version the registry no
+  longer has falls back to the latest release. Nothing installed also means the latest
   release.
-- To, by default: the newest open proposal of the package; with none, the newest release.
+- To, by default: the newest open proposal of the package. With none, the newest release.
   From equal to To is an error that says to pass `--from`.
 - `--from` / `--to` take a version (a release first, then an open proposal of that
-  version) or a proposal id (12 lowercase hex characters; a semver always has dots, so
+  version) or a proposal id (12 lowercase hex characters, a semver always has dots, so
   the two never clash).
 - Context: every package of the package's namespace view (its team and the layers
   above, the same list `install --all` sees), latest release of each, all kinds, without
   the package under review. When two layers ship the same name the closer layer wins, as
-  in the installer. Fetched lazily inside the sequence; each fetch is digest-checked by
+  in the installer. Fetched lazily inside the sequence. Each fetch is digest-checked by
   the client as today.
 
 Why the registry and not the reviewer's lock for context: two reviewers get the same
@@ -180,7 +180,7 @@ installs stay visible to the tool anyway (see Risks).
   `Proposal.Prompts` becomes `[]Prompt` (active ones, oldest first) and gains
   `RemovedPrompts []Prompt` (with `RemovedAt`, `RemovedBy`) for the activity list only.
   `Proposal.PromptTexts() []string` serves every caller that only needs text.
-- `ProposalStore` gains three methods; both stores implement them and
+- `ProposalStore` gains three methods. Both stores implement them and
   `registrytest/proposalcontract.go` covers them:
 
 ```go
@@ -202,7 +202,7 @@ RemovePrompt(ctx context.Context, id string, seq int, by Actor, at time.Time) er
   and `maxPromptRows = 60` rows per proposal so add and remove cannot grow a table
   without end. Soft removal keeps numbers stable: a stale form can never remove a newer
   prompt that took the same number.
-- A proposal still needs 1 to 20 prompts from its author on `propose`; removing the last
+- A proposal still needs 1 to 20 prompts from its author on `propose`. Removing the last
   active prompt is refused ("a proposal keeps at least one prompt").
 
 ## Data and API changes
@@ -214,7 +214,7 @@ RemovePrompt(ctx context.Context, id string, seq int, by Actor, at time.Time) er
   `json_each(proposals.prompts)`, author and time taken from the proposal. Old rows stay
   valid: each old prompt becomes the author's. The `prompts` column stays and is still
   written on `CreateProposal` with the author's prompts, so an older binary after a
-  rollback still works; nothing reads it any more.
+  rollback still works. Nothing reads it any more.
 - `api.Proposal` keeps `prompts []string` (the active texts, so old CLIs compare with the
   current list) and adds `prompt_list []api.Prompt` (`seq`, `text`, `author`,
   `created_at`, `edited_at`). New clients fall back to `prompts` from an old registry.
@@ -228,25 +228,25 @@ RemovePrompt(ctx context.Context, id string, seq int, by Actor, at time.Time) er
 
 ## CLI and web changes
 
-CLI (`internal/cli/review.go`, flags and printing only; `reviewplan.Planner` and
+CLI (`internal/cli/review.go`, flags and printing only, `reviewplan.Planner` and
 `review.Comparer` reach it through `cli.Deps`):
 
 - `loadout review PKG [--from V|ID] [--to V|ID] [--safe] [--no-context] [--no-upload]`
   plus today's `--tool --runs --timeout --model --prompt --out`. The parent `review`
-  command gets `Args: cobra.ExactArgs(1)` and a `RunE`; subcommands are found first and a
+  command gets `Args: cobra.ExactArgs(1)` and a `RunE`. Subcommands are found first and a
   package id always has a slash, so `review list` still means list.
 - Before any run it prints one line to stderr, for example:
   `warning: running proposal fd9af97ec0b9 by alice@example.com with full access to this
-  machine (files, shell, web); add --safe to refuse anything that needs approval.`
+  machine (files, shell, web). Add --safe to refuse anything that needs approval.`
   For two releases it names the package instead of an author.
 - With `--safe --tool copilot` it prints the runner's caveat as a notice before the run
   (`notice: Copilot CLI refuses every tool call in safe mode, ...`). The run still goes
-  ahead, since a prompt-only answer can be what the reviewer wants; the notice is also
+  ahead, since a prompt-only answer can be what the reviewer wants. The notice is also
   the first line of the report.
-- Upload: by default when To is an open proposal; `--no-upload` keeps the report local.
+- Upload: by default when To is an open proposal. `--no-upload` keeps the report local.
   Any other To (a release, a closed proposal) writes the file only and says why.
 - `review compare ID` stays as an alias for `review PKG --to ID --from <latest release>`
-  with its old defaults (upload only with `--upload`), so scripts keep their meaning; it
+  with its old defaults (upload only with `--upload`), so scripts keep their meaning. It
   gains `--safe` and runs full by default like everything else.
 - Output lists both sides with their source, the mode, and the context packages.
 
@@ -254,7 +254,7 @@ Web (`internal/web/ui_reviews.go`, `templates/ui/proposal.html`, `static/style.c
 
 - A Prompts panel on the proposal page lists the active prompts with who added each.
   Open proposals get an "Add a prompt" `<details>` with a textarea (maxlength 4096) and
-  a count ("7 of 20"); each prompt the viewer added gets Edit (a `<details>` form) and
+  a count ("7 of 20"). Each prompt the viewer added gets Edit (a `<details>` form) and
   Remove (a popover with Cancel, as Reject does). Plain POST forms with the `csrf` field,
   redirect with a `done` notice, errors through `h.refused`: no JavaScript needed.
 - Routes: `POST /t/{ns}/reviews/{id}/prompts`, `POST /t/{ns}/reviews/{id}/prompts/{seq}`,
@@ -266,13 +266,13 @@ Web (`internal/web/ui_reviews.go`, `templates/ui/proposal.html`, `static/style.c
   proposal, else `loadout review TEAM/NAME --to ID`, with one sentence: it compares the
   version you have installed with this proposal and runs with your tool's full access.
 - Column heads read from `Version.Source`: "Installed · 1.2.0", "Latest release ·
-  1.3.0", "Proposal · 1.4.0"; old reports keep "Current". The report bar adds "Full
+  1.3.0", "Proposal · 1.4.0". Old reports keep "Current". The report bar adds "Full
   access" or "Safe mode" and a "With 6 team packages" disclosure listing the context.
   A report with `notes` shows them in a notice above the answers, so a teammate reading
   a Copilot safe-mode report knows the answers had no tools.
-- Activity gains "added a prompt", "edited a prompt", "removed a prompt"; `names()`
-  collects the prompt authors too.
-- Prompts are escaped text with line breaks kept, like notes; never Markdown.
+- Activity gains "added a prompt", "edited a prompt", "removed a prompt". `names()`
+  Collects the prompt authors too.
+- Prompts are escaped text with line breaks kept, like notes. Never Markdown.
 - Check light and dark from the tokens, 390 px (the aside stacks, the textarea is full
   width), 44 px touch targets, keyboard order, no JavaScript. Record the review in
   `docs/UI.md`.
@@ -283,13 +283,13 @@ Web (`internal/web/ui_reviews.go`, `templates/ui/proposal.html`, `static/style.c
    `Version.Source`, Markdown. `compare` keeps working (defaults to full, `--safe`).
 2. review: `workspace`, context rendering from `iter.Seq2`, limits, `Report.Context`.
 3. reviewplan: `Planner.Resolve` with the from/to rules and the context sequence.
-4. CLI: `review PKG`, the warning, upload by default, `compare` as alias; wiring in
+4. CLI: `review PKG`, the warning, upload by default, `compare` as alias. Wiring in
    `cmd/loadout`.
 5. registry: `Prompt`, store methods, memstore, contract suite, sqlitestore and migration
    0010, service rules.
 6. server and client: prompt routes, `api.Prompt`, `prompt_list`.
 7. web: Prompts panel and routes, Try it command, side labels, mode and context in the
-   report bar, activity; UI review and `docs/UI.md`.
+   report bar, activity. UI review and `docs/UI.md`.
 8. Docs: DESIGN.md (Review, Rules that protect users, Web pages), GUIDE.md (Review a
    proposal, command table), rebuild with `docs/guide/build.sh`. Back up the live
    database, then deploy (step 5 migrates).
@@ -303,24 +303,24 @@ Each step passes `make check` on its own.
 - `review`: the Claude runner turns `Request.Hide` into one `--settings` JSON argument
   (names JSON-encoded, never spliced as text).
 - `review`: tables for runner arguments per mode (fake binary via `runTool`), env
-  filtering (`LOADOUT_*` always, `COPILOT_ALLOW_ALL` in safe), zero `Mode` refused;
-  context rendered identically into both sides, the side's unit never replaced, limits
-  hit before any run; old report JSON (no `mode`, no `source`) still decodes.
+  filtering (`LOADOUT_*` always, `COPILOT_ALLOW_ALL` in safe), zero `Mode` refused.
+  Context rendered identically into both sides, the side's unit never replaced, limits
+  hit before any run. Old report JSON (no `mode`, no `source`) still decodes.
 - `reviewplan`: table over installed / not installed / folder install / several scopes,
   open proposal / several / none, `--from` and `--to` as version or id, equal sides,
-  layer shadowing in the context; fakes for `Registry` and `Installs`.
+  layer shadowing in the context. Fakes for `Registry` and `Installs`.
 - `registrytest`: add, edit, remove, limits (20 active, 60 rows), closed proposal,
   numbers never reused, removal of the last prompt refused, concurrent adds under the
-  limit; runs against the memstore and SQLite. Migration test: a 0009 database with
+  limit. Runs against the memstore and SQLite. Migration test: a 0009 database with
   JSON prompts reads back the same prompts, authored by the proposal's author.
 - `registry`: who may add, edit, remove (adder, author, other member, team-below member,
   machine token, closed proposal).
 - `server`: route tables for status codes, body limits, unknown fields.
 - `cmd/loadout` e2e with `person`/`newSession` and `fakeAI`: `review lime/planner` picks
   Carol's installed 0.1.0 and Alice's proposal, uploads, and the run saw the team's KB in
-  its folder; `--safe` and full reach the fake as `Request.Mode`; `--no-upload`;
-  `--from/--to` with ids and versions; `review compare ID` unchanged; a prompt added over
-  the API is what the next compare runs; `--safe --tool copilot` prints the notice.
+  its folder. `--safe` and full reach the fake as `Request.Mode`. `--no-upload`.
+  `--from/--to` with ids and versions. `review compare ID` unchanged. A prompt added over
+  the API is what the next compare runs. `--safe --tool copilot` prints the notice.
 - `internal/web`: add, edit, remove by role (form posts with CSRF, missing token refused),
   other people's prompts show no buttons, limits shown as a refusal page, Try it command
   text, "Installed" label from a report with `source`, old report still "Current".
@@ -328,7 +328,7 @@ Each step passes `make check` on its own.
 ## Risks
 
 - Full access runs a teammate's text with the reviewer's rights: it can read and change
-  any file, run commands and reach the network. This is the user's decision; the warning
+  any file, run commands and reach the network. This is the user's decision. The warning
   line, the report and the page all say which mode ran, and `--safe` stays one flag away.
   Update DESIGN.md "Rules that protect users" with: review runs start in a throwaway
   folder, full access by default, safe on request, `LOADOUT_*` never reaches the tool.
@@ -337,16 +337,16 @@ Each step passes `make check` on its own.
 - Claude Code runs a personal skill (`~/.claude/skills`) over a project skill of the same
   name. For the package under review this is handled (see Hide above). For context
   packages the reviewer also installed for their user, both sides see the reviewer's
-  copy, which may be an older version; that is fair (both sides get the same one) and
+  copy, which may be an older version. That is fair (both sides get the same one) and
   the report says which context packages the reviewer has installed for their user.
 - Copilot may have the same shadowing and has no per-run setting known to hide one
-  skill; the report notes a user-scope install of the reviewed package for Copilot runs.
-- `bypassPermissions` can be disabled by managed settings or refused for root; the run
+  skill. The report notes a user-scope install of the reviewed package for Copilot runs.
+- `bypassPermissions` can be disabled by managed settings or refused for root. The run
   then fails with Claude's message and the CLI suggests `--safe`.
 - Context size: a team with many large KBs downloads a lot per review. The limits stop it
-  early; `--no-context` skips it.
+  early. `--no-context` skips it.
 - Migration 0010 relies on SQLite JSON functions (`json_each`), built into
-  modernc.org/sqlite; the migration test proves it on the pinned version.
+  modernc.org/sqlite. The migration test proves it on the pinned version.
 
 ## Open questions
 
@@ -357,8 +357,8 @@ skill and leaves `candidate-NAME` visible, in the installed Claude Code.
 ## Not in this step
 
 - A read-only tool list for Copilot in safe mode.
-- Running a comparison from the browser; that would need a model on the server.
-- CLI commands to add or edit prompts (`loadout review prompt ...`); the API is ready.
+- Running a comparison from the browser. That would need a model on the server.
+- CLI commands to add or edit prompts (`loadout review prompt ...`). The API is ready.
 - Choosing a context set by hand (`--with PKG`), or the reviewer's lock as the source.
 - Attaching a report to a release, or a comparison of two releases, on the registry.
 - Hiding the reviewer's own copies of context packages (they are fair to both sides).

@@ -8,11 +8,66 @@ fixed. The [user guide](../) explains how to use each one.
 ### 13 October 2026
 <!-- through 6b305e2 -->
 
-
-- Feature: `loadout cleanup` lists the old agents, skills and knowledge bases an
-  earlier setup left in your tool folders, and `--apply` moves them into
-  `~/.loadout/backup/`. `--duplicates` also finds copies of names your registry does not
-  offer, and `--tool vscode` covers the folders VS Code reads.
+- Feature: A new kind of package, the **pipeline**, writes down a loop such as plan, dev,
+  review and test once. A project publishes a template of slots and the edges between
+  them, and each edge is either a gate, where a person decides, or automatic. The new
+  **Pipelines** tab lists them and a pipeline's page draws it.
+- Feature: A team publishes a **binding** that names one of its agents for each slot.
+  `loadout install` turns it into a conductor agent. Start your AI tool with that agent
+  (`claude --agent payments-dev-loop` in Claude Code, `/agent` in Copilot CLI) and it
+  runs each step's agent, stops at each gate, passes a step's questions to you, and picks
+  a ticket up again from the files in its run folder. It stops at every gate even in
+  autopilot and never commits or pushes.
+- Feature: `loadout new pipeline TEAM/NAME` creates an example template. With
+  `--uses PROJECT/NAME@MAJOR` it creates a binding with every slot left empty.
+- Feature: Publishing or proposing a pipeline is checked first. The registry refuses a
+  binding with an empty slot or an agent your team cannot see, and a template change that
+  adds, removes or renames a slot, or changes its verdicts, without a new major version.
+  Each refusal says what to change.
+- Feature: `loadout sync` makes a conductor again when its template has a new release in
+  the major version it uses, and prints a line when a newer major version is out.
+  `loadout status` shows which template a conductor was made from.
+- Feature: `loadout publish` and `loadout propose` warn about an agent that ends with a
+  line naming the next agent, such as `Next: run payments-review`. End it with a
+  `Verdict:` line and let a pipeline do the handoff.
+- Feature: loadout's own skills explain pipelines, so your AI chat can help you write a
+  template or a binding, install one and read the registry's refusals.
+- Feature: An older loadout cannot install a pipeline. It installs everything else and
+  says that the kind is not supported.
+- Feature: Team memory. An owner or maintainer switches it on in a team's Settings, and
+  the team gets short typed facts that its members' agents save for each other. The
+  registry serves them as an MCP server at `/mcp/t/TEAM`. It stores text and finds it by
+  words, and it never calls an AI model. A team reads its project's memory too and writes
+  only its own.
+- Feature: `loadout install` and `loadout sync` add the memory server to Claude Code and
+  Copilot for every team that has memory on, and remove it when the team switches it off.
+  `loadout setup --no-memory` stops that and `--memory` allows it again. Other MCP tools
+  use the **Set up** page on the team's Memory tab.
+- Feature: `loadout mcp --team T` is the small program an AI tool starts to reach a
+  team's memory with your memory token. `loadout memory token create|list|revoke`
+  manages the tokens, and a token only works for memory.
+- Feature: A **Memory** tab on each team lists what was saved, searches it, shows what is
+  new this week and the history of an entry. Maintainers and owners can retract a memory
+  or move it up to the project.
+- Feature: `loadout memory import DIR --team T` offers your personal memory files to a
+  team's memory. You pick what is saved.
+- Feature: Anything that looks like a secret is refused before a memory is stored.
+  `loadout memory purge --id N --data DIR` on the registry host removes a memory and its
+  history for good and lists the backups that still hold it.
+- Feature: Team memory lives in its own `memory.db` next to `registry.db`, and the
+  nightly backup covers both.
+- Feature: `loadout package delete TEAM/NAME` on the registry host lists what a package
+  holds and, with `--yes`, deletes it with its releases and proposals. People who have it
+  installed keep their files and `loadout sync` tells them it was removed.
+- Feature: Admins delete a package from its page on the web. The registry saves a copy of
+  its database first, and every delete leaves a record with the reason.
+- Feature: Anyone who reads a package can ask to delete it, on its page or with
+  `loadout propose delete TEAM/NAME --reason "why"`. A maintainer or owner who did not ask
+  approves it on the request's page or with `loadout review approve del-ID`.
+- Feature: `loadout cleanup` lists the old agents, skills and knowledge bases an earlier
+  setup left in your tool folders, and `--apply` moves them into `~/.loadout/backup/`.
+  `--duplicates` also finds copies of names your registry does not offer, and
+  `--tool vscode` covers the folders VS Code reads.
 - Feature: `loadout install --adopt` moves aside the files and links an older setup left
   in the way, then installs. A link is moved, never the folder it points to.
 - Feature: `loadout user add --email E --password-file F` adds an account on a
@@ -20,93 +75,30 @@ fixed. The [user guide](../) explains how to use each one.
   password.
 - Feature: The built-in setup skill walks through a messy machine, including agents that
   show twice in VS Code and the `chat.agentFilesLocations` setting that fixes it.
-- Feature: `loadout package delete TEAM/NAME` on the registry host lists what a package
-  holds and, with `--yes`, deletes it with its releases and proposals. People who have it
-  installed keep their files and `loadout sync` tells them it was removed from the registry.
-- Feature: Admins delete a package from its page on the web. The registry saves a copy of
-  its database first, and every delete leaves a record with the reason.
-- Feature: Anyone who reads a package can ask to delete it, on its page or with
-  `loadout propose delete TEAM/NAME --reason "why"`. A maintainer or owner who did not ask
-  approves it on the request's page or with `loadout review approve del-ID`.
-
 - Feature: `loadout update` updates the CLI the way it was installed. With Homebrew it
   runs `brew upgrade --cask loadout`, from a registry's download it runs that registry's
   install script again, and for the release binary or a clone it prints what to do.
   `--check` shows the command without running it.
-- Feature: A registry can hand out the CLI. Deploy with `LOADOUT_DOWNLOADS=1` and people run
-  `curl -fsSL https://REGISTRY/install.sh | sh`, with no Go and no clone. The download
-  is checked against `checksums.txt` and uses the machine's normal HTTPS trust.
+- Feature: A registry can hand out the CLI. Deploy with `LOADOUT_DOWNLOADS=1` and people
+  run `curl -fsSL https://REGISTRY/install.sh | sh`, with no Go and no clone. The
+  download is checked against `checksums.txt`.
 - Feature: A CLI installed from a registry names that registry's install line in the
-  "newer loadout" message.
+  "newer loadout" message, and the built-in setup skill runs `loadout update` when asked
+  to update loadout.
 - Feature: New installs follow the `auto` update policy by default.
 - Feature: A registry that serves its own copy of the docs gets a working "loadout" link
   back from them.
-- Feature: The built-in setup skill tells an AI tool to run `loadout update` when asked to
-  update loadout.
-- Feature: Team memory. An owner or maintainer switches it on in a team's Settings, and the
-  team gets short typed facts that its members' agents save for each other. The registry
-  serves them as an MCP server at `/mcp/t/TEAM`. It stores text and finds it by words, and
-  it never calls an AI model. A team reads its project's memory too and writes only its own.
-- Feature: `loadout install` and `loadout sync` add the memory server to Claude Code and
-  Copilot for every team that has memory on, and remove it when the team switches it off.
-  `loadout setup --no-memory` stops that and `--memory` allows it again. Other MCP tools
-  use the **Set up** page on the team's Memory tab.
-- Feature: `loadout mcp --team T` is the small program an AI tool starts to reach a team's
-  memory with your memory token. `loadout memory token create|list|revoke` manages the
-  tokens, and a token only works for memory.
-- Feature: A **Memory** tab on each team lists what was saved, searches it, shows what is
-  new this week and the history of an entry. Maintainers and owners can retract a memory or
-  move it up to the project.
-- Feature: `loadout memory import DIR --team T` offers your personal memory files to a
-  team's memory. You pick what is saved.
-- Feature: Anything that looks like a secret is refused before a memory is stored, on your
-  machine and on the registry. `loadout memory purge --id N --data DIR` on the registry
-  host removes a memory and its history for good and lists the backups that still hold it.
-- Feature: Team memory lives in its own `memory.db` next to `registry.db`, and the nightly
-  backup covers both.
-- Feature: The admins' server page can show the cloud the server runs in. Hetzner is built
-  in and is chosen by its token as before. Another cloud is one small Go type and one line
-  of wiring, described in the developer docs. With none set up the page simply has no cloud
-  panels.
-- Feature: The server page shows the machine: operating system, kernel, CPUs, memory, load,
-  how long it has been up, a reboot waiting for an update and when the security updates
-  last ran.
+- Feature: The admins' server page can show the cloud the server runs in. Hetzner is
+  built in and is chosen by its token as before. Another cloud is one small Go type and
+  one line of wiring, described in the developer docs. With none set up the page has no
+  cloud panels.
+- Feature: The server page shows the machine: operating system, kernel, CPUs, memory,
+  load, uptime, a reboot waiting for an update and when the security updates last ran.
 - Feature: The server page checks the site certificate. It shows the names, dates, issuer
-  and fingerprint of what the site serves and whether the server's own trusted certificates
-  accept it. A tile warns when it is about to end.
+  and fingerprint of what the site serves, and a tile warns when it is about to end.
 - Feature: The server page shows team memory counts for each team, with no memory text.
-- Feature: The backups panel shows how the last run ended, whether the newest archive holds
-  both databases, and the copies saved before packages were deleted.
-- Feature: A new kind of package, the **pipeline**, writes down a loop such as plan,
-  dev, review and test once. A project publishes a template of slots and the edges
-  between them, and each edge is either a gate, where a person decides, or automatic.
-  The new **Pipelines** tab lists them, and a pipeline's page draws it with its slots,
-  edges and round limits.
-- Feature: A team publishes a **binding** that names one of its agents for each slot.
-  `loadout install` turns it into a conductor agent. Start your AI tool with that agent
-  (`claude --agent payments-dev-loop` in Claude Code, `/agent` in Copilot CLI) and it
-  starts each step's agent, stops at each gate, passes a step's questions to you, and
-  picks a ticket up again from the files in its run folder. It stops at every gate even in
-  autopilot, starts only the pipeline's own agents, and never commits or pushes.
-- Feature: `loadout new pipeline TEAM/NAME` creates an example template. With
-  `--uses PROJECT/NAME@MAJOR` it creates a binding with every slot left empty, ready to
-  fill in.
-- Feature: Publishing or proposing a pipeline is checked first. The registry refuses a
-  binding with an empty slot or an agent your team cannot see, and a new template version
-  that adds, removes or renames a slot or changes its verdicts without a new major
-  version. Each refusal says what to change.
-- Feature: `loadout sync` makes a conductor again when its template has a new release
-  in the major version it uses, following the package's update policy, and prints a line
-  when a newer major version is out. `loadout status` shows which template a conductor
-  was made from.
-- Feature: `loadout publish` and `loadout propose` warn about an agent that ends with a
-  line naming the next agent, such as `Next: run payments-review`. Handoffs belong in a
-  pipeline, so the agent should end with a `Verdict:` line instead.
-- Feature: loadout's own skills now explain pipelines, so your AI chat can help you write a
-  template or a binding, install one and start it, review a proposal for one, and read
-  the registry's refusals.
-- Feature: An older loadout cannot install a pipeline. It installs everything else and
-  says that the kind is not supported.
+- Feature: The backups panel shows how the last run ended, whether the newest archive
+  holds both databases, and the copies saved before packages were deleted.
 
 ### 12 October 2026
 <!-- through 9a4ea7f -->
@@ -114,8 +106,8 @@ fixed. The [user guide](../) explains how to use each one.
 - Feature: The members list on a project or team's **Settings** page is sorted: owners
   first, then maintainers, then members, each by name.
 - Feature: A search box in the **Members** panel finds people by name, email or team
-  name, and filters **Through the project** at the same time. It filters as you type;
-  without JavaScript, press Enter and the page reloads with the matches.
+  name, and filters **Through the project** at the same time. It filters as you type.
+  Without JavaScript, press Enter and the page reloads with the matches.
 - Feature: Under each person's name a muted "Teams: a, b" line lists their other teams
   in the same project, only those you may open.
 - Feature: Changing a role or removing someone keeps your search. Adding someone clears
@@ -156,7 +148,7 @@ fixed. The [user guide](../) explains how to use each one.
   release's changes by accident.
 - Feature: `loadout rebase` brings a folder or a proposal up to date with the latest
   release on your machine. It merges line by line and marks conflicts for you to
-  resolve; proposing again replaces your old proposal and keeps its prompts.
+  resolve. Proposing again replaces your old proposal and keeps its prompts.
 - Feature: `loadout propose` and `loadout publish` refuse a folder that is behind the
   latest release. Run `loadout rebase` first, or add `--base latest` to publish over it
   on purpose, for example from CI.
@@ -165,7 +157,7 @@ fixed. The [user guide](../) explains how to use each one.
   update, `loadout sync` lists the files in the way and what to do, and remembers it.
   `loadout status` and the new `loadout notices` show it later without going online.
 - Feature: Claude Code and Copilot tell you at the start of a session when an update is
-  held back by your edits. `loadout login` sets this up; if you are already signed in,
+  held back by your edits. `loadout login` sets this up. If you are already signed in,
   run `loadout setup --hooks`. `loadout setup --no-hooks` turns it off and leaves your
   settings file as it was.
 - Feature: `loadout install TEAM/NAME --merge` takes the new release and keeps your
@@ -239,10 +231,10 @@ fixed. The [user guide](../) explains how to use each one.
   above them. What you may do follows your role in each team at that moment, so a new
   role needs no new login.
 - Feature: Roles: member, maintainer, owner and admin. Maintainers add and remove people
-  on the website or with `loadout member`; owners of a project are owners of every team
+  on the website or with `loadout member`. Owners of a project are owners of every team
   in it.
 - Feature: Projects: every team belongs to a project, whose packages all its teams read.
-  Admins create projects and owners create teams in them on the website; owners can
+  Admins create projects and owners create teams in them on the website. Owners can
   also use `loadout namespace create`.
 - Feature: The registry's website: a sidebar of your projects and teams, the packages
   each team reads, proposals with both versions' answers side by side and the diff,
@@ -252,21 +244,21 @@ fixed. The [user guide](../) explains how to use each one.
   are easier to tap on touch screens. Remove, revoke, reject and withdraw ask
   before they act.
 - Feature: Skills and knowledge bases join agents as package kinds. `loadout new skill`
-  and `loadout new kb` start one; a knowledge base gets an index loadout writes for you,
+  and `loadout new kb` start one. A knowledge base gets an index loadout writes for you,
   and may hold Mermaid and draw.io diagrams.
 - Feature: Agents can use the `skill` tool, which grants Skill in Claude Code.
 - Feature: `loadout import` turns the agents, skills and folders of documents you
   already have into packages, ready to publish.
 - Feature: Filter and sort packages by kind and by layer, on the team page and with
   `loadout list --kind`, `--layer` and `--sort`.
-- Feature: `loadout status` shows one line per skill folder; `--files` lists every file.
+- Feature: `loadout status` shows one line per skill folder. `--files` lists every file.
 - Feature: The user guide is online at `/docs`, with a Docs link in the registry's
   sidebar. The guide's title takes you back to the page you came from.
 - Feature: `loadout review TEAM/NAME` runs the version you have and the newest proposal
   on the proposal's prompts in your own AI tool, next to the team's other packages, and
   attaches the report to the proposal. `--safe` refuses anything that would need your
   approval.
-- Feature: Review answers show as formatted text on the website; long ones show their
+- Feature: Review answers show as formatted text on the website. Long ones show their
   first 150 words, and **Show whole answers** opens both.
 - Feature: Anyone on the team can add prompts to a proposal on its page, and the next
   `loadout review` asks them too.
@@ -301,7 +293,7 @@ fixed. The [user guide](../) explains how to use each one.
 - Fix: loadout never writes or deletes through a skill folder that is a symbolic link.
 - Fix: Fields in a skill's frontmatter that loadout does not use, such as
   `allowed-tools`, are kept as written.
-- Fix: A skill's description may be 1,024 characters long in any language; it was
+- Fix: A skill's description may be 1,024 characters long in any language. It was
   counted in bytes before.
 - Fix: `loadout status` no longer reports a skill's files as missing when a closer
   layer's skill of the same name shadows it.
@@ -321,7 +313,7 @@ fixed. The [user guide](../) explains how to use each one.
 - Feature: `loadout diff` shows what changed between versions, and `loadout rollback`
   goes back to an older one and pins it.
 - Feature: Layers: a team reads the packages of the namespace above it, and when both
-  ship a package with the same name, the team's wins. `loadout layers` shows the order;
+  ship a package with the same name, the team's wins. `loadout layers` shows the order.
   `loadout install --all` installs everything.
 - Feature: Join a team with an invite: `loadout team join`, `list` and `leave`.
 - Feature: Proposals: `loadout propose` uploads a candidate with the prompts you tested

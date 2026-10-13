@@ -1,6 +1,6 @@
 # Model settings per AI tool
 
-loadout only writes the model name into the installed agent file; the person's own tool runs it on their own subscription.
+loadout only writes the model name into the installed agent file. The person's own tool runs it on their own subscription.
 
 | | Claude Code | Copilot (CLI and VS Code) |
 | --- | --- | --- |

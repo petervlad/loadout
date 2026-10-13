@@ -14,11 +14,11 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 
 - `loadout review` runs a teammate's package with the tool's **full access** by default: it can read and change files, run commands and reach the web, and its answers may quote the person's files. Before running it, say so and offer `--safe`, which refuses anything that would need approval. Suggest reading the proposal first with `loadout review show ID`.
 - Ask before `loadout review approve`, `loadout review reject` or `loadout review withdraw`: each is a decision the whole team sees. Never decide for the person.
-- Ask before uploading a report: `loadout review TEAM/NAME` attaches it to the proposal by default; `--no-upload` keeps it on this machine.
-- Never read, print or pass a token; never open `~/.loadout/credentials.yaml`. The person signs in with `loadout login` themselves.
+- Ask before uploading a report: `loadout review TEAM/NAME` attaches it to the proposal by default. `--no-upload` keeps it on this machine.
+- Never read, print or pass a token. Never open `~/.loadout/credentials.yaml`. The person signs in with `loadout login` themselves.
 - Never add `--force` to overwrite a file the person edited without asking.
 - A line after a command saying a newer loadout is out, or that a registry needs a newer one, is for the person: tell them once, as the `loadout-setup` skill says, and do not update loadout yourself unless they ask.
-- loadout never calls a model and holds no AI key; the review runs on the person's own subscription.
+- loadout never calls a model and holds no AI key. The review runs on the person's own subscription.
 
 ## Find and read the proposal
 
@@ -51,16 +51,16 @@ loadout review payments/planner --from 1.2.0 --to 3f2a9c01b7de
 ```
 
 - `--from` and `--to` take a version such as `1.2.0`, `latest`, or a proposal id.
-- The proposal's prompts are asked; `--prompt` asks your own instead (needed when both sides are releases). `--runs 3` runs each prompt three times.
-- `--tool copilot` uses the Copilot CLI (Claude Code by default); Copilot refuses every tool call in safe mode, so it answers from the prompt alone. `--model` asks for a model, `--timeout` limits each run, `--out` picks the report file.
-- Each side runs in its own throwaway folder next to the team's other packages; `--no-context` leaves them out.
+- The proposal's prompts are asked. `--prompt` asks your own instead (needed when both sides are releases). `--runs 3` runs each prompt three times.
+- `--tool copilot` uses the Copilot CLI (Claude Code by default). Copilot refuses every tool call in safe mode, so it answers from the prompt alone. `--model` asks for a model, `--timeout` limits each run, `--out` picks the report file.
+- Each side runs in its own throwaway folder next to the team's other packages. `--no-context` leaves them out.
 - `loadout review compare ID` is the older form: latest release against one proposal, uploaded only with `--upload`.
 
 ## Read the report
 
 The report is `review-ID.md` (or the `--out` file). For each prompt it shows both answers, time and tokens, where each side came from (installed, release or proposal), the mode (full access or safe) and the team packages beside each side. Summarise for the person: where the candidate is better, worse or different, and anything surprising it did. On the proposal's web page the answers sit side by side.
 
-Teammates add their own prompts on the proposal's web page under **Prompts**; the next `loadout review` asks them too.
+Teammates add their own prompts on the proposal's web page under **Prompts**. The next `loadout review` asks them too.
 
 ## Decide
 
@@ -73,7 +73,7 @@ loadout review withdraw 3f2a9c01b7de                      # only the author take
 ```
 
 - Approving and rejecting need a maintainer (or owner) of the package's namespace who is not the author. Machine tokens never decide.
-- An owner of the project may release their own proposal without a second person, with a note that everyone sees; the proposal and release are marked "Released without review":
+- An owner of the project may release their own proposal without a second person, with a note that everyone sees. The proposal and release are marked "Released without review":
 
 ```sh
 loadout review approve 3f2a9c01b7de --as-owner --note "Hotfix, nobody else is around today"
@@ -91,10 +91,10 @@ loadout review reject del-3f9a1c2b7d4e --note "The demo still installs it"
 
 An owner may approve their own request with `--as-owner --note`, recorded as deleted without review, only when the person asks for that. There is nothing to compare, so `review compare` and `review report` refuse it. A request cannot be approved once a release came out after it was made, so the author withdraws it and asks again.
 
-A plain approval of a behind proposal is refused. Usually the author brings it up to date with `loadout rebase --proposal 3f2a9c01b7de` and proposes again; suggest that first. Only if the person says dropping the newer release's changes is intended (the proposal redoes a hotfix, for example), and after asking them, approve over it, naming the latest release exactly:
+A plain approval of a behind proposal is refused. Usually the author brings it up to date with `loadout rebase --proposal 3f2a9c01b7de` and proposes again. Suggest that first. Only if the person says dropping the newer release's changes is intended (the proposal redoes a hotfix, for example), and after asking them, approve over it, naming the latest release exactly:
 
 ```sh
 loadout review approve 3f2a9c01b7de --over 3.0.0 --note "Redoes the 3.0.0 hotfix"
 ```
 
-The proposal records it. A proposal whose version was already released ("blocked by") cannot be approved; the author brings it up to date with `loadout rebase --proposal 3f2a9c01b7de`, which raises its version, and proposes again.
+The proposal records it. A proposal whose version was already released ("blocked by") cannot be approved. The author brings it up to date with `loadout rebase --proposal 3f2a9c01b7de`, which raises its version, and proposes again.

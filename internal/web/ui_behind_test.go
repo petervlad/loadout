@@ -112,7 +112,7 @@ func TestProposalBehindManyReleases(t *testing.T) {
 	}
 	p := s.as("alice@example.com").get("/t/lime/reviews/" + s.proposal)
 	wantIn(t, p, "many", "7 newer releases came out after this proposal", "<strong>2.3.7</strong> by ci &lt;script&gt;",
-		"<strong>2.3.3</strong>", "; and 2 more.", "Behind 2.3.7")
+		"<strong>2.3.3</strong>", ", and 2 more.", "Behind 2.3.7")
 	wantOut(t, p, "many", xss, "<strong>2.3.2</strong>", "<strong>2.3.1</strong>")
 }
 

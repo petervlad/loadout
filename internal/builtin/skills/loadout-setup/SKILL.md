@@ -16,7 +16,7 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 - Never read, print, copy or pass a token or an invite. The person runs `loadout login` themselves. Never open `~/.loadout/credentials.yaml`.
 - Never add `--force` to overwrite a file the person edited without asking them first. loadout refuses on purpose.
 - `--adopt` and `loadout cleanup --apply` move files and links an older setup left into `~/.loadout/backup/`. Nothing is deleted. They are not `--force`, but they change the person's tool folders, so run `loadout cleanup` without `--apply` first, show the list and ask.
-- `loadout review` runs a teammate's package with the tool's full access; say so and offer `--safe`.
+- `loadout review` runs a teammate's package with the tool's full access. Say so and offer `--safe`.
 - loadout never calls a model. Do not look for an AI key or suggest one.
 
 ## Install the CLI
@@ -45,16 +45,16 @@ loadout version
 
 ## When loadout says a newer version is out
 
-A registry tells loadout which release it runs. When the person's loadout is older, a line follows a command on standard error, at most once a day per release. Run by you, it reads "loadout, for the agent: a newer loadout CLI is available (0.5.0; this is 0.4.0). Tell the user once ..."; at a terminal, "loadout 0.5.0 is out (you have 0.4.0). To update: curl -fsSL https://REGISTRY/install.sh | sh" (for a CLI installed from a registry) or "To update, in your loadout folder: git pull && go install ./cmd/loadout" (built from a clone).
+A registry tells loadout which release it runs. When the person's loadout is older, a line follows a command on standard error, at most once a day per release. Run by you, it reads "loadout, for the agent: a newer loadout CLI is available (0.5.0, this is 0.4.0). Tell the user once ...". At a terminal, "loadout 0.5.0 is out (you have 0.4.0). To update: curl -fsSL https://REGISTRY/install.sh | sh" (for a CLI installed from a registry) or "To update, in your loadout folder: git pull && go install ./cmd/loadout" (built from a clone).
 
 - Tell the person once, in one sentence, with the command loadout printed. It is not an error: the command before it worked as usual.
 - Do not run the update yourself unless they ask. When they do, run `loadout update`: for a CLI installed from a registry or Homebrew it runs the right command, and for a clone or a release download it only prints what to do (`git pull` and `go install` work in their clone, which you do not know the place of). `loadout update --check` shows the command without running it.
 - "registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail" comes after every command. Say that this is likely why a command failed, and suggest updating before trying again.
-- `loadout version` shows the same from what a registry last said. `loadout update` goes by the same news, so run a command that asks a registry first (`loadout list`). `LOADOUT_UPDATE_NOTICE=off` keeps the line out of scripts; the too-old one stays.
+- `loadout version` shows the same from what a registry last said. `loadout update` goes by the same news, so run a command that asks a registry first (`loadout list`). `LOADOUT_UPDATE_NOTICE=off` keeps the line out of scripts. The too-old one stays.
 
 ## Sign in
 
-The registry address comes from the local skill above or from the team lead. The person signs in themselves; it opens their browser, where they sign up or sign in and approve the code the terminal shows:
+The registry address comes from the local skill above or from the team lead. The person signs in themselves. It opens their browser, where they sign up or sign in and approve the code the terminal shows:
 
 ```sh
 loadout login --remote https://registry.example.com
@@ -62,10 +62,10 @@ loadout login --remote https://registry.example.com
 
 - One sign-in covers every team the person belongs to on that registry, and the projects above them. `loadout team list` shows them.
 - Added to a new team later, or a new team missing from `loadout list`: run `loadout login` again.
-- The login token works for 90 days; `loadout login` again renews it.
+- The login token works for 90 days. `loadout login` again renews it.
 - A registry without accounts uses invites instead. The person saves the invite to a file and runs `loadout team join < invite.txt`. Do not read or print the invite: it holds a token.
 - A registry inside a company network may use its own certificate authority. If the first login fails with "x509: certificate signed by unknown authority", the local skill or the team lead gives a CA file, and the person runs `loadout login --remote https://HOST --ca-file ca.crt`. loadout remembers it for that registry.
-- `loadout logout` signs out of a registry; `loadout team leave payments` leaves one team on this machine.
+- `loadout logout` signs out of a registry. `loadout team leave payments` leaves one team on this machine.
 
 ## Install packages
 
@@ -155,14 +155,14 @@ loadout policy payments/planner auto         # auto (default): install updates; 
 
 ## When an update is held back
 
-An edited file keeps an update out. `sync` then says "held back by your edits" (policy auto; `sync` exits with code 2 until it is resolved) or "update available, you edited 1 file" (policy notify), names the files and prints the ways forward. Explain them and let the person choose:
+An edited file keeps an update out. `sync` then says "held back by your edits" (policy auto, `sync` exits with code 2 until it is resolved) or "update available, you edited 1 file" (policy notify), names the files and prints the ways forward. Explain them and let the person choose:
 
 - `loadout install payments/planner --merge` takes the release and keeps their edits, merged line by line. Offer this first.
 - `loadout install payments/planner --force` replaces their edits with the release. Ask first: their edits are lost.
 - `loadout policy payments/planner pin` keeps their version and stops updates, and the exit code 2.
 - `loadout diff payments/planner` shows what the release changed.
 
-After `--merge`, a file where both changed the same lines holds conflict markers (`<<<<<<< yours (edited 1.2.0)`, `||||||| installed 1.2.0`, `=======`, `>>>>>>> release 1.3.0`). Help the person resolve them: show both sides, agree what stays, delete the marker lines. Until then their AI tool reads the markers; `loadout status` lists the files left. `--merge` does not work for folder installs or loadout's own skills, and never together with `--force`.
+After `--merge`, a file where both changed the same lines holds conflict markers (`<<<<<<< yours (edited 1.2.0)`, `||||||| installed 1.2.0`, `=======`, `>>>>>>> release 1.3.0`). Help the person resolve them: show both sides, agree what stays, delete the marker lines. Until then their AI tool reads the markers. `loadout status` lists the files left. `--merge` does not work for folder installs or loadout's own skills, and never together with `--force`.
 
 For a project install add `--scope project` and run the command in that repository. A built-in skill the person edited is the same: `loadout setup --skills --force` replaces it.
 
@@ -177,7 +177,7 @@ For a project install add `--scope project` and run the command in that reposito
 - A line about merge conflicts means a file still holds markers from `loadout install --merge`: offer to resolve them.
 - "A newer loadout CLI is available" or "needs loadout 0.3.0 or newer": see [When loadout says a newer version is out](#when-loadout-says-a-newer-version-is-out).
 
-The hook only reads files on the machine; it never calls a registry or a model. `loadout setup --hooks` sets it up for someone who signed in before it existed; `loadout setup --no-hooks` removes it for good.
+The hook only reads files on the machine. It never calls a registry or a model. `loadout setup --hooks` sets it up for someone who signed in before it existed. `loadout setup --no-hooks` removes it for good.
 
 ## Team memory
 
@@ -247,7 +247,7 @@ loadout uninstall payments/planner           # edited files are kept
 
 This skill and three others (`loadout-author`, `loadout-review`, `loadout-admin`) come with the CLI. `loadout login` installs them for the person, `loadout sync` updates them when the CLI changes, and `loadout status` lists them as `loadout/loadout-setup` and so on.
 
-- `loadout uninstall loadout/loadout-review` removes one; login and sync never add it back.
+- `loadout uninstall loadout/loadout-review` removes one. Login and sync never add it back.
 - `loadout setup --skills` installs them again, now. With no `~/.claude` or `~/.copilot` on the machine, add `--target claude` (or `copilot`) to create the folder.
 
 ## When something fails

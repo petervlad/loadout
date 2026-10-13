@@ -726,7 +726,7 @@ func TestInheritedMembers(t *testing.T) {
 	// The owner on a team with no rows of its own: no claim that it is
 	// empty of people, and a link to where her role is set.
 	p := olga.get("/t/wombat/settings")
-	wantIn(t, p, "empty team", "Nobody is added to wombat directly", "Owners of the project above already manage it; they are listed below.",
+	wantIn(t, p, "empty team", "Nobody is added to wombat directly", "Owners of the project above already manage it. They are listed below.",
 		"Through the project", "Owner, from acme", "(you)", `href="/t/acme/settings"`, "Manage in acme", "Olga &lt;script&gt;")
 	wantOut(t, p, "empty team", xss, "pat@example.com", `action="/t/wombat/members/remove"`, `action="/t/wombat/members/role"`)
 
@@ -774,7 +774,7 @@ func TestNoInheritedMembers(t *testing.T) {
 func TestMachineTokens(t *testing.T) {
 	s := newUISite(t)
 	alice := s.as("alice@example.com")
-	p := alice.post("/t/lime/tokens", url.Values{"label": {"zuul " + xss}, "scope": {"read"}})
+	p := alice.post("/t/lime/tokens", url.Values{"label": {"ci " + xss}, "scope": {"read"}})
 	if p.status != http.StatusOK || !strings.Contains(p.body, registry.TokenPrefix) || !strings.Contains(p.body, "not shown again") {
 		t.Fatalf("create token = %d, want the secret once\n%s", p.status, p.body)
 	}
@@ -790,7 +790,7 @@ func TestMachineTokens(t *testing.T) {
 	}
 	var id string
 	for _, tok := range toks {
-		if strings.HasPrefix(tok.Label, "zuul") {
+		if strings.HasPrefix(tok.Label, "ci") {
 			id = tok.ID
 		}
 	}

@@ -1,7 +1,7 @@
 # Architecture
 
 The diagrams of loadout, and where the technical docs are. Everything AI
-stays on the user's machine; the registry only stores and serves files,
+stays on the user's machine. The registry only stores and serves files,
 accounts and reviews.
 
 ## Technical docs
@@ -39,7 +39,7 @@ flowchart LR
 
 ## Inside the binary
 
-The same binary is the CLI and the server; each side is thin on top of
+The same binary is the CLI and the server. Each side is thin on top of
 shared services.
 
 ```mermaid
@@ -65,7 +65,7 @@ flowchart TB
 ## Layers
 
 A project (L0) sits above its teams (L1). A team reads its own packages and
-the project's; when both ship the same name, the team's wins. Files a person
+the project's. When both ship the same name, the team's wins. Files a person
 made themselves (L2) are never touched.
 
 ```mermaid

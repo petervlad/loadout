@@ -26,7 +26,7 @@ hcloud server-type list
 hcloud server-type describe cx23
 ```
 
-A 2 vCPU, 4 GB x86 type (`cx23` at the time of writing) is more than enough; `cax11` is the Arm equivalent (then deploy with `LOADOUT_ARCH=arm64`). The cheapest types are sometimes unavailable at a location, so use the locations `hcloud server-type describe` lists as available. `--location` replaces the removed `--datacenter` flag.
+A 2 vCPU, 4 GB x86 type (`cx23` at the time of writing) is more than enough. `cax11` is the Arm equivalent (then deploy with `LOADOUT_ARCH=arm64`). The cheapest types are sometimes unavailable at a location, so use the locations `hcloud server-type describe` lists as available. `--location` replaces the removed `--datacenter` flag.
 
 Upload the key, then create the server with the cloud-init file from the [VM shape](../shapes/vm.md) (its key line replaced). Always pass `--ssh-key`: without one Hetzner emails a root password.
 
@@ -36,11 +36,11 @@ hcloud server create --name loadout --type cx23 --image ubuntu-24.04 --location 
 hcloud server ip loadout
 ```
 
-Create the firewall first (next section), so `--firewall` finds it. `hcloud image list --type system` lists images if `ubuntu-24.04` has been retired; any Debian or Ubuntu LTS works. Record the server, key and firewall names, then `ssh admin@IP cloud-init status --wait`.
+Create the firewall first (next section), so `--firewall` finds it. `hcloud image list --type system` lists images if `ubuntu-24.04` has been retired. Any Debian or Ubuntu LTS works. Record the server, key and firewall names, then `ssh admin@IP cloud-init status --wait`.
 
 ## Firewall
 
-Hetzner's cloud firewall is outside the machine; `prepare.sh` also sets `ufw` inside it. Allow ssh, http, https and QUIC from anywhere (ssh is key only; to narrow it to the person's address, give `--source-ips` their address, knowing a changed address locks them out until they edit the rule):
+Hetzner's cloud firewall is outside the machine. `prepare.sh` also sets `ufw` inside it. Allow ssh, http, https and QUIC from anywhere (ssh is key only, to narrow it to the person's address, give `--source-ips` their address, knowing a changed address locks them out until they edit the rule):
 
 ```sh
 hcloud firewall create --name loadout-registry
@@ -64,7 +64,7 @@ Follow the [VM shape](../shapes/vm.md), step 3, with `LOADOUT_HOST` the server's
 
 Two layers, see [backups.md](../backups.md):
 
-- Hetzner backups: `hcloud server enable-backup loadout` (daily, seven slots, priced as a share of the server's price; the Hetzner pricing page shows it). Ask before enabling.
+- Hetzner backups: `hcloud server enable-backup loadout` (daily, seven slots, priced as a share of the server's price, the Hetzner pricing page shows it). Ask before enabling.
 - A snapshot before an upgrade with a migration: `hcloud server create-image --type snapshot --description "before upgrade" loadout`. Snapshots stay until deleted and are billed by size.
 - Pull the nightly archive to the person's computer as backups.md says.
 
@@ -72,11 +72,11 @@ Backups and snapshots copy the server's disk and nothing else, which is all the 
 
 ## Cost
 
-Checked 2026-10-07 against the Hetzner price-adjustment page (prices for new orders from 15 June 2026), in euros without VAT: `cx23` 5.49 per month (hourly 0.0088), `cax11` 5.99, `cx33` 8.49, each without the IPv4 address, which adds 0.50 per month. A server is billed by the hour up to its monthly price, until deleted; `hcloud server-type describe` shows the current price for the location. Traffic (20 TB included in the EU) is far above what a registry uses. Backups add a percentage of the server's price; snapshots are billed by size. Tell the person the sum before you create anything: roughly 6 euros per month.
+Checked 2026-10-07 against the Hetzner price-adjustment page (prices for new orders from 15 June 2026), in euros without VAT: `cx23` 5.49 per month (hourly 0.0088), `cax11` 5.99, `cx33` 8.49, each without the IPv4 address, which adds 0.50 per month. A server is billed by the hour up to its monthly price, until deleted. `hcloud server-type describe` shows the current price for the location. Traffic (20 TB included in the EU) is far above what a registry uses. Backups add a percentage of the server's price. Snapshots are billed by size. Tell the person the sum before you create anything: roughly 6 euros per month.
 
 ## Tear down
 
-Only after a yes for exactly this, and only what the notes file lists. A server's disk, its backups and its primary IPv4 address go with it; snapshots and ssh keys and firewalls do not.
+Only after a yes for exactly this, and only what the notes file lists. A server's disk, its backups and its primary IPv4 address go with it. Snapshots and ssh keys and firewalls do not.
 
 ```sh
 hcloud server delete loadout

@@ -44,7 +44,7 @@ The rules this codebase follows. When in doubt, the sources win:
 
 - `ctx context.Context` is the first parameter, never stored in a struct.
 - One `*slog.Logger` built in `main` and injected. Keyed attributes.
-- Synchronous APIs; every goroutine has an owner and a stop.
+- Synchronous APIs. Every goroutine has an owner and a stop.
 - HTTP servers set all four timeouts, cap bodies with `http.MaxBytesReader`, shut down gracefully.
 
 ## Files on disk
@@ -55,9 +55,9 @@ The rules this codebase follows. When in doubt, the sources win:
 
 ## Tests
 
-- Table-driven with `t.Run`; messages read `Func(in) = got, want want`.
-- No assertion libraries; `go-cmp` for structs.
-- Fakes over mocks; `t.TempDir()`, `testdata/`, golden files refreshed with `-update`.
+- Table-driven with `t.Run`. Messages read `Func(in) = got, want want`.
+- No assertion libraries. `go-cmp` for structs.
+- Fakes over mocks. `t.TempDir()`, `testdata/`, golden files refreshed with `-update`.
 - Always `go test -race ./...`.
 
 ## Tooling

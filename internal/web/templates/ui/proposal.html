@@ -127,7 +127,7 @@
 {{else}}
 <div class="empty">
 <h2>No comparison yet</h2>
-<p>Run both versions in your own AI tool and attach the result; the answers to the prompts below then show here side by side.</p>
+<p>Run both versions in your own AI tool and attach the result. The answers to the prompts below then show here side by side.</p>
 </div>
 {{end}}{{end}}
 </section>
@@ -138,11 +138,11 @@
 <section class="panel" aria-labelledby="changes-h">
 <div class="panel-head"><h2 id="changes-h">What changed</h2><span class="grow"></span><a href="/t/{{$.NS}}/reviews/{{.ID}}/diff">Full diff</a></div>
 {{if .Diff}}<div class="diff">{{range .Diff}}{{template "diff-file" .}}{{end}}{{if .DiffMore}}<div class="hunk">…</div>{{end}}</div>
-{{else}}<p class="panel-pad">The {{.What}} itself is unchanged{{if .From}} from {{.From}}{{end}}; see the full diff for the rest.</p>{{end}}
+{{else}}<p class="panel-pad">The {{.What}} itself is unchanged{{if .From}} from {{.From}}{{end}}. See the full diff for the rest.</p>{{end}}
 </section>
 {{if .Open}}<section class="panel panel-pad" aria-labelledby="try-h">
 <h2 id="try-h">Try it yourself</h2>
-<p>Compares the version you have installed with this proposal in your own AI tool, on your subscription, and attaches the report here. The tool runs with its full access; add <code>--safe</code> to limit it.</p>
+<p>Compares the version you have installed with this proposal in your own AI tool, on your subscription, and attaches the report here. The tool runs with its full access. Add <code>--safe</code> to limit it.</p>
 <div class="copyrow"><code class="cmd" id="review-cmd">{{.Review}}</code>{{template "copy" "review-cmd"}}</div>
 </section>{{end}}
 <section class="panel panel-pad" aria-labelledby="activity-h">
@@ -158,7 +158,7 @@
 <section class="panel prompts-panel" id="prompts" aria-labelledby="prompts-h" tabindex="-1">
 <div class="panel-head"><h2 id="prompts-h">Prompts</h2><span class="grow"></span><span class="meta">{{if .Open}}{{len .List}} of {{.Max}}{{else}}{{plural (len .List) "prompt"}}{{end}}</span></div>
 {{if .Notice}}<p class="notice prompt-notice" role="status">{{.Notice}}</p>{{end}}
-<p class="prompts-intro">{{if .Open}}Every comparison asks each version these prompts. Add what you want to see answered; only the person who added a prompt can change it.{{else}}The prompts as they were when the proposal closed. They no longer change.{{end}}</p>
+<p class="prompts-intro">{{if .Open}}Every comparison asks each version these prompts. Add what you want to see answered. Only the person who added a prompt can change it.{{else}}The prompts as they were when the proposal closed. They no longer change.{{end}}</p>
 <ol class="prompt-list">{{$last := .Last}}{{range .List}}
 <li id="prompt-{{.Seq}}">
 <p class="prompt-body">{{.Text}}</p>
@@ -199,7 +199,7 @@
 {{end}}{{end}}
 {{define "behind"}}<section class="behind-note" role="note" aria-labelledby="behind-h">
 <h2 id="behind-h">{{if .Blocked}}{{.Latest}} was released after this proposal{{else if .One}}A newer release came out after this proposal{{else}}{{.Count}} newer releases came out after this proposal{{end}}</h2>
-<p>{{range .Releases}}{{.Sep}}<strong>{{.Version}}</strong>{{if .By}} by {{.By}}{{end}}, <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>{{end}}{{if .MoreReleases}}; and {{.MoreReleases}} more{{end}}.</p>
+<p>{{range .Releases}}{{.Sep}}<strong>{{.Version}}</strong>{{if .By}} by {{.By}}{{end}}, <time datetime="{{stamp .At}}" title="{{exact .At}}">{{ago .At}}</time>{{end}}{{if .MoreReleases}}, and {{.MoreReleases}} more{{end}}.</p>
 {{if .Blocked}}<p>A proposal cannot be approved as a version that is already released. {{if .Author}}Bring it up to date with <code>loadout rebase --proposal {{.ID}}</code>, which raises its version, then propose it again.{{else}}The author can bring it up to date and propose it again.{{end}}</p>
 {{else if not .Changed}}<p>{{if .Base}}It was made from {{.Base}}{{else}}It was made before the first release{{end}}. {{if .One}}{{.Latest}}{{else}}The releases since{{end}} changed only the version, so approving loses nothing.</p>
 {{else}}<p>{{if .Base}}It was made from {{.Base}}{{else}}It was made before the first release{{end}}, so approving releases {{.To}} without {{if .One}}{{.Latest}}’s changes{{else}}their changes{{end}} to {{plural .Changed "file"}}: {{range .Files}}{{.Sep}}<span class="mono">{{.Name}}</span>{{end}}{{if .MoreFiles}} and {{.MoreFiles}} more{{end}}.

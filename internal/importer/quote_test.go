@@ -110,7 +110,7 @@ func TestAgentQuotesTheDescription(t *testing.T) {
 func TestName(t *testing.T) {
 	out := t.TempDir()
 	agentFile := filepath.Join("testdata", "agents", "setup-doctor.md")
-	skillDir := filepath.Join("testdata", "skills", "zuul-triage")
+	skillDir := filepath.Join("testdata", "skills", "build-triage")
 
 	agents, err := Agents([]string{agentFile}, AgentOptions{Options: Options{Team: "lime", Out: out, Name: "doctor"}})
 	if err != nil {
@@ -131,7 +131,7 @@ func TestName(t *testing.T) {
 	if s, _ := p.Skill(); s.Name != "ci-triage" || !slicesHasPrefix(s.Extra(), "allowed-tools") {
 		t.Errorf("Skills(Name) skill = %q with fields %v, want ci-triage keeping allowed-tools", s.Name, s.Extra())
 	}
-	if !slicesHasPrefix(skills[0].Notices, "renamed the skill from zuul-triage to ci-triage") {
+	if !slicesHasPrefix(skills[0].Notices, "renamed the skill from build-triage to ci-triage") {
 		t.Errorf("Skills(Name) notices = %q", skills[0].Notices)
 	}
 
@@ -146,20 +146,20 @@ func TestName(t *testing.T) {
 func TestCollisions(t *testing.T) {
 	// An agent and a skill of the same name, as teams often keep them.
 	out := t.TempDir()
-	agentFile := filepath.Join(t.TempDir(), "zuul-triage.md")
+	agentFile := filepath.Join(t.TempDir(), "build-triage.md")
 	if err := os.WriteFile(agentFile, []byte("---\ndescription: d\n---\nx\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Agents([]string{agentFile}, AgentOptions{Options: Options{Team: "lime", Out: out}}); err != nil {
 		t.Fatal(err)
 	}
-	skillDir := filepath.Join("testdata", "skills", "zuul-triage")
+	skillDir := filepath.Join("testdata", "skills", "build-triage")
 	_, err := Skills([]string{skillDir}, Options{Team: "lime", Out: out})
 	e, ok := errors.AsType[*CollisionError](err)
 	if !ok {
 		t.Fatalf("Skills() error = %v, want *CollisionError", err)
 	}
-	if diff := cmp.Diff([]string{skillDir}, e.Sources); diff != "" || e.Dir != filepath.Join(out, "zuul-triage") {
+	if diff := cmp.Diff([]string{skillDir}, e.Sources); diff != "" || e.Dir != filepath.Join(out, "build-triage") {
 		t.Errorf("CollisionError = %+v", e)
 	}
 	if !strings.Contains(err.Error(), "already exists") {

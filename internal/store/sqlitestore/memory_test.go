@@ -80,11 +80,11 @@ func insert(t *testing.T, s *sqlitestore.MemoryStore, name, desc, body string, w
 func TestSearchRanking(t *testing.T) {
 	s := newMemoryStore(t)
 	// The newest entry is the body hit, so only the weights can put it last.
-	inName := insert(t, s, "Zuul gate", "pipelines", "nothing here", testAt)
-	inDesc := insert(t, s, "Pipelines", "how the zuul gate works", "nothing here", testAt.Add(time.Hour))
-	inBody := insert(t, s, "Pipelines", "other", "the zuul gate runs after check", testAt.Add(2*time.Hour))
+	inName := insert(t, s, "CI gate", "pipelines", "nothing here", testAt)
+	inDesc := insert(t, s, "Pipelines", "how the ci gate works", "nothing here", testAt.Add(time.Hour))
+	inBody := insert(t, s, "Pipelines", "other", "the ci gate runs after check", testAt.Add(2*time.Hour))
 
-	got, err := s.Search(t.Context(), memory.Query{Text: "zuul", Namespaces: []string{"lime"}, Limit: 10})
+	got, err := s.Search(t.Context(), memory.Query{Text: "ci", Namespaces: []string{"lime"}, Limit: 10})
 	if err != nil {
 		t.Fatalf("Search() error: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestSearchRanking(t *testing.T) {
 		order = append(order, e.ID)
 	}
 	if want := []int64{inName.ID, inDesc.ID, inBody.ID}; !slices.Equal(order, want) {
-		t.Errorf("Search(zuul) = %v, want %v: name, description, body", order, want)
+		t.Errorf("Search(ci) = %v, want %v: name, description, body", order, want)
 	}
 
 	// Porter stemming: a plural finds the singular.

@@ -45,7 +45,7 @@
 </fieldset>{{else if .Governs}}<p class="hint">{{$.NS}} has no teams yet. Create one with New team, then invite people to it here.</p>
 {{else}}<p class="hint">You can add people to {{$.NS}} itself. To add them to a team as well, ask an owner of {{$.NS}} or that team's maintainer.</p>{{end}}
 <div class="invite-foot">
-<p>Members install and propose; maintainers also publish, approve and manage members.</p>
+<p>Members install and propose. Maintainers also publish, approve and manage members.</p>
 <button type="submit" class="btn btn-primary btn-lg">Invite</button>
 </div>
 </form>
@@ -68,13 +68,13 @@
 <select id="add-role" name="role" class="sel">{{range .Roles}}<option value="{{.}}">{{role .}}</option>{{end}}</select>
 <button type="submit" class="btn btn-primary btn-lg">Add member</button>
 </div>
-<p class="hint">They get access when they sign in with this address, with Google or email. loadout sends no invitation, so tell them. Members install and propose; maintainers also publish, approve and manage members.</p>
+<p class="hint">They get access when they sign in with this address, with Google or email. loadout sends no invitation, so tell them. Members install and propose. Maintainers also publish, approve and manage members.</p>
 </form>{{end}}
 {{if .CanList}}
 {{if not .Members}}
 <div class="empty">
 <h3>Nobody is added to {{.Namespace}} directly</h3>
-<p>{{if .Inherited}}Owners of the project above already manage it; they are listed below.{{end}}{{if .Roles}}{{if .Inherited}} {{end}}Add people here to give them a role in {{.Namespace}}.{{end}}</p>
+<p>{{if .Inherited}}Owners of the project above already manage it. They are listed below.{{end}}{{if .Roles}}{{if .Inherited}} {{end}}Add people here to give them a role in {{.Namespace}}.{{end}}</p>
 </div>
 {{else}}
 <table class="list" data-filterable>
@@ -217,7 +217,7 @@
 <form class="pop" method="post" action="/t/{{$.NS}}/tokens">
 <input type="hidden" name="csrf" value="{{$.CSRF}}">
 <label for="tok-label">Name</label>
-<input id="tok-label" name="label" class="field" required maxlength="100" placeholder="zuul-release-job">
+<input id="tok-label" name="label" class="field" required maxlength="100" placeholder="ci-release-job">
 <label for="tok-scope">Access</label>
 <select id="tok-scope" name="scope" class="sel"><option value="read">Can read</option><option value="publish">Can publish</option></select>
 <p>The token is shown once, right after you create it.</p>

@@ -1,5 +1,5 @@
 ---
-name: zuul-triage
+name: build-triage
 description: >-
   Find out why a CI build failed, e.g. a POST_FAILURE or a timeout. Use when
   the user pastes a build URL or asks why a job is red.

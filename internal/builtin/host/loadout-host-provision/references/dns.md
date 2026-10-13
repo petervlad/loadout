@@ -33,7 +33,7 @@ dig +short registry.example.com
 dig +short registry.example.com @1.1.1.1
 ```
 
-Both must print the machine's address. If `dig` is not installed use `host registry.example.com` or `nslookup registry.example.com`. A record that exists but is not visible yet needs time (the old TTL); wait and ask again rather than deploying. When the name resolves to something else, say what it resolves to and stop.
+Both must print the machine's address. If `dig` is not installed use `host registry.example.com` or `nslookup registry.example.com`. A record that exists but is not visible yet needs time (the old TTL). Wait and ask again rather than deploying. When the name resolves to something else, say what it resolves to and stop.
 
 ## Names for other uses
 

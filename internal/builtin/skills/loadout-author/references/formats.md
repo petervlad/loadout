@@ -64,14 +64,14 @@ runbooks/
 ```
 
 - Documents: `.md`, `.markdown`, `.txt`, `.rst`, `.adoc`, `.csv`, `.tsv`, `.json`, `.yaml`, `.yml`, `.mmd`, `.mermaid`, `.drawio`.
-- The first `# Heading` of a Markdown file is its title in the index; other files use their file name.
+- The first `# Heading` of a Markdown file is its title in the index. Other files use their file name.
 - With more than 150 documents the index lists folders instead of every document, so keep related documents in folders with clear names.
 
 ## Names and paths
 
 - Package names: lowercase letters, digits and single hyphens, at most 64 characters.
 - Versions: `MAJOR.MINOR.PATCH`, each new one higher than the last.
-- File paths: letters, digits, `.`, `_` and `-`; at most 8 folders deep; no hidden files or folders; no two names that differ only in case.
+- File paths: letters, digits, `.`, `_` and `-`. At most 8 folders deep. No hidden files or folders. No two names that differ only in case.
 
 ## Limits
 

@@ -12,11 +12,11 @@ A Postmark account made by the person, with a **Server** (Postmark's name for a 
 
 ## Sender domain and DNS
 
-Under Sender Signatures, add the domain (better than one address, because the sign-in mail comes from `login@example.com` or similar). Postmark shows a DKIM TXT record and a Return-Path CNAME to add; both come from the dashboard, and are public data the person may paste to you so you can check them with `dig`. The person presses Verify afterwards. Add a DMARC TXT record on `_dmarc.example.com`, starting with `v=DMARC1; p=none; rua=mailto:postmaster@example.com`. The Return-Path domain is what makes SPF line up with the sender domain, so keep it.
+Under Sender Signatures, add the domain (better than one address, because the sign-in mail comes from `login@example.com` or similar). Postmark shows a DKIM TXT record and a Return-Path CNAME to add. Both come from the dashboard, and are public data the person may paste to you so you can check them with `dig`. The person presses Verify afterwards. Add a DMARC TXT record on `_dmarc.example.com`, starting with `v=DMARC1; p=none; rua=mailto:postmaster@example.com`. The Return-Path domain is what makes SPF line up with the sender domain, so keep it.
 
 ## SMTP credentials
 
-Postmark offers two. Pick one and let the person copy it into the settings file with their editor; never ask for it in chat:
+Postmark offers two. Pick one and let the person copy it into the settings file with their editor. Never ask for it in chat:
 
 - The Server API token (Server, API Tokens), which acts as both the user name and the password. The person types the same token on both lines.
 - An SMTP token (Server, the transactional stream, Settings): an Access Key as the user name and a Secret Key as the password. The secret is shown once.

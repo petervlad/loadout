@@ -33,7 +33,7 @@ $L admin grant --email ada@acme.example --data "$DATA"
 
 LIME=$($L token create --team lime --publish --label seed-lime --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
 ACME=$($L token create --team acme --publish --label seed-acme --data "$DATA" | grep -o 'ldt_[a-z0-9]*')
-$L token create --team lime --read --label zuul-release-job --data "$DATA" >/dev/null
+$L token create --team lime --read --label ci-release-job --data "$DATA" >/dev/null
 
 # Start the server in the background for publishing.
 LOADOUT_PUBLIC_URL=$URL LOADOUT_DEV=1 $L serve --addr 127.0.0.1:$PORT --data "$DATA" >"$S/serve.log" 2>&1 &

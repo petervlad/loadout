@@ -257,12 +257,12 @@ func TestDuplicates(t *testing.T) {
 		name string
 		dup  bool
 	}{
-		{"Kafka retention policy", true},         // 2 of 3 words, 66 percent
-		{"kafka RETENTION", true},                // every word
-		{"Kafka cluster policy", false},          // 1 of 3, 33 percent
-		{"The Kafka and the retention", true},    // stopwords do not count
-		{"Zuul pipeline for the release", false}, // nothing in common
-		{"to be", false},                         // no significant word at all
+		{"Kafka retention policy", true},       // 2 of 3 words, 66 percent
+		{"kafka RETENTION", true},              // every word
+		{"Kafka cluster policy", false},        // 1 of 3, 33 percent
+		{"The Kafka and the retention", true},  // stopwords do not count
+		{"CI pipeline for the release", false}, // nothing in common
+		{"to be", false},                       // no significant word at all
 	}
 	for _, tt := range tests {
 		r, err := f.svc.Save(ctx, lee, "lime", draft(t, "lime", tt.name, "something else", "b"), false)

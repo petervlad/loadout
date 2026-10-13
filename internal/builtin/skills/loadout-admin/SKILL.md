@@ -4,7 +4,7 @@ description: Run a loadout team or project as a maintainer or owner, covering me
 ---
 # Running a loadout team
 
-These commands change who can do what for a whole team. Most need the maintainer or owner role; the registry refuses what the person's role does not allow. loadout never runs a model and never holds an AI key; model settings are only names it writes into agent files.
+These commands change who can do what for a whole team. Most need the maintainer or owner role. The registry refuses what the person's role does not allow. loadout never runs a model and never holds an AI key. Model settings are only names it writes into agent files.
 
 ## First, look for local rules
 
@@ -13,7 +13,7 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 ## Rules for you, the agent
 
 - Every command here is visible to the team. Ask the person before each `loadout member add`, `loadout member invite`, `loadout member set`, `loadout member remove`, `loadout namespace set`, `loadout namespace create`, `loadout token create`, `loadout token revoke` and `loadout memory purge --yes`, with the exact email, role and namespace. Read-only commands (`loadout member list`, `loadout token list`, `loadout namespace list`, `loadout namespace tiers`) need no question.
-- Never read, print or pass a token. A new machine token is shown once, to the person: let them copy it into their CI secret store themselves; do not capture, echo or paste it. Never open `~/.loadout/credentials.yaml`.
+- Never read, print or pass a token. A new machine token is shown once, to the person: let them copy it into their CI secret store themselves. Do not capture, echo or paste it. Never open `~/.loadout/credentials.yaml`.
 - The person runs `loadout login` themselves.
 - Never add `--force` to overwrite a file the person edited without asking.
 - If the person asks to try a teammate's package with `loadout review`, say it runs with full access and offer `--safe`.
@@ -26,10 +26,10 @@ Look for an installed skill named `<project>-loadout` (for example `acme-loadout
 | --- | --- |
 | member | install, sync, propose |
 | maintainer (of a team) | also publish, approve or reject (not their own), add and remove members, machine tokens, switch team memory on or off, retract and move memories |
-| owner (of a project) | all of that in the project and every team below; create teams; add maintainers; turn review and the wiki on or off and choose the wiki's course; approve their own proposals as owner, with a note |
+| owner (of a project) | all of that in the project and every team below. Create teams. Add maintainers. Turn review and the wiki on or off and choose the wiki's course. Approve their own proposals as owner, with a note |
 | admin (whole registry) | everything: create projects, make owners, delete empty namespaces |
 
-Maintainers add members; owners add maintainers; admins add owners. Anyone in a team is also a member of the project above it. A person needs no account first: they sign up with the address that was added, then run `loadout login`.
+Maintainers add members. Owners add maintainers. Admins add owners. Anyone in a team is also a member of the project above it. A person needs no account first: they sign up with the address that was added, then run `loadout login`.
 
 ## Members
 
@@ -136,7 +136,7 @@ In CI the token comes from a secret: `echo "$LOADOUT_TOKEN" | loadout remote add
 
 ## Model settings
 
-Agents ask for `fast`, `balanced` or `deep`; the project decides per AI tool which model and effort that means, and teams inherit value by value. Maintainers, owners and admins change it:
+Agents ask for `fast`, `balanced` or `deep`. The project decides per AI tool which model and effort that means, and teams inherit value by value. Maintainers, owners and admins change it:
 
 ```sh
 loadout namespace tiers payments                             # what applies, and where each value comes from
@@ -149,4 +149,4 @@ What the values look like per tool, and Copilot's caveats: [references/models.md
 
 ## The website
 
-The registry's website does the same for people who prefer it: **Settings** (members: add, change, remove, listed owners first, then maintainers, then members, with a search box for name, email or team and a "Teams:" line under each person; machine tokens; and for owners the review and wiki switches and the wiki's course, and for maintainers and owners the Team memory switch), **Invite someone** in a project's Settings, **Choose models** for the model settings, and **New** to create a team (owners) or project (admins). Creating projects, making owners and deleting namespaces are admin actions on the website or the registry host, not from a login token.
+The registry's website does the same for people who prefer it: **Settings** (members: add, change, remove, listed owners first, then maintainers, then members, with a search box for name, email or team and a "Teams:" line under each person, machine tokens, and for owners the review and wiki switches and the wiki's course, and for maintainers and owners the Team memory switch), **Invite someone** in a project's Settings, **Choose models** for the model settings, and **New** to create a team (owners) or project (admins). Creating projects, making owners and deleting namespaces are admin actions on the website or the registry host, not from a login token.

@@ -1,6 +1,6 @@
 # loadout
 
-loadout shares a team's AI agents, skills and knowledge bases with everyone on the team, in the AI tools they already use: Claude Code and GitHub Copilot. You publish a package once to a registry; each teammate installs it with one command and gets updates with `loadout sync`. Packages can sit in layers (a project above its teams), people sign in with accounts and roles, and a change can be proposed and reviewed before it is released, like a pull request for an agent.
+loadout shares a team's AI agents, skills and knowledge bases with everyone on the team, in the AI tools they already use: Claude Code and GitHub Copilot. You publish a package once to a registry. Each teammate installs it with one command and gets updates with `loadout sync`. Packages can sit in layers (a project above its teams), people sign in with accounts and roles, and a change can be proposed and reviewed before it is released, like a pull request for an agent.
 
 ## The one rule
 
@@ -71,8 +71,11 @@ Run one instance only: the database is SQLite and the sign-in limits live in the
 - A **package** is an agent (`agent.md`), a skill (`SKILL.md` plus files) or a knowledge base (Markdown documents). Each has a `loadout.yaml` with its id (`team/name`), kind, version and description. Published versions never change.
 - A **registry** stores packages by namespace: a team, or a project that sits above several teams. A closer layer wins when two layers ship the same name.
 - An **adapter** per AI tool renders a package into that tool's folders. `loadout sync` keeps installs current per policy (`auto`, `notify`, `pin`) and never overwrites a file you edited.
-- **Accounts and roles** (member, maintainer, owner, admin) decide who may install, propose, publish and approve. `loadout login` signs in through the browser, like `gh auth login`; without accounts, invites carry a token.
+- **Accounts and roles** (member, maintainer, owner, admin) decide who may install, propose, publish and approve. `loadout login` signs in through the browser, like `gh auth login`. Without accounts, invites carry a token.
 - **Review**: `propose` uploads a candidate, a teammate runs both versions in their own AI tool with `review`, and `review approve` releases it. A package that should go is deleted the same way: `propose delete` asks, a second person approves, and the registry saves a copy of its database first.
+- **Pipelines** write a loop such as plan, dev, review and test once. A team binds its own agents to the steps and `loadout install` makes a conductor agent that runs them with a human gate between steps.
+- **Team memory** gives each team short facts its agents save for each other, served by the registry as an MCP server. `loadout mcp` connects an AI tool to it.
+- **Package delete**: `loadout package delete` removes a package from the registry host, and `propose delete` lets anyone ask for it. `loadout update` brings the CLI itself up to date.
 
 Supported tools: Claude Code and GitHub Copilot. Packages go only into the tools each person has.
 

@@ -4,7 +4,7 @@ Status: built (2026-09-29), with the recommended answers to the three
 decisions: owners only, an explicit `--as-owner` step, and a note required
 when approving your own proposal. Where the build differs:
 
-- There is no `history` command; `review show`, `review list --all` and the
+- There is no `history` command. `review show`, `review list --all` and the
   web pages carry the mark. `review list` says "approved without review" to
   keep the column short.
 - `Service.Publish` gets the owner hint through its own option,
@@ -17,7 +17,7 @@ when approving your own proposal. Where the build differs:
 When a namespace requires review, nobody publishes directly and the author can
 never approve their own proposal (`checkReviewer` in
 `internal/registry/proposals.go`: "the author cannot approve their own
-proposal; ask a teammate"). A small team, or an owner alone on a project, then
+proposal. Ask a teammate"). A small team, or an owner alone on a project, then
 has no way to release. Owners may now approve and release any open proposal,
 their own included, without a second person. It stays a proposal (prompts,
 note, diff, activity), and the record says plainly that review was skipped, so
@@ -42,13 +42,13 @@ admin flag left out (as `Roles.accessAsMember` already does for login tokens).
 | member, maintainer of the team | refused, as today |
 | owner of the project, proposal in the project or a team below | allowed, with a note |
 | owner of another project | refused (not found or forbidden, as today) |
-| admin who is not an owner there | refused; they make themselves owner first (visible in Members) |
+| admin who is not an owner there | refused. They make themselves owner first (visible in Members) |
 | admin who is also an owner there | allowed, as owner |
 | machine token (made by anyone, owners included) | refused: machine tokens never decide |
 | token made on the registry host (no user) | refused: no user, so nobody to call an owner |
 
 Admins are left out on purpose. A login token never carries admin rights today
-(GUIDE: "Admin actions ... are not available with a login token"); counting the
+(GUIDE: "Admin actions ... are not available with a login token"). Counting the
 flag would let one stolen admin token release into every team without review,
 which is a new power, not a shortcut. Leaving it out also gives one answer on
 the CLI, the API and the web. See decision 1.
@@ -90,7 +90,7 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 
 - `checkReviewer` splits in two: `checkDecider` (machine token, publish token of
   the team) and `isSelf` (same actor or same label). Reject and withdraw keep
-  their rules unchanged; an owner still withdraws, not rejects, their own.
+  their rules unchanged. An owner still withdraws, not rejects, their own.
 - Approve on a self proposal: without `AsOwner` it is refused as today, and the
   message adds "as an owner of acme you may approve it yourself: loadout review
   approve ID --as-owner --note WHY" when `Owns` says so. With `AsOwner` it
@@ -99,7 +99,7 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
   only on this path, so ordinary approvals cost no extra query.
 - `AsOwner` on someone else's proposal is ignored: a second person reviewed it,
   so nothing is bypassed and nothing extra is recorded.
-- `Decision` gains `SelfApproved bool`; `Proposal` gains `SelfApproved bool`.
+- `Decision` gains `SelfApproved bool`. `Proposal` gains `SelfApproved bool`.
   `Release` gains `Proposal string` (the id it came from, empty for a direct
   publish) and `SelfApproved bool`. `ApproveProposal` writes all of them in its
   one transaction, so a release can never say less than its proposal.
@@ -119,8 +119,8 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
   `proposal`), all `omitempty`, so old clients read new answers unchanged.
 - The server still decodes `DecisionRequest` strictly. The client sends
   `as_owner` only when set, so a normal approve still works against an old
-  registry; with `--as-owner` an old registry answers "unknown field", which
-  the client turns into "this registry is older than approving as owner; ask a
+  registry. With `--as-owner` an old registry answers "unknown field", which
+  the client turns into "this registry is older than approving as owner. Ask a
   teammate or update the registry".
 
 ## CLI and web changes
@@ -135,31 +135,31 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
   second person's review. The activity will say so." plus "No comparison is
   attached." when there is none, a required note, hidden `as_owner=on`, Cancel
   and "Approve without review". The why text: "You proposed this version. As an
-  owner of acme you may release it yourself; teammates will see that review was
+  owner of acme you may release it yourself. Teammates will see that review was
   skipped." Everyone else sees today's buttons and texts.
 - `decideProposal` reads `as_owner` from the form. The service checks
-  everything again; the page only hides what would be refused.
+  everything again. The page only hides what would be refused.
 - Activity: "approved own proposal as owner, without review: “note”", tone
   `warn` (a `.dot-warn` token in `style.css` if missing). The status pill reads
-  "Released without review" on the proposal page and the reviews list; the
+  "Released without review" on the proposal page and the reviews list. The
   package page marks that version the same way.
 
 ## Order of work
 
 1. account: `Roles.Owns`, `Place.Owns`, table tests in `roles_test.go`.
 2. registry: `Owners`, `WithOwners`, `ApproveInput`, self-approval rule, new
-   fields; memstore; `registrytest` proposal contract asserts the flags on the
+   fields. Memstore. `registrytest` proposal contract asserts the flags on the
    proposal, the release and a later `Releases` read. Without `WithOwners`
    nothing changes.
-3. sqlitestore: migration 0010, release and proposal scans; contract suite green.
-4. api, server, client: `as_owner`, response fields, old-registry message;
-   wire `WithOwners(roles)` in `cmd/loadout`.
-5. CLI: `--as-owner`, outputs, `show`, `list`, `history`, publish hint; e2e.
-6. Web: `decide`, popover, activity, pill, package page mark; web tests; UI
-   review with the Apple design checklist; record it in `docs/UI.md`.
+3. sqlitestore: migration 0010, release and proposal scans. Contract suite green.
+4. api, server, client: `as_owner`, response fields, old-registry message.
+   Wire `WithOwners(roles)` in `cmd/loadout`.
+5. CLI: `--as-owner`, outputs, `show`, `list`, `history`, publish hint. E2e.
+6. Web: `decide`, popover, activity, pill, package page mark. Web tests. UI
+   review with the Apple design checklist. Record it in `docs/UI.md`.
 7. Docs: DESIGN.md (Review bullets, roles table "Approve, reject" column for
    owner and "owner of the project above": "yes, their own too as owner, with a
-   note, recorded"; admin row unchanged; migration list), GUIDE.md (roles table,
+   note, recorded". Admin row unchanged. Migration list), GUIDE.md (roles table,
    Review section "Nobody approves their own proposal" gets the owner
    exception, command table), rebuild the site. Back up the live database
    before the deploy, since it migrates.
@@ -175,24 +175,24 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 - account: `Roles.Owns` table, including inheritance from the project above
   and the admin flag ignored.
 - web (`ui_test.go`): an owner author sees the popover with `as_owner` and a
-  required note; a maintainer author still sees the disabled button and why;
-  POST without a note is refused with the message; POST with one releases and
-  the activity says so; a forged CSRF token is 403.
+  required note. A maintainer author still sees the disabled button and why.
+  POST without a note is refused with the message. POST with one releases and
+  the activity says so. A forged CSRF token is 403.
 - e2e (`cmd/loadout/review_test.go`, `accountRegistry`, `loginAs`, `person`,
   `newSession`): review required on lime, the owner proposes, plain approve is
   refused with the hint, `--as-owner` without a note is refused, with a note it
-  releases; a maintainer syncs it; `history` and `review show` mark it; the
+  releases. A maintainer syncs it. `history` and `review show` mark it. The
   owner's machine token is refused with `--as-owner`.
 
 ## Risks
 
 - Owners release unreviewed content to every team below their project. That is
-  the feature; the note and the marks keep it visible, and it adds no power an
+  the feature. The note and the marks keep it visible, and it adds no power an
   owner lacks today.
-- A release scan that misses the new columns would silently drop the mark; the
+- A release scan that misses the new columns would silently drop the mark. The
   contract suite reads them back through every release query.
 - `review-from-the-web.md` is planned at the same time and touches the same
-  page (`proposal.html`, `decide`). Whichever lands second rebases; this plan
+  page (`proposal.html`, `decide`). Whichever lands second rebases. This plan
   only changes the actions block, the why text, the activity and the pill.
 - A role taken away between loading the page and posting: the service checks
   `Owns` on the POST, so the approval is refused.
@@ -210,7 +210,7 @@ func (s *ProposalService) Approve(ctx context.Context, pr Principal, id string, 
 ## Not in this step
 
 - Owners publishing directly when review is required. They propose and approve
-  as owner, which keeps the prompts, diff and record; `publish` stays refused.
+  as owner, which keeps the prompts, diff and record. `publish` stays refused.
 - A per-namespace switch to forbid self-approval even for owners.
 - Notifications to teammates when review is skipped.
 - Required comparisons or a minimum number of approvals.

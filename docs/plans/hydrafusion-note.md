@@ -22,7 +22,7 @@ github.com/orgs/community/discussions/206492.
 
 The models page (`/t/{ns}/tiers`) already shows each tool's `ModelNotes()`
 under that tool's table, so a new note needs no template, CSS or handler
-change. One source, the Copilot adapter, feeds the page; the guide and the
+change. One source, the Copilot adapter, feeds the page. The guide and the
 admin skill say the same in their own words.
 
 New note, third in `copilot.Adapter.ModelNotes` (after Auto, before the plan
@@ -38,7 +38,7 @@ check below.
 
 ## Files
 
-1. `internal/target/copilot/copilot.go`: add the note to `ModelNotes`; change
+1. `internal/target/copilot/copilot.go`: add the note to `ModelNotes`. Change
    the doc comment ("the two ways" becomes "the ways") and the block comment
    above `Adapter` ("ignores agent models while the picker is on Auto" gains
    "and may on HydraFusion"), with the two source URLs in the adapter's list.
@@ -61,7 +61,7 @@ and desktop, and check the list still reads well (HIG checklist,
 ## Tests and release
 
 - `make check` passes.
-- Deploy with `loadout-deploy`. No migration, so no database change; the
+- Deploy with `loadout-deploy`. No migration, so no database change. The
   usual backup still runs.
 
 ## Open: check by hand, then firm up the wording
@@ -78,5 +78,5 @@ when picked directly and when called as a subagent.
 
 - Detecting the person's Copilot settings. loadout never reads them, and the
   picker choice is per session anyway.
-- A warning in the CLI (`loadout namespace tiers`). It prints no notes today;
-  add them there only if admins ask.
+- A warning in the CLI (`loadout namespace tiers`). It prints no notes today.
+  Add them there only if admins ask.

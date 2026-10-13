@@ -12,7 +12,7 @@ const testMain = "---\nname: release-notes\ndescription: Write release notes. Us
 // testExtra carries fields of the Agent Skills format and of Claude Code
 // that loadout does not read.
 const testExtra = `---
-name: zuul-triage
+name: build-triage
 description: >-
   Find why a CI build failed. Use when the user pastes a build URL.
 license: Apache-2.0
@@ -104,7 +104,7 @@ func TestParseKeepsExtraFields(t *testing.T) {
 		t.Fatalf("Marshal() error: %v", err)
 	}
 	want := `---
-name: zuul-triage
+name: build-triage
 description: Find why a CI build failed. Use when the user pastes a build URL.
 license: Apache-2.0
 allowed-tools: Bash(curl:*) Read Grep
@@ -127,7 +127,7 @@ func TestExtraFieldsSurviveRenameAndNote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := s.Renamed("candidate-zuul-triage")
+	r, err := s.Renamed("candidate-build-triage")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +135,7 @@ func TestExtraFieldsSurviveRenameAndNote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"name: candidate-zuul-triage\n", "allowed-tools: Bash(curl:*) Read Grep\n", "  author: lime\n", "argument-hint: \"[build-url]\"\n"} {
+	for _, want := range []string{"name: candidate-build-triage\n", "allowed-tools: Bash(curl:*) Read Grep\n", "  author: lime\n", "argument-hint: \"[build-url]\"\n"} {
 		if !strings.Contains(string(data), want) {
 			t.Errorf("Renamed().Marshal() =\n%s\nwant %q", data, want)
 		}

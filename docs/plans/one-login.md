@@ -5,7 +5,7 @@ Status: done (2026-09-29).
 ## Goal
 
 `loadout login` once per registry, not once per team. The token says who you
-are; what you may do is decided per request, in the namespace the request is
+are. What you may do is decided per request, in the namespace the request is
 about, from your memberships as they are now. Machine tokens (CI, shared
 machines) stay bound to one namespace.
 
@@ -18,9 +18,9 @@ Effective role in a namespace N, highest wins:
 | a membership in N | that role |
 | owner of a project above N | owner (was: maintainer) |
 | any membership in a team below N | member: read and propose, never publish |
-| admin flag | admin: through a token, read and publish everywhere; managing namespaces, owners and admins only on the web or the host |
+| admin flag | admin: through a token, read and publish everywhere. Managing namespaces, owners and admins only on the web or the host |
 
-A team maintainer is not a maintainer of its project; an owner adds that role
+A team maintainer is not a maintainer of its project. An owner adds that role
 separately.
 
 ## Server
@@ -42,9 +42,9 @@ separately.
 - `GET /v1/me`: the account's email and every namespace it can read, with
   kind, parent and role, so the CLI can bind them.
 - Managing (namespaces, members, machine tokens) through an account token
-  checks the user's role in the target namespace; admin rights never come
+  checks the user's role in the target namespace. Admin rights never come
   through a token.
-- Device sign-in: the CLI asks for `*`; the approval page shows "all your
+- Device sign-in: the CLI asks for `*`. The approval page shows "all your
   teams" and the account, no team picker.
 
 ## CLI

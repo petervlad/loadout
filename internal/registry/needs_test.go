@@ -69,12 +69,12 @@ func newNeedsFixture(t *testing.T) needsFixture {
 	f := needsFixture{svc: svc, props: registry.NewProposalService(store, store, now, log, registry.WithNamespaces(store))}
 	f.acme = principal(t, svc, "acme", registry.ScopePublish)
 	f.lime = principal(t, svc, "lime", registry.ScopePublish)
-	pd := principal(t, svc, "pd", registry.ScopePublish)
+	ops := principal(t, svc, "ops", registry.ScopePublish)
 	for _, pub := range []struct {
 		pr   registry.Principal
 		team string
 		name string
-	}{{f.lime, "lime", "lime-planner"}, {f.lime, "lime", "lime-dev"}, {f.acme, "acme", "shared-dev"}, {pd, "pd", "pd-dev"}} {
+	}{{f.lime, "lime", "lime-planner"}, {f.lime, "lime", "lime-dev"}, {f.acme, "acme", "shared-dev"}, {ops, "ops", "ops-dev"}} {
 		if _, err := svc.Publish(t.Context(), pub.pr, bundleNamed(t, pub.team, pub.name, "1.0.0")); err != nil {
 			t.Fatal(err)
 		}
@@ -97,7 +97,7 @@ func TestPublishChecksNeeds(t *testing.T) {
 		{"agent from the project", "lime/shared", binding("acme/dev-loop@1", "  plan: lime-planner\n  dev: shared-dev\n"), ""},
 		{"unbound slot", "lime/a", binding("acme/dev-loop@1", "  plan: lime-planner\n  dev: \"\"\n"), "slot dev has no agent"},
 		{"agent in no layer", "lime/b", binding("acme/dev-loop@1", "  plan: lime-planner\n  dev: nobody\n"), "The agent nobody is not published"},
-		{"agent in a sibling team", "lime/c", binding("acme/dev-loop@1", "  plan: lime-planner\n  dev: pd-dev\n"), "The agent pd-dev is not published"},
+		{"agent in a sibling team", "lime/c", binding("acme/dev-loop@1", "  plan: lime-planner\n  dev: ops-dev\n"), "The agent ops-dev is not published"},
 		{"template outside the view", "lime/d", binding("pd/dev-loop@1", "  plan: lime-planner\n  dev: lime-dev\n"), "pd is not one of the layers lime sees (lime, acme)"},
 		{"missing major", "lime/e", binding("acme/dev-loop@2", "  plan: lime-planner\n  dev: lime-dev\n"), "no release with major 2"},
 		{"uses a binding", "lime/f", binding("lime/dev-loop@1", "  plan: lime-planner\n  dev: lime-dev\n"), "is not a template"},

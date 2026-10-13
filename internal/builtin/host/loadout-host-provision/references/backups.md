@@ -9,7 +9,7 @@ The registry is one folder, `/var/lib/loadout` (a SQLite database `registry.db` 
 
 ## Pull the newest archive
 
-The backup folder is private to the `loadout` user, so read it through sudo. From the person's computer (not as a long-lived job; ask before creating a cron entry):
+The backup folder is private to the `loadout` user, so read it through sudo. From the person's computer (not as a long-lived job, ask before creating a cron entry):
 
 ```sh
 mkdir -p ~/loadout-backups
@@ -17,7 +17,7 @@ latest=$(ssh admin@IP sudo ls -1 /var/backups/loadout | grep '^loadout-' | tail 
 ssh admin@IP sudo cat "/var/backups/loadout/$latest" > ~/loadout-backups/"$latest"
 ```
 
-The names sort by time. Check the file is not empty and `tar -tzf ~/loadout-backups/"$latest" | head` lists files. The person decides where else it goes (an encrypted disk, an object store they already use); the archive holds every account's data, so it stays private. If the person wants it automatic, show them the two lines above in a script and the schedule they pick, and let them install it; do not store a login for them.
+The names sort by time. Check the file is not empty and `tar -tzf ~/loadout-backups/"$latest" | head` lists files. The person decides where else it goes (an encrypted disk, an object store they already use). The archive holds every account's data, so it stays private. If the person wants it automatic, show them the two lines above in a script and the schedule they pick, and let them install it. Do not store a login for them.
 
 ## Restore test into a scratch folder
 

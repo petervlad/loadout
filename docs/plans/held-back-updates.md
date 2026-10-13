@@ -1,6 +1,6 @@
 # Updates held back by local edits
 
-Status: built and deployed (2026-10-04). The hook output was verified by hand only in Claude Code; Copilot CLI, VS Code and Windows were not.
+Status: built and deployed (2026-10-04). The hook output was verified by hand only in Claude Code. Copilot CLI, VS Code and Windows were not.
 
 ## Goal
 
@@ -12,7 +12,7 @@ latest version and they do not.
 
 Four changes, the first three shippable before the fourth:
 
-1. **Remember it.** When sync holds an update back (policy `auto` and edited files; and
+1. **Remember it.** When sync holds an update back (policy `auto` and edited files, and
    policy `notify` when an update is out and the files are edited, so `install` would
    be held too), loadout records the version held back, the files in the way and when,
    in a state file next to the lock. The record clears itself when the install catches
@@ -29,7 +29,7 @@ Four changes, the first three shippable before the fourth:
    new version so the merged files count as the person's edits on it.
 
 The one rule holds. Nothing here calls a model or needs a key. The hook runs the
-loadout binary on the person's machine, reads two local files and prints text; what
+loadout binary on the person's machine, reads two local files and prints text. What
 Claude Code or Copilot does with that text is the person's own tool at work. The merge
 is the deterministic `textdiff.Merge3` that `loadout rebase` already uses, run in the
 CLI. The registry learns nothing new and changes in no way.
@@ -39,25 +39,25 @@ CLI. The registry learns nothing new and changes in no way.
 The user settled these (2026-10-04):
 
 1. Remember held-back updates persistently, including `notify` installs whose files
-   are edited; clear the record on update, revert or force.
+   are edited. Clear the record on update, revert or force.
 2. Show them in `status` with no registry call, give correct next steps in `sync`, notify
    once per held-back version, and decide on a non-zero exit for cron (recommended
    below).
-3. Offer a merge that keeps the edits, as later steps; `install --force` stays the way to
+3. Offer a merge that keeps the edits, as later steps. `install --force` stays the way to
    discard them.
 4. Tell the person at session start in Claude Code and Copilot, with an offline
-   command; research what Copilot supports.
+   command. Research what Copilot supports.
 
 The three decisions that were open at the end of this plan, settled as recommended
 (2026-10-04):
 
 5. **Hooks on by default.** `loadout login` sets up the session hooks and says so in one
-   line; `loadout setup --no-hooks` removes them and records that the person declined;
-   existing users get them with `loadout setup --hooks`, and sync suggests that in one
+   line. `loadout setup --no-hooks` removes them and records that the person declined.
+   Existing users get them with `loadout setup --hooks`, and sync suggests that in one
    tip line when something is held back and hooks are neither wanted nor declined.
 6. **Exit code 2.** `sync` exits 2 while an `auto` update is held back, on every run
-   until it is resolved; a failed registry check stays 1 (and wins over 2); `notify`
-   installs with edits exit 0. `loadout policy TEAM/NAME pin` is the quiet way out.
+   until it is resolved. A failed registry check stays 1 (and wins over 2). `notify`
+   Installs with edits exit 0. `loadout policy TEAM/NAME pin` is the quiet way out.
 7. **Pushover once per version**, for held-back updates and for plain "update available"
    alike.
 
@@ -88,7 +88,7 @@ The three decisions that were open at the end of this plan, settled as recommend
   same message daily (DESIGN, Notifications).
 - **Nothing persists.** `lock.Entry` has no field for it (`lock.go:51-76`). `status`
   (`internal/cli/status.go:26-43`, `internal/install/status.go:78-115`) reads only the
-  lock and the disk and shows "modified"; it never knows that a newer version exists.
+  lock and the disk and shows "modified". It never knows that a newer version exists.
 - **The lock is read strictly.** `lock.Store.Load` decodes with `strictyaml`
   (`internal/lock/store.go:56`), so a new field in the lock would make every older
   loadout call the lock damaged. The built-in skills keep their state apart for that
@@ -109,17 +109,17 @@ The three decisions that were open at the end of this plan, settled as recommend
   and `whole` (`merge.go:286`) for files too long to merge by line. Nothing merges
   installed files.
 - **Tests that pin today's behaviour**: e2e `TestTeamSharesAnAgentThroughALANRegistry`
-  expects "blocked by local edits" and exit 0 (`cmd/loadout/registry_test.go:148`);
+  expects "blocked by local edits" and exit 0 (`cmd/loadout/registry_test.go:148`).
   `internal/update/update_test.go:156` expects `OutcomeBlocked` for a conflict.
 
 ### What the tools offer at session start (researched 2026-10-04)
 
 - **Claude Code** reads hooks from `~/.claude/settings.json` (user),
   `.claude/settings.json` and `.claude/settings.local.json` (project). A `SessionStart`
-  hook has matchers `startup`, `resume`, `clear`, `compact` and `fork`; its input JSON
-  has `cwd` and `source`. On exit 0, plain stdout is added to Claude's context; JSON
+  hook has matchers `startup`, `resume`, `clear`, `compact` and `fork`. Its input JSON
+  has `cwd` and `source`. On exit 0, plain stdout is added to Claude's context. JSON
   output may carry `systemMessage` (shown to the person) and
-  `hookSpecificOutput.additionalContext` (for Claude). SessionStart cannot block; a
+  `hookSpecificOutput.additionalContext` (for Claude). SessionStart cannot block. A
   non-zero exit shows a "hook error" notice with stderr. The command timeout defaults to
   600 s. Hooks from several settings files merge, and the same handler in two files
   runs once. There is no hooks folder for user hooks, so a user hook means editing
@@ -128,16 +128,16 @@ The three decisions that were open at the end of this plan, settled as recommend
   `.github/hooks/*.json` (repository): `{"version":1,"hooks":{"sessionStart":[{"type":"command","bash":...,"powershell":...,"timeoutSec":30}]}}`.
   The input has `cwd` and `source` (`startup`, `resume`, `new`). Only JSON output is
   read, and for `sessionStart` only a top-level `additionalContext`, which goes to the
-  model; nothing is shown to the person directly. Timeouts fail open. Source:
+  model. Nothing is shown to the person directly. Timeouts fail open. Source:
   docs.github.com/en/copilot/reference/hooks-reference.
 - **VS Code** (agent hooks, preview, on by default through `chat.useHooks`) reads
   `~/.copilot/hooks/*.json` and `.github/hooks/*.json`, and `~/.claude/settings.json`
   only with `chat.useClaudeHooks`. It ignores matchers, and `SessionStart` fires on the
-  first prompt of a session; output is `hookSpecificOutput.additionalContext`. Source:
+  first prompt of a session. Output is `hookSpecificOutput.additionalContext`. Source:
   code.visualstudio.com/docs/agent-customization/hooks.
 
 So both tools have a user-level session-start hook. Claude Code can show a line to the
-person; Copilot can only hand text to its model, which then mentions it. A file of
+person. Copilot can only hand text to its model, which then mentions it. A file of
 loadout's own in `~/.copilot/hooks/` serves Copilot CLI and VS Code without touching
 anything of the person's.
 
@@ -148,10 +148,10 @@ anything of the person's.
 `~/.loadout/syncstate.yaml` (strict YAML, 0600, written atomically, format version 1),
 read and written by a new package `internal/syncstate`. Reasons:
 
-- Older loadouts read the lock strictly; a new lock field would break them on a
+- Older loadouts read the lock strictly. A new lock field would break them on a
   downgrade or a second, older binary. A separate file is invisible to them, as
   `builtin.yaml` is.
-- The lock records what loadout wrote; this records what the last sync learned from the
+- The lock records what loadout wrote. This records what the last sync learned from the
   registries. Different writers (install versus sync), different lifetimes: the state
   file can be deleted at any time and costs only notices until the next sync.
 - No migration: a missing file is the empty state.
@@ -205,7 +205,7 @@ func (s *Store) Update(ctx context.Context, fn func(*State) error) error
 the way out like `lock.Lock`. The file lock that keeps two loadouts from losing each
 other's changes moves out of `internal/lock` (`flock.go`, `flock_unix.go`,
 `flock_windows.go`) into a small package `internal/flock` with an exported `Acquire`,
-used by both stores. A damaged state file is reported with the remedy "remove it; the
+used by both stores. A damaged state file is reported with the remedy "remove it. The
 next sync writes it again", and `status` and `notices` treat it as empty rather than
 fail.
 
@@ -237,21 +237,21 @@ type Memory interface {
   hold reads the same, and the CLI words it as model settings (`Latest == Version`).
 - `Notification` gains `Held []string` (relative paths). Pushover sends a count, not
   the paths ("You edited 1 file, so loadout kept 1.2.0. Run loadout status."), so no
-  file names leave the machine; the title is "payments/planner 1.3.0 held back".
-- **Once per version.** Before the loop sync loads the state; after it, for each
+  file names leave the machine. The title is "payments/planner 1.3.0 held back".
+- **Once per version.** Before the loop sync loads the state. After it, for each
   result that is behind, it notifies only when the previous record of that install has
   `Told` false, another `Latest`, or another held state (an available update that
   became held is news). It then writes every checked install in one `Memory.Update`:
-  `Put` for behind, `Drop` for up to date, updated and re-rendered; a failed or skipped
+  `Put` for behind, `Drop` for up to date, updated and re-rendered. A failed or skipped
   source keeps its old record, so a registry outage does not erase what is known. A
   notification that fails leaves `Told` false and is tried again next run. A failed
   state write is logged as a warning and never fails the sync.
-- `New(installer, connect, notifier, memory, log)`; `cmd/loadout` passes
+- `New(installer, connect, notifier, memory, log)`. `cmd/loadout` passes
   `syncstate.NewStore(filepath.Join(cfg.StateDir, "syncstate.yaml"), cfg.Home)`.
 - **Built-in skills.** `builtin.Options` gains an optional `Memory` (the same small
-  interface, owned by `builtin`); `Ensure` records an `ActionKept` skill as held, with
+  interface, owned by `builtin`). `Ensure` records an `ActionKept` skill as held, with
   the CLI version as `Latest`, and drops the record when the skill is in step. Its next
-  step is `loadout setup --skills --force`; there is no merge for them (the old text is
+  step is `loadout setup --skills --force`. There is no merge for them (the old text is
   not in the new binary).
 
 ### notice: what to tell, checked against the lock and the disk
@@ -304,11 +304,11 @@ type Filter struct {
 }
 ```
 
-A record shows only while it is still true: the lock has the install; its version is
-below `Latest` (or, for models, `Entry.Models` differs from the recorded digest); and
+A record shows only while it is still true: the lock has the install. Its version is
+below `Latest` (or, for models, `Entry.Models` differs from the recorded digest), and
 for `Held`, `Edited(e, paths)` still finds at least one of the recorded paths edited.
 Re-checking only the recorded paths keeps a knowledge base of thousands of files cheap.
-Reverted edits turn a `Held` record into `Available`; an `auto` install then updates at
+Reverted edits turn a `Held` record into `Available`. An `auto` install then updates at
 the next sync.
 
 ### target: one optional interface for session hooks
@@ -345,7 +345,7 @@ type SessionMessage struct{ Person, Agent string }
   `{"matcher":"startup","hooks":[{"type":"command","command":"loadout notices --hook claude 2>/dev/null || true","timeout":5}]}`.
   It recognises its own handler by a command matching `loadout notices --hook claude`
   (with or without a path to the binary) and replaces only that one. The file is read
-  with `encoding/json/jsontext` into an ordered list of members; every value loadout does
+  with `encoding/json/jsontext` into an ordered list of members. Every value loadout does
   not touch is copied as its raw `jsontext.Value`, so keys keep their order and numbers
   and strings their exact text, and the result is written with two-space indents, as
   Claude Code writes it. Invalid JSON, or `hooks` or `SessionStart` of the wrong type,
@@ -356,7 +356,7 @@ type SessionMessage struct{ Person, Agent string }
 - **Copilot** (`copilot`): `HookFile` is `.copilot/hooks/loadout.json`, a file loadout
   owns whole: `{"version":1,"hooks":{"sessionStart":[{"type":"command","bash":...,"powershell":...,"timeoutSec":5}]}}`.
   `WithoutHook` returns nil. `SessionOutput` prints `{"additionalContext": ...}` and the
-  same under `hookSpecificOutput` for VS Code; the text asks the agent to mention it to
+  same under `hookSpecificOutput` for VS Code. The text asks the agent to mention it to
   the person in one sentence, since Copilot shows nothing directly.
 
 The texts, built by `notice` from the held notices, at most three names and "and N
@@ -366,7 +366,7 @@ more":
   payments/runbooks 2.0.0). Run loadout status."
 - Agent: "loadout could not update payments/planner to 1.3.0 and payments/runbooks to
   2.0.0 because the user edited the installed files. Mention it once, in one sentence,
-  and suggest loadout status. The loadout-setup skill explains the choices; never run
+  and suggest loadout status. The loadout-setup skill explains the choices. Never run
   loadout install --force without asking." (Copilot gets "Mention it to the user in
   your first reply" since only the model sees it.)
 
@@ -402,21 +402,21 @@ func (s *Service) Wanted() (bool, error)
 - **Safe writes.** Through `os.Root` on the home folder, with `atomicfile.WriteIn`.
   Refused, with the snippet printed to paste by hand, when `settings.json` or
   `~/.claude` (or `~/.copilot/hooks`) is a symbolic link (dotfiles repositories do
-  this; renaming over the link would replace it), when the JSON does not parse, or when
+  this. Renaming over the link would replace it), when the JSON does not parse, or when
   the file changed between read and write (read again just before the rename, retried
   once). Before loadout's first change to `settings.json` it writes
   `settings.json.loadout.bak` if no such file exists. Nothing is written when
   `WithHook` returns the same bytes, so running setup again is a no-op.
 - **Folders.** A tool's hook is set up only when its marker folder exists (as for the
-  built-in skills); `~/.copilot/hooks/` is created inside an existing `~/.copilot`.
+  built-in skills). `~/.copilot/hooks/` is created inside an existing `~/.copilot`.
 - **The command.** Bare `loadout` when `exec.LookPath("loadout")` is the running
-  binary; otherwise the absolute path of `os.Executable()`, quoted, so a binary outside
+  binary. Otherwise the absolute path of `os.Executable()`, quoted, so a binary outside
   the PATH a tool starts with still works. `LookPath` and the executable path are
   injected (`externals` in `cmd/loadout`) so e2e tests stay hermetic.
 - **Wish.** `~/.loadout/hooks.yaml` (strict YAML, 0600: `wanted`, `declined`), apart
   from `builtin.yaml` so older loadouts still read that file strictly. `login` installs
-  the hooks when not declined (decision 1) and prints one line; `setup --hooks` installs
-  and clears `declined`; `setup --no-hooks` removes them and records `declined`. `sync`
+  the hooks when not declined (decision 1) and prints one line. `setup --hooks` installs
+  and clears `declined`. `setup --no-hooks` removes them and records `declined`. `sync`
   never edits a settings file: it runs from cron, unattended. When something is held
   back and hooks are neither wanted nor declined, sync prints one tip line.
 
@@ -426,7 +426,7 @@ func (s *Service) Wanted() (bool, error)
 
 - **`sync`** (`sync.go`). RESULT reads "held back by your edits" (auto),
   "update available, you edited 2 files" (notify), "model settings held back by your
-  edits". The raw `ConflictError` is no longer printed for these; instead, per install:
+  edits". The raw `ConflictError` is no longer printed for these. Instead, per install:
 
   ```text
   payments/planner 1.3.0 is held back. Edited since loadout wrote it:
@@ -443,7 +443,7 @@ func (s *Service) Wanted() (bool, error)
   **Exit code** (decision 2): 2 when at least one `auto` install is held back and
   nothing failed, 1 when a check failed, else 0. `runWith` learns
   `interface{ ExitCode() int }` through `errors.As`, the one place that maps errors to
-  codes; the error text is "1 update is held back by your edits; see above".
+  codes. The error text is "1 update is held back by your edits. See above".
 - **`status`** (`status.go`). The table stays as it is. Below it, from
   `notice.List(all kinds)`, offline:
 
@@ -463,7 +463,7 @@ func (s *Service) Wanted() (bool, error)
   `SessionOutput`. With `--hook` every error prints nothing and exits 0 (logged at
   debug), and a 1 second deadline bounds the work. It prints nothing when there is
   nothing to say.
-- **`setup --hooks`, `setup --no-hooks`** beside `--skills` (`setup.go`); `login` calls
+- **`setup --hooks`, `setup --no-hooks`** beside `--skills` (`setup.go`). `login` calls
   `Hooks.Setup` after the skills unless declined.
 - **`install --merge`** (step 7), see below.
 
@@ -504,15 +504,15 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
   yours and the release's, with no guessed base. Only agent files carry models, so
   skills always find their base.
 - **Cases per path** (a table in `install`, its own because installed files differ from
-  folders): not edited takes the release (what `Install` does); edited and unchanged in
-  the release keeps yours; both changed is `textdiff.Merge3` with labels
-  `yours (edited 1.2.0)`, `installed 1.2.0`, `release 1.3.0`; over 5,000 lines is
-  `textdiff.Whole` (moved from `rebase.whole` and exported, rebase calls it); a file you
-  deleted comes back from the release (an install restores missing files today); a file
+  folders): not edited takes the release (what `Install` does). Edited and unchanged in
+  the release keeps yours. Both changed is `textdiff.Merge3` with labels
+  `yours (edited 1.2.0)`, `installed 1.2.0`, `release 1.3.0`. Over 5,000 lines is
+  `textdiff.Whole` (moved from `rebase.whole` and exported, rebase calls it). A file you
+  deleted comes back from the release (an install restores missing files today). A file
   the release dropped that you edited is kept and unmanaged, as `removeFile` does.
-- **Refusals.** `findConflicts` runs first; any conflict but `ReasonModified` (a file
+- **Refusals.** `findConflicts` runs first. Any conflict but `ReasonModified` (a file
   not written by loadout, a symlink, another package, a linked folder) refuses the merge
-  with the install's error. `--merge` with `--force` is refused; on a folder install
+  with the install's error. `--merge` with `--force` is refused. On a folder install
   (no registry base) and on `loadout/...` built-in skills it says what to do instead.
   Shadowed files are left alone.
 - **Write and record.** Under `locks.Update`, every file is written through the install
@@ -520,7 +520,7 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
   of next's rendered files. The merged files therefore show "modified" against 1.3.0,
   the next sync finds the install up to date and records nothing, and a later 1.4.0 is
   held back again and merged from 1.3.0. If a write fails half way the lock still names
-  1.2.0; running the merge again is safe, because a change already applied is the same
+  1.2.0. Running the merge again is safe, because a change already applied is the same
   on both sides and `Merge3` applies it once.
 - **Conflicts left.** The paths with markers and the labels go into the state as a
   `Merged` record (`syncstate`), shown by `status` and `notices` as `Unresolved`
@@ -539,11 +539,11 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
 - New files in the state folder: `syncstate.yaml` (+ `syncstate.yaml.lock`) and
   `hooks.yaml`. The lock, `builtin.yaml` and `rebase.yaml` do not change.
 - Files outside loadout's folder, only with the person's consent (decision 1):
-  `~/.claude/settings.json` (one hook entry added; backup once) and
+  `~/.claude/settings.json` (one hook entry added, backup once) and
   `~/.copilot/hooks/loadout.json`.
-- `update.Result.Held`, `update.Notification.Held`, `update.New` takes a `Memory`;
-  `install.Installer.Edited`, `Installer.Merge`; `target.SessionHook`,
-  `HookCommand`, `SessionMessage`; `textdiff.Whole`; `builtin.Options.Memory`;
+- `update.Result.Held`, `update.Notification.Held`, `update.New` takes a `Memory`.
+  `install.Installer.Edited`, `Installer.Merge`. `target.SessionHook`,
+  `HookCommand`, `SessionMessage`. `textdiff.Whole`. `builtin.Options.Memory`.
   `cli.Deps.Notices` and `Deps.Hooks`.
 - Outcome text "blocked by local edits" becomes "held back by your edits". Sync's exit
   code becomes 2 for held-back `auto` updates.
@@ -551,7 +551,7 @@ func (in *Installer) Merge(ctx context.Context, base, next *pack.Pack, opts Opti
 
 ## Migration
 
-None in the database. Old lock files are read as they are; a missing `syncstate.yaml`
+None in the database. Old lock files are read as they are. A missing `syncstate.yaml`
 is the empty state, so after the upgrade nothing is shown until the next sync, which
 then records everything behind. An older loadout ignores the new files. After a
 downgrade the hooks still call `loadout notices`, which the older binary does not have:
@@ -562,29 +562,29 @@ told), then once per version.
 ## Order of work
 
 Each step passes `make check` and can ship on its own. Steps 1 to 5 are the notice
-parts; the merge (6, 7) comes after.
+parts. The merge (6, 7) comes after.
 
-1. **State store.** Move the file lock to `internal/flock` (no behaviour change);
-   `internal/syncstate` with `Store`, `State`, `Behind`, `Blocker`, `Key`; tests. Nothing
+1. **State store.** Move the file lock to `internal/flock` (no behaviour change).
+   `internal/syncstate` with `Store`, `State`, `Behind`, `Blocker`, `Key`. Tests. Nothing
    uses it yet.
-2. **Sync remembers and says the right thing.** `Installer.Edited`; `update.Memory`,
+2. **Sync remembers and says the right thing.** `Installer.Edited`. `update.Memory`,
    `Result.Held`, the notify-edited check, the outcome texts, notify-once with `Told`,
-   the state written after the loop; `Notification.Held` and the Pushover texts;
-   built-in skills recorded through `builtin.Options.Memory`; wiring in `cmd/loadout`;
-   `sync` prints the held files and next steps (no `--merge` yet) and exits 2;
+   the state written after the loop. `Notification.Held` and the Pushover texts.
+   Built-in skills recorded through `builtin.Options.Memory`. Wiring in `cmd/loadout`.
+   `sync` prints the held files and next steps (no `--merge` yet) and exits 2.
    `runWith` honours `ExitCode()`. Update `registry_test.go:148` and
    `update_test.go:156`. GUIDE (Updates and policies, Troubleshooting "held back by your
    edits", cron note on exit 2), DESIGN (Notifications, Rules that protect users),
    `loadout-setup` skill and `references/troubleshooting.md` (the row at line 18), and
    `docs/CHANGES.md`.
-3. **Status and notices.** `internal/notice` with `List` and `Sentence`;
-   `status` footer; `loadout notices` with plain output; `--hook` with
+3. **Status and notices.** `internal/notice` with `List` and `Sentence`.
+   `status` footer. `loadout notices` with plain output. `--hook` with
    `SessionOutput` on both adapters (`target.SessionHook` lands here with its output
-   half; `WithHook` and `WithoutHook` follow in step 4). Docs: GUIDE (See what you
+   half. `WithHook` and `WithoutHook` follow in step 4). Docs: GUIDE (See what you
    have, command reference), DESIGN packages table.
-4. **Hooks.** `WithHook`, `WithoutHook`, `HookFile` on both adapters; `internal/hook`
-   with the wish file; `setup --hooks`, `--no-hooks`; `login` integration (decision 1);
-   the sync tip. Before coding, check by hand with a current Claude Code, Copilot CLI and
+4. **Hooks.** `WithHook`, `WithoutHook`, `HookFile` on both adapters. `internal/hook`
+   With the wish file. `setup --hooks`, `--no-hooks`. `login` integration (decision 1).
+   The sync tip. Before coding, check by hand with a current Claude Code, Copilot CLI and
    VS Code that each shows the output as researched (record the versions in this plan),
    including VS Code reading the Copilot-format file and both output shapes, and how
    Claude Code runs hook commands on Windows. Docs: GUIDE (a "Messages in Claude Code
@@ -594,12 +594,12 @@ parts; the merge (6, 7) comes after.
    ./cmd/loadout`, release. No database migration, so no backup is needed for the
    registry, which does not change.
 6. **Merge in the installer.** `textdiff.Whole` (moved from `rebase.whole`, rebase
-   unchanged in behaviour); `Installer.Merge` with the base check, the case table and
-   the lock entry; the `Merged` record in `syncstate` and `Unresolved` in `notice`.
-   Tests only; no command yet.
-7. **`install --merge`.** The flag and its refusals; sync's next steps, Pushover and the
-   hook text name it first; `status` and `notices` show unresolved conflicts. Docs:
-   GUIDE (Updates and policies: keep your edits; Troubleshooting for markers), DESIGN
+   unchanged in behaviour). `Installer.Merge` with the base check, the case table and
+   the lock entry. The `Merged` record in `syncstate` and `Unresolved` in `notice`.
+   Tests only. No command yet.
+7. **`install --merge`.** The flag and its refusals. Sync's next steps, Pushover and the
+   hook text name it first. `status` and `notices` show unresolved conflicts. Docs:
+   GUIDE (Updates and policies: keep your edits, Troubleshooting for markers), DESIGN
    (Rules that protect users), the `loadout-setup` skill (offer `--merge` before
    `--force`, help resolve markers), CHANGES.
 
@@ -607,57 +607,57 @@ parts; the merge (6, 7) comes after.
 
 Table-driven, with the fakes the packages already use.
 
-- **syncstate**: load and save round trip; missing and empty file; unknown field and
-  wrong version refused with the remedy; user scope saved without its root and read under
-  the current home; `Put` replaces by key; two concurrent `Update`s both land.
+- **syncstate**: load and save round trip. Missing and empty file. Unknown field and
+  wrong version refused with the remedy. User scope saved without its root and read under
+  the current home. `Put` replaces by key. Two concurrent `Update`s both land.
 - **install.Edited**: intact, edited, missing (not edited), symlink (edited), `only`
   restricting the check, shadowed files ignored.
 - **update** (extend `update_test.go`): notify with edits gives `OutcomeAvailable` and
-  `Held`; auto with a conflict gives `OutcomeBlocked` and `Held` with reasons; a
-  model-only hold; two syncs with the same latest notify once, a new latest notifies
-  again, available turning held notifies again, a failed notification is retried;
-  up-to-date and updated drop the record; a failed source keeps it; a failed state write
+  `Held`. Auto with a conflict gives `OutcomeBlocked` and `Held` with reasons. A
+  model-only hold. Two syncs with the same latest notify once, a new latest notifies
+  again, available turning held notifies again, a failed notification is retried.
+  Up-to-date and updated drop the record. A failed source keeps it. A failed state write
   does not fail the sync.
 - **notice**: a table of lock, state and disk: caught up, edits reverted (held becomes
   available), entry uninstalled, model digest applied, a forced install, project scope
-  matched and not matched by `Dir`, a damaged state file read as empty; `Sentence` for
-  each kind; a benchmark with 50 installs and a 5,000-file knowledge base, which must
+  matched and not matched by `Dir`, a damaged state file read as empty. `Sentence` for
+  each kind. A benchmark with 50 installs and a 5,000-file knowledge base, which must
   stay under 20 ms.
 - **adapters** (`claudecode`, `copilot`): `WithHook` and `WithoutHook` tables and golden
   files: nil file, `{}`, a file with the person's own SessionStart and other hooks (kept
   in order), other top-level keys kept in order with exact numbers, already installed
   (same bytes), an older loadout command replaced, invalid JSON and wrong types refused,
-  removal leaving the person's hooks; a fuzz test that `WithoutHook(WithHook(x))` keeps
-  every member of any valid `x`; `SessionOutput` golden output for both tools.
+  removal leaving the person's hooks. A fuzz test that `WithoutHook(WithHook(x))` keeps
+  every member of any valid `x`. `SessionOutput` golden output for both tools.
 - **hook**: symlinked `settings.json` and symlinked `~/.claude` refused with the
-  snippet; no `~/.copilot` creates nothing; the backup written once; a file changed
-  between read and write; the wish file; the command chosen from the injected
+  snippet. No `~/.copilot` creates nothing. The backup written once. A file changed
+  between read and write. The wish file. The command chosen from the injected
   `LookPath`.
-- **Merge** (step 6, `install`): untouched file takes the release; edited and unchanged
-  in the release kept; both changed merged clean; both changed with markers and labels;
-  the base check falling back to the empty table, then to a whole-file conflict; over
-  5,000 lines; you deleted, release deleted; an unmanaged file in the way refuses;
-  shadowed files untouched; a project skill shared by both tools merged once; a Copilot
-  agent at `.github/agents`; the lock entry after merge (next version, next hashes) makes
-  `Status` say modified and `Rerenders` false; a second merge after a simulated partial
+- **Merge** (step 6, `install`): untouched file takes the release. Edited and unchanged
+  in the release kept. Both changed merged clean. Both changed with markers and labels.
+  The base check falling back to the empty table, then to a whole-file conflict. Over
+  5,000 lines. You deleted, release deleted. An unmanaged file in the way refuses.
+  Shadowed files untouched. A project skill shared by both tools merged once. A Copilot
+  agent at `.github/agents`. The lock entry after merge (next version, next hashes) makes
+  `Status` say modified and `Rerenders` false. A second merge after a simulated partial
   write gives the same result.
-- **cli**: status footer lines; sync next-step lines for user and project scope and for
-  each conflict reason; the exit code mapping; `notices --hook` silent for `resume` and
+- **cli**: status footer lines. Sync next-step lines for user and project scope and for
+  each conflict reason. The exit code mapping. `notices --hook` silent for `resume` and
   on any error. The built-in skills honesty test (`internal/cli/builtin_skills_test.go`)
   checks every new command and flag the skills name.
 - **e2e** (`cmd/loadout`, `person` and `newSession`):
   - Update `TestTeamSharesAnAgentThroughALANRegistry`: Bob's edited sync exits 2 and says
-    "held back"; the file is untouched.
-  - `TestHeldBackUpdateIsRemembered`: Alice publishes 0.2.0; Bob (auto) edited; `sync`
-    exits 2 with the next steps; `status` says "0.2.0 held back: you edited planner.md";
-    the server is stopped and `notices --hook claude` with `{"cwd":...,"source":"startup"}`
-    still prints the JSON line; Bob restores the file and `notices` prints nothing;
+    "held back". The file is untouched.
+  - `TestHeldBackUpdateIsRemembered`: Alice publishes 0.2.0. Bob (auto) edited. `sync`
+    Exits 2 with the next steps. `status` says "0.2.0 held back: you edited planner.md".
+    The server is stopped and `notices --hook claude` with `{"cwd":...,"source":"startup"}`
+    still prints the JSON line. Bob restores the file and `notices` prints nothing.
     Bob edits again, `install lime/planner --force`, and `status` shows nothing behind.
   - `TestNotifyWarnsAboutEdits`: notify install, edited, `sync` says "update available,
     you edited 1 file" and exits 0.
-  - `TestSessionHooks`: a `settings.json` with the person's hooks; `setup --hooks` keeps
-    them and adds one; again changes nothing; `setup --no-hooks` restores the original
-    members; Copilot's file appears only with `~/.copilot`.
+  - `TestSessionHooks`: a `settings.json` with the person's hooks. `setup --hooks` keeps
+    them and adds one. Again changes nothing. `setup --no-hooks` restores the original
+    members. Copilot's file appears only with `~/.copilot`.
   - `TestInstallMerge` (step 7): Bob edits a line, Alice changes another, `install
     --merge` keeps both; a second case with the same line gives markers, `status` says
     unresolved, removing the markers clears it, the next `sync` is up to date.
@@ -670,37 +670,37 @@ No page changes, so no UI review.
   refusing anything that does not parse, never writing through a link, copying untouched
   values raw in their order, a one-time backup, the read-again check before the rename,
   golden and fuzz tests, and consent (decision 1). Claude Code may write the file itself
-  at the same moment; the window is small and the check catches most of it.
+  at the same moment. The window is small and the check catches most of it.
 - **Noise.** One line per new session while something is held could annoy. It names a
   real problem, says one command, and stops once the person merges, forces, pins, or
   runs `setup --no-hooks`. Claude's matcher is `startup` only, and `notices` ignores
   other sources for the tools that ignore matchers. VS Code with `chat.useClaudeHooks`
   reads both files and may say it twice.
 - **Copilot shows nothing directly.** Its model gets the text and is asked to mention
-  it; a model may not. Status, sync and Pushover remain the reliable channels.
+  it. A model may not. Status, sync and Pushover remain the reliable channels.
 - **Stale state.** A sync from weeks ago says nothing about today's releases. `status`
-  prints when the state was checked; every line is re-checked against the lock and the
+  prints when the state was checked. Every line is re-checked against the lock and the
   disk, so the state never claims something already fixed.
 - **Exit code 2 every run.** A cron mailing on failure mails daily while an update is
-  held. That is the point for `auto`; `policy pin` is the quiet "keep mine". Scripts
-  that treated any non-zero as a registry failure need to learn 2; the GUIDE says so.
+  held. That is the point for `auto`. `policy pin` is the quiet "keep mine". Scripts
+  that treated any non-zero as a registry failure need to learn 2. The GUIDE says so.
 - **Conflict markers in a live file.** After `--merge` with conflicts, Claude Code and
   Copilot read the markers until the person resolves them. The CLI, status and the hook
-  say so; a person who wants to look first runs `loadout diff` and can still use
+  say so. A person who wants to look first runs `loadout diff` and can still use
   `--force` or reinstall the old version.
-- **Wrong base.** Guarded by the hash check; a mismatch becomes a whole-file conflict,
+- **Wrong base.** Guarded by the hash check. A mismatch becomes a whole-file conflict,
   never a silent wrong merge.
 - **Memory.** A merge holds the base, the next release and the disk files: for a 64 MB
-  knowledge base about 200 MB at worst. Only edited files are merged line by line;
-  acceptable for a one-off command.
+  knowledge base about 200 MB at worst. Only edited files are merged line by line.
+  Acceptable for a one-off command.
 - **Privacy.** Pushover gets a count, not file names. The state file lists paths and is
   0600 like the lock.
-- **PATH in hooks.** A tool started from the Dock may not see `~/go/bin`; the absolute
+- **PATH in hooks.** A tool started from the Dock may not see `~/go/bin`. The absolute
   path fallback handles it, and the guard keeps a moved binary silent rather than noisy.
 
 ## Decisions for the user
 
-Settled as recommended; see Decided, items 5 to 7.
+Settled as recommended. See Decided, items 5 to 7.
 
 1. **Hooks on by default.** Recommended: `login` sets up the hooks (and says so in one
    line, with `loadout setup --no-hooks` to remove them), and existing users get them
@@ -709,7 +709,7 @@ Settled as recommended; see Decided, items 5 to 7.
    with `setup --hooks`.
 2. **Exit code for a held-back `auto` update.** Recommended: exit 2, every run until it
    is resolved (failures stay 1), so cron and scripts notice and can tell it from a
-   registry outage; `notify` installs with edits stay 0.
+   registry outage. `notify` installs with edits stay 0.
 3. **Pushover once per version for every update, not only held ones.** Recommended: yes.
    The same record makes it free, and a daily repeat of "1.3.0 available" from cron is
    the same noise this plan removes for held updates. The alternative keeps today's
@@ -721,7 +721,7 @@ has `--force` beside it.
 
 ## Not in this step
 
-- Merging during `sync`. Sync runs unattended; writing conflict markers into live agent
+- Merging during `sync`. Sync runs unattended. Writing conflict markers into live agent
   files from cron is not something it should do.
 - Merging built-in skills: the old text is not in the new binary. `setup --skills --force`
   stays their way out.
@@ -737,7 +737,7 @@ has `--force` beside it.
 ### Step 1
 
 - `syncstate.Store.Update` starts from the empty state when the file is damaged (or has
-  another format version) instead of failing, so the next sync repairs it; `Load` still
+  another format version) instead of failing, so the next sync repairs it. `Load` still
   reports the damage with the remedy. The state is only hints, so losing it costs at most
   one repeated notification.
 
@@ -746,8 +746,8 @@ has `--force` beside it.
 - `syncstate.Blocker` gained `Owner` (the package a file belongs to, for "another package
   of the same layer"), so the next steps can name it.
 - The conversion from `*install.ConflictError` to blockers lives in `syncstate.Blockers`,
-  shared by `update` and `builtin`; `syncstate` therefore imports `install`.
-- `builtin` owns a one-method `Memory` (only `Update`); it reads nothing back.
+  shared by `update` and `builtin`. `syncstate` therefore imports `install`.
+- `builtin` owns a one-method `Memory` (only `Update`). It reads nothing back.
 - A `notify` install whose model settings changed is checked for edits too ("model settings
   changed, you edited 1 file"), as an install would stop there as well.
 - `pin` and fully shadowed installs drop their record: pin is the quiet way out.
@@ -757,18 +757,18 @@ has `--force` beside it.
 
 ### Step 3
 
-- `notice.Kind` has `Available` and `Held` only; `Unresolved` comes with the merge (step 6).
+- `notice.Kind` has `Available` and `Held` only. `Unresolved` comes with the merge (step 6).
   `Notice` gained `Edits` (the files are the person's edits, not files loadout did not
   write), `Builtin` (the way out is `setup --skills`), `Command` and `Name`.
 - Files in the way for another reason than an edit (loadout did not write them) cannot be
-  checked against the lock; they keep a record held until the next sync.
+  checked against the lock. They keep a record held until the next sync.
 - One agent text for both tools: "Mention it to the user once, in one sentence, in your
   first reply, and suggest loadout status ...". Claude Code also shows the person's line.
 - `loadout notices` without `--hook` lists every held install, not only the current folder:
   it is for a person at a terminal.
 - Benchmark (`internal/notice/bench_test.go`, M1 Pro): 50 installs, one a 5,000-file
   knowledge base, all held: about 33 ms per `List`, over the 20 ms budget. Almost all of it
-  is yaml.v3 decoding the lock's 5,000 file records, which every loadout command pays; the
+  is yaml.v3 decoding the lock's 5,000 file records, which every loadout command pays. The
   notice work itself is a few milliseconds. The hook has a 1 second deadline and a 5 second
   tool timeout, so this is left as it is. When nothing is held the hook does not read the
   lock at all.
@@ -779,7 +779,7 @@ Checked on 2026-10-04 against the current docs (code.claude.com/docs/en/hooks,
 docs.github.com/en/copilot/reference/hooks-reference,
 code.visualstudio.com/docs/agent-customization/hooks and
 code.visualstudio.com/docs/agents/reference/hooks-reference) and by hand with a temporary
-HOME only; this Mac's own `~/.claude` and `~/.copilot` were not touched.
+HOME only. This Mac's own `~/.claude` and `~/.copilot` were not touched.
 
 - **Claude Code 2.1.287, verified by hand.** With `HOME` and `CLAUDE_CONFIG_DIR` in a
   temporary folder and no key in the environment, `loadout setup --hooks` wrote the hook,
@@ -796,12 +796,12 @@ HOME only; this Mac's own `~/.claude` and `~/.copilot` were not touched.
   confirm `~/.copilot/hooks/*.json`, the `bash`/`powershell`/`timeoutSec` fields, the input
   (`cwd`, `source` of `startup`, `resume` or `new`) and that only `additionalContext` is read
   for `sessionStart`. They also document `{"type":"progress","message":...}` lines that
-  Copilot CLI shows to the person; not used, because VS Code reads the same file and parses
+  Copilot CLI shows to the person, not used, because VS Code reads the same file and parses
   stdout as one JSON object.
 - **VS Code 1.138.0, not run** (no headless way to start an agent session). The docs confirm
   it reads `~/.copilot/hooks/*.json` in Copilot's format (mapping `bash` and `powershell` to
   its own fields), sends its own input (`source` is always `"new"`), ignores matchers, and
-  reads `hookSpecificOutput.additionalContext`; new since the research: a top-level
+  reads `hookSpecificOutput.additionalContext`. New since the research: a top-level
   `systemMessage` is shown to the person for every event. Copilot's output now carries the
   person's line as `systemMessage` too (Copilot CLI ignores it).
 - The hook commands were run through `sh -c` with each tool's documented input: about 20 ms,
@@ -819,9 +819,9 @@ HOME only; this Mac's own `~/.claude` and `~/.copilot` were not touched.
 
 ### Step 5
 
-- Not released, as asked: no deploy, push, merge or `go install`; `docs/CHANGES.md` is left
+- Not released, as asked: no deploy, push, merge or `go install`. `docs/CHANGES.md` is left
   for the release. The guide was rebuilt with `docs/guide/build.sh` in each step that
-  changed it; README now names `notices`, `setup --hooks`, the status footer and sync's exit
+  changed it. README now names `notices`, `setup --hooks`, the status footer and sync's exit
   code 2. The registry does not change, so a release needs no database backup.
 
 ### Step 6
@@ -835,7 +835,7 @@ HOME only; this Mac's own `~/.claude` and `~/.copilot` were not touched.
   files the person edited in `MergeResult.Kept`. A file you deleted counts as not edited and
   comes back from the release.
 - The `Merged` record is written by `notice.Service.RecordMerge` (so `notice.Memory` gained
-  `Update`); `Installer.Marked` checks markers, so notice still reads no file itself. A merge
+  `Update`). `Installer.Marked` checks markers, so notice still reads no file itself. A merge
   without conflicts drops an earlier record. `merged:` is a new list in `syncstate.yaml`
   under the same format version: a loadout from steps 2 to 5 would read such a file as
   damaged, treat it as empty and start it afresh on its next sync, which costs one repeated
@@ -852,10 +852,10 @@ HOME only; this Mac's own `~/.claude` and `~/.copilot` were not touched.
 - `--merge` also refuses: no install in the scope, an install from a folder (the lock has
   no remote), a release equal to the installed version, and `--all`. New model settings
   over edits (a model-only hold) have no release to merge, so sync offers `--force` and
-  `pin` for them, not `--merge`; nor is `--merge` offered when a file in the way is not an
+  `pin` for them, not `--merge`, nor is `--merge` offered when a file in the way is not an
   edit, since the merge would refuse it.
 - sync's next steps: `--merge`, `--force`, `pin`, then `diff` last (the plan dropped
-  `diff`; it stays as the way to look first).
+  `diff`. It stays as the way to look first).
 - The merged files are recorded with the time of the merge (`syncstate.Merged.At`), which
   `status` shows in its "As of" line when only a merge is left to resolve.
 

@@ -7,7 +7,7 @@ Status: built and deployed (2026-09-29).
 A package can hold an agent (today), a skill, or a knowledge base (KB). All three
 publish, install, sync, layer (project L0 over team L1), roll back, propose and
 review the same way. Nothing about the registry, tokens, roles or the web pages
-changes shape; they only learn to show the kind.
+changes shape. They only learn to show the kind.
 
 ## What each kind is
 
@@ -48,7 +48,7 @@ Sources: code.claude.com/docs/en/skills, docs.github.com/en/copilot/concepts/age
 
 - `pack.Kind` gains `skill` and `kb`. Each kind is a `kindSpec` in a table
   (`kinds.go`): its main file, how it validates the files, how it scaffolds.
-  Adding a kind is one entry plus one content type; nothing switches on kind
+  Adding a kind is one entry plus one content type. Nothing switches on kind
   strings elsewhere.
 - `Pack.Content()` returns a `Content` interface (`Kind()`, `Name()`,
   `Description()`), implemented by `agent.Definition`, `*skill.Skill` and
@@ -89,14 +89,14 @@ func Render(a Adapter, p *pack.Pack, scope Scope, stamp Stamp, opts RenderOption
   closer layer shadows a farther skill as a whole folder, never file by file.
 - `RenderOptions.Name` renames the unit (review renders both versions side by
   side under different names).
-- Skill and KB rendering is shared (`target/skills.go`); adapters only say where
+- Skill and KB rendering is shared (`target/skills.go`). Adapters only say where
   skills live. A new tool that reads Agent Skills gets skills for free.
 
 ### install
 
-- `Renderer` becomes `target.Adapter`; `Install` calls `target.Render` per tool.
+- `Renderer` becomes `target.Adapter`. `Install` calls `target.Render` per tool.
 - Identical paths from two tools are written once.
-- Shadowing is decided per unit; stale files are removed and the skill folder is
+- Shadowing is decided per unit. Stale files are removed and the skill folder is
   pruned when it ends up empty.
 
 ### bundle, registry, server
@@ -106,7 +106,7 @@ func Render(a Adapter, p *pack.Pack, scope Scope, stamp Stamp, opts RenderOption
   request limit goes to 6 MB.
 - `registry.Release` gains `Kind`, stored in a new column (migration 0009,
   default `agent`), set from the bundle on publish. The API and `loadout list`
-  show it; the web pages show a kind badge and the right main file.
+  show it. The web pages show a kind badge and the right main file.
 
 ### CLI
 
@@ -114,7 +114,7 @@ func Render(a Adapter, p *pack.Pack, scope Scope, stamp Stamp, opts RenderOption
 - `list`, `status`, `diff`, `history` and `review show` handle every file, main
   file first.
 - `review compare` renders any kind into the throwaway folder. Agents run with
-  `--agent`; skills and KBs run the plain prompt, so the comparison shows whether
+  `--agent`. Skills and KBs run the plain prompt, so the comparison shows whether
   the tool picks the skill up and what it does with it.
 
 ### Web
@@ -125,9 +125,9 @@ func Render(a Adapter, p *pack.Pack, scope Scope, stamp Stamp, opts RenderOption
 ## Order of work
 
 1. pack: kinds table, nested paths, Content, skill and kb packages, tests.
-2. target: Adapter, Render, Unit, skills renderer; adapters; tests.
-3. install: units, dedupe, per-unit shadowing, pruning; tests.
-4. bundle limits and paths; registry Kind + migration; API; server limits.
+2. target: Adapter, Render, Unit, skills renderer. Adapters. Tests.
+3. install: units, dedupe, per-unit shadowing, pruning. Tests.
+4. bundle limits and paths. Registry Kind + migration. API. Server limits.
 5. CLI: new, list, diff/history/review show, compare for all kinds.
 6. Web: kind badge, package page, proposal diff.
 7. Docs (DESIGN.md, README), Caddy limit, deploy.

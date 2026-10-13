@@ -501,7 +501,7 @@ type MCPConfig interface {
 
 `Ensure(ctx, spaces)` is called by `install` (every form) and `sync` after their main work, with the result of `GET /v1/memory/spaces` for each remote. For each namespace with memory on it makes sure a memory token is stored (creating one with the login token if missing or within 14 days of expiry), then adds the entry. For each `loadout-memory-*` entry whose namespace is no longer listed it removes the entry. A 404 from an older registry means no spaces. A network failure changes nothing (so a laptop offline never loses its config). Failures warn and never fail the install or sync.
 
-The setup page `/t/{ns}/memory/setup` covers every other client: the endpoint URL, a `curl` that tests it, the bridge command for clients that launch local commands, an HTTP config example with an `Authorization` header, and the CA steps (download `/dl/ca.crt`, compare the SHA-256 fingerprint, `NODE_EXTRA_CA_CERTS` for Node based clients, the system keychain on macOS).
+The setup page `/t/{ns}/memory/setup` covers every other client: the endpoint URL, a `curl` that tests it, the bridge command for clients that launch local commands, an HTTP config example with an `Authorization` header. The registry is served over plain TLS, so no certificate steps are shown. The bridge uses a `ca_file` already stored for that remote, which covers a registry behind a company certificate authority.
 
 #### Web
 

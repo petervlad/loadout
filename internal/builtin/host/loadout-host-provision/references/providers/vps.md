@@ -1,8 +1,8 @@
 # Any VPS with ssh
 
-Shape: [VM](../shapes/vm.md). Tool: none required; the provider's console or its own command line tool, which the person runs or lets you run once they say yes.
+Shape: [VM](../shapes/vm.md). Tool: none required. The provider's console or its own command line tool, which the person runs or lets you run once they say yes.
 
-Verified how: not run end to end, and there is no single provider here to check against. This file is the shared path for Vultr, Linode (Akamai), OVH, Scaleway, Contabo and any other provider that sells a Linux machine with an ssh login; it was written from loadout's own deploy files and README on 2026-10-07 and the steps that are the same everywhere. Provider facts (prices, blocked ports, console menus) are the person's to confirm in the provider's documentation: say so, and read it with them when something is unclear.
+Verified how: not run end to end, and there is no single provider here to check against. This file is the shared path for Vultr, Linode (Akamai), OVH, Scaleway, Contabo and any other provider that sells a Linux machine with an ssh login. It was written from loadout's own deploy files and README on 2026-10-07 and the steps that are the same everywhere. Provider facts (prices, blocked ports, console menus) are the person's to confirm in the provider's documentation: say so, and read it with them when something is unclear.
 
 Sources:
 - `assets/prepare.sh` and `assets/deploy.sh` in this skill (what is installed and which ports are used)
@@ -11,9 +11,9 @@ Sources:
 
 ## Before you start
 
-- An account, and a way to create a server: the provider's console (the person clicks; you tell them exactly what to choose) or its command line tool if the person already uses one (then follow the same rules as the other files: logged in by the person, no token on a command line).
+- An account, and a way to create a server: the provider's console (the person clicks, you tell them exactly what to choose) or its command line tool if the person already uses one (then follow the same rules as the other files: logged in by the person, no token on a command line).
 - The person's public key (a `.pub` file), added to the provider's SSH keys list so the server gets it.
-- Ask the provider's policy on outgoing mail ports before choosing a mail provider: many cloud and VPS providers block 25, and some also 465 or 587 for new accounts. Look it up in the provider's documentation (search its docs for "SMTP" or "port 25"), and write down what you found with the date. If 587 is blocked, a mail provider's alternative STARTTLS port (2525, 2587) usually works; the `loadout-host-setup` email files list them.
+- Ask the provider's policy on outgoing mail ports before choosing a mail provider: many cloud and VPS providers block 25, and some also 465 or 587 for new accounts. Look it up in the provider's documentation (search its docs for "SMTP" or "port 25"), and write down what you found with the date. If 587 is blocked, a mail provider's alternative STARTTLS port (2525, 2587) usually works. The `loadout-host-setup` email files list them.
 
 ## Create the machine
 
@@ -30,7 +30,7 @@ Record what you created (provider, server name or id, region, the address, month
 
 ## Firewall
 
-Open 22, 80 and 443 over tcp and 443 over udp. If the provider has a cloud firewall, create a rule set with those four and attach it; if not, `prepare.sh` configures `ufw` inside the machine anyway. Many providers leave all ports open by default, which is fine here because `prepare.sh` closes the rest.
+Open 22, 80 and 443 over tcp and 443 over udp. If the provider has a cloud firewall, create a rule set with those four and attach it. If not, `prepare.sh` configures `ufw` inside the machine anyway. Many providers leave all ports open by default, which is fine here because `prepare.sh` closes the rest.
 
 ## Name
 
@@ -38,7 +38,7 @@ Open 22, 80 and 443 over tcp and 443 over udp. If the provider has a cloud firew
 
 ## Deploy
 
-The [VM shape](../shapes/vm.md), step 3. If the provider's default user is `root` and there is no way to create `admin` through the console, log in as root once and run the by-hand commands from the shape file; do not run `deploy.sh` as root.
+The [VM shape](../shapes/vm.md), step 3. If the provider's default user is `root` and there is no way to create `admin` through the console, log in as root once and run the by-hand commands from the shape file. Do not run `deploy.sh` as root.
 
 ## Off-host backups
 

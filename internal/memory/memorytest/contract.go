@@ -414,7 +414,7 @@ func runSearch(t *testing.T, s memory.Store) {
 	ns := []string{"lime"}
 	tracker := save(t, s, "lime", "TRK Tracker host", "tickets live on tracker cc", "never the atc host", dana, at)
 	label := save(t, s, "lime", "Release label", "PRs need a label", "the release label goes on the PR", dana, at.Add(time.Hour))
-	inBody := save(t, s, "lime", "Zuul", "gate pipeline", "regate failures with the tracker link", dana, at.Add(2*time.Hour))
+	inBody := save(t, s, "lime", "CI", "gate pipeline", "regate failures with the tracker link", dana, at.Add(2*time.Hour))
 
 	tests := []struct {
 		name, q   string
@@ -427,7 +427,7 @@ func runSearch(t *testing.T, s memory.Store) {
 		{"case is ignored", "RELEASE LABEL", []int64{label.ID}, false},
 		{"all words must match", "tracker host", []int64{tracker.ID}, false},
 		{"name beats body", "tracker", []int64{tracker.ID, inBody.ID}, false},
-		{"falls back to any word", "release zuul", []int64{inBody.ID, label.ID}, true},
+		{"falls back to any word", "release ci", []int64{inBody.ID, label.ID}, true},
 		{"no match", "kubernetes", nil, false},
 		{"only punctuation", `"*" ( ) - ^`, nil, false},
 		{"empty", "", nil, false},

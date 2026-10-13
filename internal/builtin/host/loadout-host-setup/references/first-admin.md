@@ -25,7 +25,7 @@ ssh -t admin@IP sudo -u loadout loadout user password --email you@example.com --
 ssh admin@IP sudo -u loadout loadout admin grant --email you@example.com --data /var/lib/loadout
 ```
 
-The first command asks for the password twice, without echo: `-t` gives it a terminal, and the person types it. Give them the command to run in their own terminal; do not run it for them, do not pipe a password in, and do not ask them to tell you the password. It must be 12 to 128 characters and not a common one. The second command makes the account an admin. A person signs in on the website with that email and password, with no code.
+The first command asks for the password twice, without echo: `-t` gives it a terminal, and the person types it. Give them the command to run in their own terminal. Do not run it for them, do not pipe a password in, and do not ask them to tell you the password. It must be 12 to 128 characters and not a common one. The second command makes the account an admin. A person signs in on the website with that email and password, with no code.
 
 ## Check
 
@@ -43,4 +43,4 @@ It opens the browser, the person signs in, and the command says they are signed 
 
 ## More people later
 
-Each person is added to a team or project with `loadout member add` (the `loadout-admin` skill covers it), and needs no account first. With email codes they sign up themselves with that address; with simple login the operator sets their password the same way as above and hands it over out of band.
+Each person is added to a team or project with `loadout member add` (the `loadout-admin` skill covers it), and needs no account first. With email codes they sign up themselves with that address. With simple login the operator sets their password the same way as above and hands it over out of band.

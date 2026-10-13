@@ -52,7 +52,7 @@ How the cut walks, top-level blocks in order, with a running count:
   code spans, autolinks, link text). Raw HTML counts as the text it shows.
 - A paragraph that crosses the limit is cut inside, at the end of the text
   node that crosses it, trimmed back to the last word boundary within the
-  limit; the inline siblings after it are removed and an ellipsis Text node is
+  limit. The inline siblings after it are removed and an ellipsis Text node is
   appended. Inline nodes always close, because the renderer closes what it opens.
 - Lists and blockquotes are containers: the walk goes into their items and
   drops the items after the cut, so a list ends early but stays a valid list.
@@ -99,14 +99,14 @@ change, and the constant can move later without breaking anything.
 ### The control, without JavaScript
 
 One link for both columns, not a `<details>` per column. Expanding one column
-alone would put the two answers out of step, which is the thing the page is for;
-a `<details>` would also send every answer twice in the HTML and need `:has()`
+alone would put the two answers out of step, which is the thing the page is for.
+A `<details>` would also send every answer twice in the HTML and need `:has()`
 to hide the short copy.
 
 - Below `.sides`, a bar shown when `AnyCut` is true:
   - short view: muted text "Showing the first 150 words of each answer." and
     `<a class="btn" href="?report=N&prompt=P&run=R&full=1#answers">Show whole
-    answers</a>`;
+    answers</a>`.
   - full view: `<a class="btn" href="?report=N&prompt=P&run=R#answers">Show the
     first 150 words</a>`.
 - Each cut column ends with a muted line "262 more words" (`.answer-more`),
@@ -154,40 +154,40 @@ None.
 ## Tests
 
 - `excerpt_test.go`, table-driven on `renderAnswer(src, 10)` with a small
-  limit so cases stay readable: under the limit (no cut, `Short == Full`);
-  exactly the limit; limit plus slack and one more; a long paragraph cut
-  mid-way at a word boundary with the ellipsis; a list cut between items and
-  inside an item (output still has matching `<ul>`/`</ul>`); a table and a
+  limit so cases stay readable: under the limit (no cut, `Short == Full`).
+  Exactly the limit. Limit plus slack and one more. A long paragraph cut
+  mid-way at a word boundary with the ellipsis. A list cut between items and
+  inside an item (output still has matching `<ul>`/`</ul>`). A table and a
   fenced code block that cross the limit (dropped whole, no `<table>` or
-  `<pre>` in `Short`); an open fence at the end of the source; a first block
-  that is a long code block (kept whole); a trailing heading (dropped); Unicode
+  `<pre>` in `Short`). An open fence at the end of the source. A first block
+  that is a long code block (kept whole). A trailing heading (dropped). Unicode
   (accented Latin counted by spaces, Chinese counted per character, emoji not
-  split); Markdown syntax not counted (`**a**` is one word, a table's `---` row
-  none); raw HTML and `javascript:` links still escaped and dropped in `Short`.
+  split). Markdown syntax not counted (`**a**` is one word, a table's `---` row
+  none). Raw HTML and `javascript:` links still escaped and dropped in `Short`.
   Every `Short` output is also checked for balanced tags with a small stack
-  over the tags the renderer emits (no new dependency; `x/net/html` is not in
+  over the tags the renderer emits (no new dependency, `x/net/html` is not in
   `go.mod`).
 - `ui_test.go`: `addReport` gains a long answer. The page shows "412 words" in
   the head, "Show whole answers", "more words", and not the answer's last
-  sentence; with `?full=1` it shows the last sentence and "Show the first 150
-  words", and the picker form has `name="full"`; a short answer shows no bar;
-  a failed run shows "failed" and no count; `xss` stays out in both views.
+  sentence. With `?full=1` it shows the last sentence and "Show the first 150
+  words", and the picker form has `name="full"`. A short answer shows no bar.
+  A failed run shows "failed" and no count. `xss` stays out in both views.
 - Screenshots with `scripts/preview/shoot.mjs`: short and full view, light and
   dark (7441, 7442), at 390, 800 and 1280 px, and the keyboard path from the
   link to the answers.
 
 ## Accessibility and layout
 
-- The control is a link, because it loads a view; its text is its name ("Show
+- The control is a link, because it loads a view. Its text is its name ("Show
   whole answers", "Show the first 150 words"), so a screen reader hears "link,
   Show whole answers". The muted sentence beside it is plain text before it in
   reading order. It is at least 44 px tall on touch screens, like the other
   buttons, and keeps the focus ring.
 - "262 more words" is text, not a control, so it is not a second tab stop.
 - Colors come from the existing tokens, so light, dark and increased contrast
-  follow. `--muted` on `--panel` has to be checked for 4.5:1 in both themes;
-  use `--text-2` if it falls short, as the kind filter did.
-- On phones `.sides` stacks; the bar sits under both columns and wraps its text
+  follow. `--muted` on `--panel` has to be checked for 4.5:1 in both themes.
+  Use `--text-2` if it falls short, as the kind filter did.
+- On phones `.sides` stacks. The bar sits under both columns and wraps its text
   above the button.
 
 ## Overlaps with other plans
@@ -195,10 +195,10 @@ None.
 `docs/plans/review-from-the-web.md` and `docs/plans/owner-merge.md` are being
 written at the same time. This change touches only, in `proposal.html`, the
 compare-bar form (one hidden input), the `.sides` block and the new bar after
-it; and in `ui_reviews.go`, `answerView`, `answerOf`, `reportView`, `reportOf`
+it, and in `ui_reviews.go`, `answerView`, `answerOf`, `reportView`, `reportOf`
 and the query read in `report`. The header actions, `Decision`, the aside and
 the empty "No comparison yet" state are left alone. If either plan adds query
-parameters to the proposal page, the two links here must carry them too; the
+parameters to the proposal page, the two links here must carry them too. The
 simplest is a `reportView.Query(full bool) string` helper that builds the link
 from every view parameter in one place.
 
@@ -214,7 +214,7 @@ from every view parameter in one place.
 ## Not in this step
 
 - A per-team or per-user preview length.
-- Cutting the Markdown-only report (`<pre class="markdown">`); it is shown as
+- Cutting the Markdown-only report (`<pre class="markdown">`). It is shown as
   sent.
 - Word counts in `loadout review show` or in the Markdown report.
 - Highlighting differences between the two answers.

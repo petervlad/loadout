@@ -72,9 +72,9 @@ func TestFindDuplicatesKeepsOneCopy(t *testing.T) {
 	}
 	const ours = "<!-- managed by loadout: lime/x@1 -->"
 	// only old copies, in three folders: keep the first (~/.copilot)
-	write(".copilot/agents/pd-dev.md", "old")
-	write(".agents/agents/pd-dev.md", "old")
-	write(".claude/agents/pd-dev.md", "old")
+	write(".copilot/agents/ops-dev.md", "old")
+	write(".agents/agents/ops-dev.md", "old")
+	write(".claude/agents/ops-dev.md", "old")
 	// a loadout copy beats an old one, whatever the folder
 	write(".copilot/agents/lime-dev.md", "old")
 	write(".claude/agents/lime-dev.md", ours)
@@ -84,8 +84,8 @@ func TestFindDuplicatesKeepsOneCopy(t *testing.T) {
 	// a name that exists once is left alone
 	write(".agents/skills/solo/SKILL.md", "mine")
 	// a skill in two folders
-	write(".copilot/skills/zuul-api/SKILL.md", "old")
-	write(".agents/skills/zuul-api/SKILL.md", "old")
+	write(".copilot/skills/ci-api/SKILL.md", "old")
+	write(".agents/skills/ci-api/SKILL.md", "old")
 
 	got, err := FindDuplicates(root, []string{"vscode"})
 	if err != nil {
@@ -97,8 +97,8 @@ func TestFindDuplicatesKeepsOneCopy(t *testing.T) {
 		paths = append(paths, rel)
 	}
 	want := []string{
-		".agents/agents/pd-dev.md", ".agents/skills/zuul-api",
-		".claude/agents/pd-dev.md", ".copilot/agents/lime-dev.md",
+		".agents/agents/ops-dev.md", ".agents/skills/ci-api",
+		".claude/agents/ops-dev.md", ".copilot/agents/lime-dev.md",
 	}
 	if !slices.Equal(paths, want) {
 		t.Errorf("FindDuplicates(vscode) = %v, want %v", paths, want)

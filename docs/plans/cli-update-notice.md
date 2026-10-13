@@ -12,8 +12,8 @@ The user settled the three decisions as recommended (2026-10-04):
    are public. The tag is created and pushed by the release step, with the user's yes,
    never by an implementation step.
 2. **How often.** Once a day per version for a person, for scripts and cron, and for
-   agents (one clock shared with the session hook); "too old for this registry" every
-   time; `LOADOUT_UPDATE_NOTICE=off` silences all but "too old"; Pushover once per version,
+   agents (one clock shared with the session hook). "too old for this registry" every
+   time. `LOADOUT_UPDATE_NOTICE=off` silences all but "too old". Pushover once per version,
    from `sync` only.
 3. **No self-update** in this plan.
 
@@ -26,7 +26,7 @@ agent and asks it to pass the news to the person. A registry can also say that a
 too old for it, which is said every time, since commands may fail.
 
 The one rule holds. Nothing here calls a model or needs a key. The registry adds two
-response headers with version numbers; the CLI compares them with its own version and
+response headers with version numbers. The CLI compares them with its own version and
 prints text. What an agent does with that text is the person's own tool at work, and the
 text never contains anything the registry chose except two version numbers.
 
@@ -38,7 +38,7 @@ text never contains anything the registry chose except two version numbers.
   built-in skills (`main.go:129`), `cli.Deps.Version` (`main.go:169`) and the server's
   health answer (`main.go:247`).
 - **How people get it.** Built from a clone: `go install ./cmd/loadout`
-  (`docs/GUIDE.md:83-93`, "Ready-made downloads come later"; the `loadout-setup` skill says
+  (`docs/GUIDE.md:83-93`, "Ready-made downloads come later", the `loadout-setup` skill says
   the same at `internal/builtin/skills/loadout-setup/SKILL.md:21`). `go install` sets no
   ldflags, so every colleague's `loadout version` says `dev`. Go 1.24 and later do stamp
   the module version from git into the binary: this worktree's build carries
@@ -61,7 +61,7 @@ text never contains anything the registry chose except two version numbers.
   `loadout.lat` serves binaries or a "latest version" file (`deploy/Caddyfile:64-77` serves
   the static site only).
 - **What the client sends.** Every request carries `User-Agent: loadout/<version>`
-  (`internal/cli/connect.go:79`, `internal/client/client.go:377`); the server never reads it.
+  (`internal/cli/connect.go:79`, `internal/client/client.go:377`). The server never reads it.
   Every client the commands use is built in one place, `Deps.newClient`
   (`connect.go:78-89`), and every response passes through `Client.send`
   (`client.go:364-390`). Every authenticated route passes `server.auth`
@@ -73,7 +73,7 @@ text never contains anything the registry chose except two version numbers.
   direction: "your CLI is older than this registry wants".
 - **Built-in skills version.** `builtin.Version` turns `v1.4.0` and `1.4.0-3-gabc` into
   1.4.0, anything else into 0.0.1 (`internal/builtin/builtin.go:89-102`).
-- **No JSON output.** No command has `--json`; scripts parse tables on stdout. Only two
+- **No JSON output.** No command has `--json`. Scripts parse tables on stdout. Only two
   places write to stderr on purpose (`internal/cli/reviewrun.go:148`, `wiki.go:77`), and
   `runWith` prints `error: ...` there (`main.go:203`).
 - **Error codes and the end of a run.** `runWith` executes the root command and maps the
@@ -83,7 +83,7 @@ text never contains anything the registry chose except two version numbers.
   environment has `CLAUDECODE=1`, `CLAUDE_CODE_ENTRYPOINT=cli`, `CLAUDE_CODE_SESSION_ID`
   and `AI_AGENT=claude-code_2-1-287_agent`, and neither stdout nor stderr is a terminal
   (seen from this session). Copilot CLI documents `COPILOT_AGENT_SESSION_ID` in every shell
-  command it runs; `AI_AGENT` is a convention several tools and detectors use
+  command it runs. `AI_AGENT` is a convention several tools and detectors use
   (`@vercel/detect-agent`, `expo/agent-cli-detector`). VS Code's agent mode runs commands in
   an integrated terminal, so it looks like a person at a terminal and sets nothing of its
   own beyond `TERM_PROGRAM=vscode`, which a person's terminal has too.
@@ -96,8 +96,8 @@ Four parts, each in the package that owns it:
    was installed). Pure.
 2. The registry advertises the latest CLI release it knows and an optional minimum, in two
    headers on authenticated responses (`internal/api`, `internal/server`).
-3. The client hands those headers to a callback (`internal/client`); `internal/cliupdate`
-   remembers them in `~/.loadout/cliupdate.yaml` and decides what to say, to whom and how
+3. The client hands those headers to a callback (`internal/client`). `internal/cliupdate`
+   Remembers them in `~/.loadout/cliupdate.yaml` and decides what to say, to whom and how
    often.
 4. `internal/cli` prints: one line on stderr after a command, a footer in `status`, a line
    in `notices`, a part of the session hook's message, and `loadout version`.
@@ -109,7 +109,7 @@ at `v0.4.0` or `v0.4.0-3-gabc` advertises 0.4.0. Reasons:
 
 - The registry is the one thing every person already talks to, with a token, on every
   `sync`, `install`, `login`, `review` and `propose`. No new host, no new request.
-- The CLI and the registry are one binary from one repository; the CLI a registry was
+- The CLI and the registry are one binary from one repository. The CLI a registry was
   deployed with is, by construction, a CLI that works with it.
 - A tag is a deliberate "release this to people". Commit time (which both binaries also
   carry) would nag everyone after every deploy, server-only fixes included, and orders
@@ -117,7 +117,7 @@ at `v0.4.0` or `v0.4.0-3-gabc` advertises 0.4.0. Reasons:
 - It works for a team's own LAN or on-prem registry the same way, with no internet.
 
 Rejected: GitHub releases (the repository is private, so colleagues cannot read them
-without GitHub credentials, and it would add a third-party call to the CLI); a static file
+without GitHub credentials, and it would add a third-party call to the CLI). A static file
 on `loadout.lat` (a second thing to keep in step by hand, a new outbound request, and
 wrong for a LAN registry that runs an older release on purpose).
 
@@ -179,10 +179,10 @@ func (b Build) Behind(v semver.Version) bool
   is reachable: unknown. Prerelease tags (`v1.0.0-rc.1`) are unknown for now, as
   `internal/semver` has no prereleases.
 - `Behind(v)` is `known && !modified && release < v`. A build after 0.4.0 is not behind
-  0.4.0; it is behind 0.5.0.
+  0.4.0. It is behind 0.5.0.
 - `builtin.Version` delegates to `Parse(s).Release()`, keeping its 0.0.1 for unknown
   builds. The only change is that a pseudo-version after 0.4.0 gives 0.4.0 instead of
-  0.0.1; the digest, which sync compares, is unchanged.
+  0.0.1. The digest, which sync compares, is unchanged.
 - `cmd/loadout` computes `build := buildinfo.Current(version, debug.ReadBuildInfo())` once
   and passes `build.String()` wherever `version` goes today (log, User-Agent, built-in
   skills, `/skills` pages, server health). A colleague's `loadout version` then says
@@ -229,7 +229,7 @@ const (
 )
 ```
 
-- `server.WithCLI(latest, minimum semver.Version)` sets them; zero values send nothing.
+- `server.WithCLI(latest, minimum semver.Version)` sets them. Zero values send nothing.
   `cmd/loadout` passes `build.Release()` (only when known) and `server.MinimumCLI`.
 - Set in `server.auth` right after `Authenticate` succeeds (`middleware.go:121`), so every
   authenticated response carries them, errors included (a 403 or 409 is exactly when
@@ -333,7 +333,7 @@ type Pusher interface {
 }
 ```
 
-`Saw` takes `client.CLIAdvice` so the callback needs no conversion; `cliupdate` importing
+`Saw` takes `client.CLIAdvice` so the callback needs no conversion. `cliupdate` importing
 `client` for one struct is acceptable (it already sits on the CLI side). If that grows,
 the struct moves to `api`.
 
@@ -368,14 +368,14 @@ speaking. A value that does not parse as `semver` is dropped when collected, nev
 | A newer release | once a day per version | once a day per version (the person clock) | once a day per version (one clock shared by agent-run commands and the hook) | once per version, from `sync` only |
 | A registry says this CLI is too old | every command | every command | every command | once per version |
 
-The day is counted from `told.<audience>.at`; a new version resets it. `status`, `notices`
+The day is counted from `told.<audience>.at`. A new version resets it. `status`, `notices`
 and `version` show the line whenever they are run (it is what was asked) and do not touch
 the clocks, so they never write.
 
-**When it stays silent.** An unknown or modified build (`buildinfo.Behind` is false; a
-too-old warning is also skipped, since a developer's build has no release to compare);
+**When it stays silent.** An unknown or modified build (`buildinfo.Behind` is false, a
+too-old warning is also skipped, since a developer's build has no release to compare).
 `LOADOUT_UPDATE_NOTICE=off` (in `config`, beside the Pushover variables), which silences
-everything but the too-old warning (that one says why commands fail); and the commands
+everything but the too-old warning (that one says why commands fail), and the commands
 listed under CLI below.
 
 ### Texts
@@ -397,7 +397,7 @@ front of an agent.
   loadout, for the agent: a newer loadout CLI is available (0.5.0; this is 0.4.0). Tell the user once, in one sentence, and give them the command to update it: git pull && go install ./cmd/loadout, in their loadout folder. Do not update it yourself unless they ask.
   ```
 
-- Too old (person; the agent's version adds "Tell the user now"):
+- Too old (person, the agent's version adds "Tell the user now"):
 
   ```text
   loadout: registry.example.com needs loadout 0.3.0 or newer and this is 0.2.0, so some commands may fail. To update, in your loadout folder: git pull && go install ./cmd/loadout
@@ -405,13 +405,13 @@ front of an agent.
 
 - Session hook: `SessionMessage{Person: "loadout 0.5.0 is out (you have 0.4.0): git pull &&
   go install ./cmd/loadout in your loadout folder.", Agent: "A newer loadout CLI is available
-  (0.5.0; installed 0.4.0). Mention it to the user once, in one sentence, with that
-  command; do not update it yourself unless they ask."}`.
+  (0.5.0, installed 0.4.0). Mention it to the user once, in one sentence, with that
+  command. Do not update it yourself unless they ask."}`.
 
 The agent line names the CLI and says "Tell the user" because Claude Code and Copilot show
 stderr to the agent, not always to the person, and the agent otherwise reads it as noise
 from the command. The person's line has no instructions, since VS Code's agent mode looks
-like a terminal; it is still plain enough for an agent to repeat.
+like a terminal. It is still plain enough for an agent to repeat.
 
 ### CLI
 
@@ -421,15 +421,15 @@ like a terminal; it is still plain enough for an agent to repeat.
   `cmd, err := root.ExecuteContextC(ctx)`, prints the error as now, then calls
   `cli.AfterRun(ctx, deps, cmd, stderr, audience)`, so the line comes last, after an error
   too (that is when "too old" matters). `AfterRun` lives in `internal/cli`, which owns the
-  text; `runWith` still only wires and maps exit codes. It is skipped after Ctrl-C, and for
+  text. `runWith` still only wires and maps exit codes. It is skipped after Ctrl-C, and for
   commands marked with the annotation `quietUpdates`: `notices` (it speaks for itself, and
   `--hook` must print only the tool's JSON), `status` and `version` (they show it in their
   own output), `serve` and the host-side commands run with `--data`, `completion`, `help`.
-  It never changes the exit code; an error from `Finish` is logged at debug. For `sync`,
+  It never changes the exit code. An error from `Finish` is logged at debug. For `sync`,
   `AfterRun` also calls `Push` when a notifier is set.
 - **The audience** is detected once in `cmd/loadout`: `cliupdate.Detect(getenv,
   stderrTerminal())`, where `stderrTerminal` is `os.Stderr.Stat()` with
-  `os.ModeCharDevice` (no new dependency; works on the Windows console), injected through
+  `os.ModeCharDevice` (no new dependency, works on the Windows console), injected through
   `externals` so e2e tests choose.
 - **Detect's table** (an agent if any row matches, checked in order):
 
@@ -445,15 +445,15 @@ like a terminal; it is still plain enough for an agent to repeat.
   Nothing when not behind.
 - **`notices`.** The plain form adds the same sentence as its last line (it suits a shell
   prompt). `--hook` joins `Updates.SessionMessage` after `notice.Message(ns)` with a new
-  `target.SessionMessage.Join`, so the existing JSON shapes carry both; with nothing held
+  `target.SessionMessage.Join`, so the existing JSON shapes carry both. With nothing held
   and nothing behind it still prints nothing. The hook reads one small file more and keeps
-  its 1 second deadline; a failure to record the agent clock still prints the message.
+  its 1 second deadline. A failure to record the agent clock still prints the message.
 - **`version`.** `loadout 0.4.0` (or the build form above) on the first line, as scripts
-  and `deploy.sh:120` read it; then, from the cache, `0.5.0 is out (seen on
+  and `deploy.sh:120` read it, then, from the cache, `0.5.0 is out (seen on
   registry.example.com 4 Oct). To update ...`, or `up to date as of 4 Oct`, or nothing when
-  no registry has said anything. No network call; any registry command refreshes it.
+  no registry has said anything. No network call. Any registry command refreshes it.
 - **JSON.** No command prints JSON today, so there is no field to add. stdout is never
-  touched by this plan; if a `--json` mode comes later, it keeps stdout clean and may carry
+  touched by this plan. If a `--json` mode comes later, it keeps stdout clean and may carry
   a `cli_update` object.
 - **`login`** needs nothing of its own: it calls `GET /v1/me` with the new token
   (`internal/cli/login.go:126`), an authenticated route, so the advice arrives and
@@ -462,8 +462,8 @@ like a terminal; it is still plain enough for an agent to repeat.
 ### Built-in skills
 
 `loadout-setup` gets a section "When loadout says a newer version is out": tell the person
-once, in one sentence, with the command loadout printed; do not run `git pull` or `go
-install` unless they ask; if a registry says the CLI is too old, say that is why a command
+once, in one sentence, with the command loadout printed. Do not run `git pull` or `go
+install` unless they ask. If a registry says the CLI is too old, say that is why a command
 failed and suggest updating before trying again. "The line at the start of a session"
 (`SKILL.md:87`) names the new line. `references/troubleshooting.md` gets a row for "needs
 loadout X or newer". The other three skills get one sentence pointing to `loadout-setup`.
@@ -493,17 +493,17 @@ own plan. Printing the right command per install method gets the same result now
   responses and on health with a valid token. No body, route or status changes.
 - Server: `server.WithCLI`, `server.MinimumCLI` (zero).
 - Client: `client.CLIAdvice`, `client.WithCLIAdvice`.
-- New packages `internal/buildinfo` and `internal/cliupdate`; `builtin.Version` delegates
-  to `buildinfo`; `target.SessionMessage.Join`; `pushover.Notifier.Push`;
-  `cli.Deps.Updates`, `cli.AfterRun`; `externals.stderrTerminal`, `externals.version` (for
-  tests); `config.UpdateNotice` from `LOADOUT_UPDATE_NOTICE`.
+- New packages `internal/buildinfo` and `internal/cliupdate`. `builtin.Version` delegates
+  to `buildinfo`. `target.SessionMessage.Join`. `pushover.Notifier.Push`.
+  `cli.Deps.Updates`, `cli.AfterRun`. `externals.stderrTerminal`, `externals.version` (for
+  tests). `config.UpdateNotice` from `LOADOUT_UPDATE_NOTICE`.
 - New file `~/.loadout/cliupdate.yaml` (+ `.lock`). The lock, `syncstate.yaml`,
   `builtin.yaml`, `hooks.yaml` and `rebase.yaml` do not change.
-- `loadout version` output gains lines after the first; the first line keeps its form.
+- `loadout version` output gains lines after the first. The first line keeps its form.
 
 ## Migration
 
-None in the database. An older CLI ignores the headers; an older registry sends none, and
+None in the database. An older CLI ignores the headers. An older registry sends none, and
 the CLI says nothing. A missing `cliupdate.yaml` is the empty state. After the upgrade,
 `loadout version` on a `go install` build prints the build form instead of `dev`.
 
@@ -515,66 +515,66 @@ deploy changes no schema, so it needs no backup beyond the usual one.
 Each step passes `make check` and can ship on its own.
 
 1. **buildinfo.** `Parse`, `Current`, `Behind`, `String`, `MethodOf` with tables of every
-   form above; `cmd/loadout` uses `Current`, so `loadout version`, the log, the
-   User-Agent and the built-in skills use it; `builtin.Version` delegates. GUIDE (Install
+   form above. `cmd/loadout` uses `Current`, so `loadout version`, the log, the
+   User-Agent and the built-in skills use it. `builtin.Version` delegates. GUIDE (Install
    the CLI: what `loadout version` prints). Shippable alone: no more `dev`.
 2. **Release tags** (decision 1). Tag the first release, adjust `release.yml` and
    `.goreleaser.yaml` as decided, and say in `deploy/README.md` that a deploy advertises
    its last tag. No code.
 3. **Registry headers.** `api` constants, `server.WithCLI`, `server.MinimumCLI`, set in
-   `auth` and `health`; wiring in `registryOpener`. Server tests. Shippable alone (nobody
-   reads them yet); deploy it with the tag of step 2.
-4. **Remember.** `client.WithCLIAdvice`; `cliupdate` with `Store`, `Saw`, `Finish` (no
-   output yet), `Status`; `Deps.Updates`, `Deps.newClient` wiring; `AfterRun` that records
+   `auth` and `health`. Wiring in `registryOpener`. Server tests. Shippable alone (nobody
+   reads them yet). Deploy it with the tag of step 2.
+4. **Remember.** `client.WithCLIAdvice`. `cliupdate` with `Store`, `Saw`, `Finish` (no
+   output yet), `Status`. `Deps.Updates`, `Deps.newClient` wiring. `AfterRun` that records
    only. Docs: DESIGN packages table and a "CLI updates" section.
 5. **Say it.** `Detect`, the texts, the clocks, `AfterRun` printing, `quietUpdates`,
-   `LOADOUT_UPDATE_NOTICE`; `status` footer, `notices` line and `--hook` with
-   `SessionMessage.Join`; `version` lines. Docs: GUIDE (Stay up to date, Messages in Claude
+   `LOADOUT_UPDATE_NOTICE`. `status` footer, `notices` line and `--hook` with
+   `SessionMessage.Join`. `version` lines. Docs: GUIDE (Stay up to date, Messages in Claude
    Code and Copilot, command reference, Troubleshooting), the `loadout-setup` skill and its
-   troubleshooting reference, the other skills' pointer; rebuild the guide.
+   troubleshooting reference, the other skills' pointer. Rebuild the guide.
 6. **Pushover.** `pushover.Notifier.Push`, `Service.Push` from `sync`. GUIDE (Pushover
    paragraph).
 
 ## Tests
 
-- **buildinfo** (tables): every row of the version table; `Current` with ldflags set,
+- **buildinfo** (tables): every row of the version table. `Current` with ldflags set,
   ldflags `dev` plus each kind of `debug.BuildInfo` (tagged, pseudo after a tag, no tag,
-  `vcs.modified=true`, `(devel)`), and no build info; `Behind` against older, equal, newer
-  releases for a release, an after-build, a modified and an unknown build; `MethodOf` for
-  a Caskroom path, a Cellar path, a release build elsewhere, a source build;
+  `vcs.modified=true`, `(devel)`), and no build info. `Behind` against older, equal, newer
+  releases for a release, an after-build, a modified and an unknown build. `MethodOf` for
+  a Caskroom path, a Cellar path, a release build elsewhere, a source build.
   `builtin.Version` keeps its table and gains the pseudo-version row.
 - **server**: an authenticated request carries both headers when set and neither when
-  zero; a 403 and a 404 still carry them; an anonymous request and health without a token
-  carry neither; health with a token carries them.
+  zero. A 403 and a 404 still carry them. An anonymous request and health without a token
+  carry neither. Health with a token carries them.
 - **client**: the callback gets the headers from a JSON call, a bundle download and an
-  error response; values over 32 bytes are dropped; no callback without the option.
+  error response. Values over 32 bytes are dropped. No callback without the option.
 - **cliupdate** (tables, fake clock, temp dir): `Detect` for each variable, a terminal, a
-  pipe, and an agent variable with a terminal; `Finish` writes only on change or after a
-  day; the newest of two registries wins and an old record (31 days) is ignored; an
-  invalid version is never stored; the clocks (first time, same day, next day, new
+  pipe, and an agent variable with a terminal. `Finish` writes only on change or after a
+  day. The newest of two registries wins and an old record (31 days) is ignored. An
+  invalid version is never stored. The clocks (first time, same day, next day, new
   version, too-old every time, separate person and agent clocks, the hook and agent sharing
-  one); `LOADOUT_UPDATE_NOTICE=off` keeps only too-old; an unknown or modified build says
-  nothing; a damaged file reads empty and is rewritten; two concurrent `Finish` calls both
-  land; the texts (golden lines per audience and method), with a test that no text
-  contains an em-dash; `Push` once per version and again after a failure.
-- **cli**: `AfterRun` skips quiet commands and Ctrl-C and never changes the exit code;
-  `status` footer; `notices` plain and `--hook` with a held notice, with a CLI line only,
-  with both, and with neither (silent); `version` lines.
+  one). `LOADOUT_UPDATE_NOTICE=off` keeps only too-old. An unknown or modified build says
+  nothing. A damaged file reads empty and is rewritten. Two concurrent `Finish` calls both
+  land. The texts (golden lines per audience and method), with a test that no text
+  contains an em-dash. `Push` once per version and again after a failure.
+- **cli**: `AfterRun` skips quiet commands and Ctrl-C and never changes the exit code.
+  `status` footer. `notices` plain and `--hook` with a held notice, with a CLI line only,
+  with both, and with neither (silent). `version` lines.
 - **e2e** (`cmd/loadout`, `person`, `newSession`): `externals` gain `version` (the CLI's)
-  and `stderrTerminal`; `startRegistry` gains a sibling `startRegistryAt(t, admin,
+  and `stderrTerminal`. `startRegistry` gains a sibling `startRegistryAt(t, admin,
   "v0.5.0")` that passes that build to `server.New`; `person` gains extra environment.
-  - `TestNewerCLIIsAnnounced`: registry at 0.5.0, Bob's CLI 0.4.0 at a terminal; `sync`
-    prints its table on stdout unchanged and the line on stderr; a second `sync` the same
-    day prints no line; `status` and `version` show it with the server stopped;
+  - `TestNewerCLIIsAnnounced`: registry at 0.5.0, Bob's CLI 0.4.0 at a terminal. `sync`
+    Prints its table on stdout unchanged and the line on stderr. A second `sync` the same
+    day prints no line. `status` and `version` show it with the server stopped.
     `notices --hook claude` with `{"source":"startup"}` prints JSON whose `systemMessage`
     and `additionalContext` carry it.
-  - `TestAgentIsAskedToTellTheUser`: the same with `CLAUDECODE=1` and no terminal; stderr
-    has the agent line; then with `COPILOT_AGENT_SESSION_ID`.
-  - `TestTooOldCLIIsToldEveryTime`: `MinimumCLI` above the CLI (through the option); every
-    command repeats the line, including one that fails; exit codes are unchanged.
-  - `TestDevBuildIsNotNagged`: the CLI's version `dev`; nothing on stderr.
+  - `TestAgentIsAskedToTellTheUser`: the same with `CLAUDECODE=1` and no terminal. Stderr
+    has the agent line, then with `COPILOT_AGENT_SESSION_ID`.
+  - `TestTooOldCLIIsToldEveryTime`: `MinimumCLI` above the CLI (through the option). Every
+    command repeats the line, including one that fails. Exit codes are unchanged.
+  - `TestDevBuildIsNotNagged`: the CLI's version `dev`. Nothing on stderr.
   - Existing tests run with an unknown build and a registry without a tag, so their stderr
-    does not change; a check in the helper fails any existing test whose stderr gains the
+    does not change. A check in the helper fails any existing test whose stderr gains the
     line.
 - No page changes, so no UI review.
 
@@ -584,7 +584,7 @@ Each step passes `make check` and can ship on its own.
   (modified or unknown builds). The too-old line repeats on purpose. `LOADOUT_UPDATE_NOTICE=off`
   is the way out.
 - **Scripts that read stderr.** Some treat any stderr as failure. The line comes at most
-  once a day, never on stdout and never changes the exit code; CI can set the variable.
+  once a day, never on stdout and never changes the exit code. CI can set the variable.
   The GUIDE says so.
 - **Agents misreading it.** An agent could run `git pull` and `go install` unasked, or
   treat the line as the command's failure. The text says "Do not update it yourself unless
@@ -595,21 +595,21 @@ Each step passes `make check` and can ship on its own.
   the words or the command, and the person's update source is their own clone.
 - **Version leaks.** Only authenticated callers see the headers, as with health's version.
 - **Unreleased commits look current.** A person on a pseudo-version after 0.4.0 sees
-  nothing until 0.5.0 is tagged, however old their commit; that is the meaning of a
+  nothing until 0.5.0 is tagged, however old their commit. That is the meaning of a
   release. Tag when the CLI changes in a way people should take.
 - **Tags start the release workflow.** Pushing `v*` runs GoReleaser, which needs
-  `HOMEBREW_TAP_TOKEN` and publishes to a private repository; see decision 1.
-- **Several registries.** The newest wins, named by host; a LAN registry pinned to an older
+  `HOMEBREW_TAP_TOKEN` and publishes to a private repository. See decision 1.
+- **Several registries.** The newest wins, named by host. A LAN registry pinned to an older
   release never makes the line go away early.
-- **Clock skew.** Days are measured on this machine only; the registry's time is not used.
+- **Clock skew.** Days are measured on this machine only. The registry's time is not used.
 
 ## Decisions for the user
 
-Settled as recommended; see Decided.
+Settled as recommended. See Decided.
 
 1. **Start release tags, and what the release workflow does with them.** Recommended: tag
-   `v0.1.0` now, and from then on tag when the CLI changes in a way people should take;
-   deploy from the tag so the registry advertises it. Keep `release.yml` but set the cask's
+   `v0.1.0` now, and from then on tag when the CLI changes in a way people should take.
+   Deploy from the tag so the registry advertises it. Keep `release.yml` but set the cask's
    `skip_upload: true` until downloads are public, so a tag does not fail on the Homebrew
    step. The alternative, comparing commit times without tags, works today but would nag
    everyone after every deploy.
@@ -624,7 +624,7 @@ Settled as recommended; see Decided.
 ## Not in this step
 
 - `loadout self-update` or `upgrade`, and signing release artifacts.
-- A network check from `loadout version` (`--check`); any registry command refreshes the
+- A network check from `loadout version` (`--check`). Any registry command refreshes the
   cache.
 - An operator setting to override the advertised version (`LOADOUT_CLI_LATEST` on `serve`).
 - Refusing requests from CLIs below the minimum on the server. The minimum only warns.
@@ -648,7 +648,7 @@ Settled as recommended; see Decided.
   `/skills` pages. `cli.Deps` keeps `Version` (the raw form) and gains `Build`.
 - `Current` falls back to Go's module version even when the ldflags hold a bare hash
   (`make build` without tags), since the module version also carries the commit time.
-- `MethodOf` takes the executable's path with links already resolved; resolving is I/O and
+- `MethodOf` takes the executable's path with links already resolved. Resolving is I/O and
   stays in `cmd/loadout`, so `buildinfo` is pure.
 - `externals.version` arrived in this step (one e2e test of `loadout version` uses it).
 
@@ -666,12 +666,12 @@ Settled as recommended; see Decided.
   becomes a version, and `deploy.sh` says before building which release the registry will
   advertise, or that it advertises none (`deploy/deploy_test.go` pins both).
 - `.goreleaser.yaml`: the cask has `skip_upload: true`. A snapshot run with an empty
-  `HOMEBREW_TAP_TOKEN` writes the cask into `dist/` and succeeds; GitHub passes an unset
+  `HOMEBREW_TAP_TOKEN` writes the cask into `dist/` and succeeds. GitHub passes an unset
   secret as an empty string, so the release workflow runs without it.
 - The main checkout usually holds uncommitted edits, which would make the build
   `-dirty`. The release deploys from a clean worktree of the tag.
 
-**The release step** (run by whoever ships, after the user says yes; `B` is the one-time
+**The release step** (run by whoever ships, after the user says yes, `B` is the one-time
 header from the `loadout-deploy` skill, step 4):
 
 ```sh
@@ -693,7 +693,7 @@ release workflow (archives on a private GitHub release, no cask).
 - `server.MinimumCLI` is a function returning the zero version rather than a package
   variable, so no test or caller can change it at run time.
 - `advertised` in `cmd/loadout` gives `WithCLI` the build's release only for an exact,
-  clean release build (see step 2); the server itself takes whatever it is given.
+  clean release build (see step 2). The server itself takes whatever it is given.
 - Headers are set in `auth` before the handler runs, so a 304 for a cached bundle carries
   them too.
 
@@ -703,12 +703,12 @@ release workflow (archives on a private GitHub release, no cask).
   positional arguments, so step 5's setting is one more field.
 - `Status()` returns a `Status` without an error: an unreadable or damaged file is the
   empty state (logged at debug), as the plan wants for `status`, `notices` and `version`.
-- `Finish` only records in this step (`Finish(ctx) error`); step 5 gives it the audience
+- `Finish` only records in this step (`Finish(ctx) error`). Step 5 gives it the audience
   and the line.
 - The file layout already has `told` (person, agent, push), so the format does not change
   in steps 5 and 6.
 - e2e: `startRegistryAt(t, admin, build, opts...)` serves a registry built as `build`,
-  wired through the same `advertised`; `startRegistry` is it with `dev`.
+  wired through the same `advertised`. `startRegistry` is it with `dev`.
 
 ### Step 5
 
@@ -718,7 +718,7 @@ release workflow (archives on a private GitHub release, no cask).
   `-X main.packaged=true`, and only such a build is the "release" method.
   `Build.Stamped` went away with it.
 - `Finish(ctx, audience) (string, error)` reads the small state file on every run (the
-  clocks live there); it writes only for news, a day-old record or a clock that moves.
+  clocks live there). It writes only for news, a day-old record or a clock that moves.
 - The agent line ends "with the command to update it: git pull && go install
   ./cmd/loadout, in their loadout folder." for a clone and "with the way to update it:
   ..." for the other methods. `loadout version` says "Up to date as of 4 Oct (the newest
@@ -727,19 +727,19 @@ release workflow (archives on a private GitHub release, no cask).
 - `status` prints the footer also when nothing is installed.
 - A command that cannot run (the bare `loadout`, which prints help) counts as quiet, like
   `help` and `--help`.
-- e2e sessions gained `env`, `version` and `terminal`; `session.exec` runs every command
+- e2e sessions gained `env`, `version` and `terminal`. `session.exec` runs every command
   through `runWith` with `realExternals()`, and fails any test whose unknown build is told
   about a newer loadout.
 
 ### Step 6
 
-- `LOADOUT_UPDATE_NOTICE=off` also keeps the newer-release push out; a registry that needs
+- `LOADOUT_UPDATE_NOTICE=off` also keeps the newer-release push out. A registry that needs
   a newer loadout is still pushed, once per release (the decision was "silences all but
   too old").
 - The too-old push is counted on the same push clock as the release that is out (a
   too-old build is always behind it), so a person gets one push per release, not one per
   release and one per minimum.
-- `cli.Deps.Pusher` is the `*pushover.Notifier` when Pushover is set up, nil otherwise; a
+- `cli.Deps.Pusher` is the `*pushover.Notifier` when Pushover is set up, nil otherwise. A
   failed push is a warning on the terminal (as a failed held-back push is) and never fails
   `sync`.
 - Not released, as asked: no tag, push, merge or deploy, and `docs/CHANGES.md` is left for

@@ -1,6 +1,6 @@
 # Server details on any host (the Host panel)
 
-Status: built (2026-10-06). Decisions: option 3; no cost figure for a host without an API; values come from the operator's env file only. Deviation: the lower panels now pair as backups and registry, then mail and process. Screenshots still to take.
+Status: built (2026-10-06). Decisions: option 3. No cost figure for a host without an API. Values come from the operator's env file only. Deviation: the lower panels now pair as backups and registry, then mail and process. Screenshots still to take.
 
 ## Goal
 
@@ -12,7 +12,7 @@ The one rule holds: nothing here runs a model or needs an AI key. The plan also 
 
 - `cmd/loadout/stats.go` `serverStats` builds a `serverstats.Collector` from `config.Stats`. With `LOADOUT_HETZNER_TOKEN` set it adds a `hetzner.Client` as `serverstats.Config.Cloud`.
 - `internal/serverstats` collects `Report{Process, Disk, Counts, Backups, Mail, Hetzner}`. Every part fails on its own. `serverstats.Cloud` returns a `hetzner.Summary`, so the package imports `internal/hetzner`.
-- `internal/web/ui_server.go` turns the report into `serverView`. `costTile` and `newHetznerView` are Hetzner only; `serverSize` and `place` take `hetzner` types. `templates/ui/server.html` always draws the Hetzner and cost panels; without a token it shows "Hetzner not configured" with the two variables to set, and the tile says "Not set up, No Hetzner token".
+- `internal/web/ui_server.go` turns the report into `serverView`. `costTile` and `newHetznerView` are Hetzner only. `serverSize` and `place` take `hetzner` types. `templates/ui/server.html` always draws the Hetzner and cost panels. Without a token it shows "Hetzner not configured" with the two variables to set, and the tile says "Not set up, No Hetzner token".
 - So on any other host the page points at Hetzner either way: with no token it asks for a Hetzner token, and with the token copied from the old `loadout.env` it shows the old Hetzner server (`LOADOUT_HETZNER_SERVER` names it, so the IP lookup that would have failed is skipped).
 - Disk, database, data folder, backups (`LOADOUT_BACKUP_DIR`), counts, mail and process are already provider-neutral.
 
@@ -26,8 +26,8 @@ The one rule holds: nothing here runs a model or needs an AI key. The plan also 
 | Architecture | `runtime.GOARCH` | |
 | Public address | `config.Login.PublicURL` | Already loaded. |
 | Disk size and use | `statfs`, already shown | |
-| Memory of the machine | not knowable | `ProcSubset=pid` hides `/proc/meminfo`; the operator states the size. |
-| Provider, region or data centre, machine size, who to contact, a console or ticket link | operator, in `/etc/loadout/loadout.env` | a private or in-house host has no API we may call; these are plain text the operator writes once. |
+| Memory of the machine | not knowable | `ProcSubset=pid` hides `/proc/meminfo`. The operator states the size. |
+| Provider, region or data centre, machine size, who to contact, a console or ticket link | operator, in `/etc/loadout/loadout.env` | a private or in-house host has no API we may call. These are plain text the operator writes once. |
 | Cost | operator only, if at all | No list prices or invoices to read. Left out unless the user asks (decision 3). |
 
 Rejected as built-in parts: a cloud metadata endpoint or a provider API for hosts other than Hetzner. Both are new network calls, and the second needs a vendor token. An operator who wants one adds a provider of their own through the `serverstats.CloudProvider` seam, see "Adding a cloud provider" in `docs/DESIGN.md`.
@@ -97,15 +97,15 @@ type Host struct {
 
 In `internal/web/ui_server.go`:
 
-- `serverView` gains `Host sectionView`, built by `hostSection(serverstats.Host)`: Provider (or "Not stated"), Region, Size, Host name, System (`OS`, note `Arch` and CPUs seen), Address (`PublicURL`), Contact. Rows for empty stated values are left out. The console link is a separate field (`HostConsole string`) so the template renders it as a link; `html/template` escapes it and `config` already allowed only `https`.
-- `newServerView` picks the first tile through `firstTile(rep)`: with Hetzner configured, `costTile` as today; without it, a new `hostTile` ("Host", value the provider or else the host name, note the region). Four tiles stay, so the layout holds.
+- `serverView` gains `Host sectionView`, built by `hostSection(serverstats.Host)`: Provider (or "Not stated"), Region, Size, Host name, System (`OS`, note `Arch` and CPUs seen), Address (`PublicURL`), Contact. Rows for empty stated values are left out. The console link is a separate field (`HostConsole string`) so the template renders it as a link. `html/template` escapes it and `config` already allowed only `https`.
+- `newServerView` picks the first tile through `firstTile(rep)`: with Hetzner configured, `costTile` as today. Without it, a new `hostTile` ("Host", value the provider or else the host name, note the region). Four tiles stay, so the layout holds.
 - `hetznerView.State == "off"` now hides both Hetzner panels instead of drawing the nag.
 
-In `templates/ui/server.html`: a "Host" panel first, beside "Storage" when Hetzner is off; with Hetzner on, the Hetzner and cost pair follows as today. The `loadout-ui` agent settles the exact order in the UI review. Without the Host variables the panel still shows the machine facts and one line: "Set LOADOUT_HOST_PROVIDER and the other LOADOUT_HOST_ variables in /etc/loadout/loadout.env to describe this host."
+In `templates/ui/server.html`: a "Host" panel first, beside "Storage" when Hetzner is off. With Hetzner on, the Hetzner and cost pair follows as today. The `loadout-ui` agent settles the exact order in the UI review. Without the Host variables the panel still shows the machine facts and one line: "Set LOADOUT_HOST_PROVIDER and the other LOADOUT_HOST_ variables in /etc/loadout/loadout.env to describe this host."
 
 ## Data and API changes
 
-None. No HTTP API, no store method, no wire type changes. `serverstats.Report` grows a field; its only consumer is `internal/web`.
+None. No HTTP API, no store method, no wire type changes. `serverstats.Report` grows a field. Its only consumer is `internal/web`.
 
 ## Migration
 
@@ -114,14 +114,14 @@ No database change. On a host that is not at Hetzner the operator edits `/etc/lo
 ## CLI and web changes
 
 - CLI: none.
-- Web: `/account/server` as above. Still admins only, still a 404 for anyone else, works without JavaScript, no new styles beyond what `.facts` and `.panel` give; any new token goes in `static/style.css` for light and dark.
+- Web: `/account/server` as above. Still admins only, still a 404 for anyone else, works without JavaScript, no new styles beyond what `.facts` and `.panel` give. Any new token goes in `static/style.css` for light and dark.
 
 ## Order of work
 
 1. `config`: the `Host` type, five variables, validation, `config_test` table. Nothing visible yet.
 2. `serverstats`: `HostFacts`, `Host`, `c.host()`, `prettyName`, the two seams, tests. Nothing visible yet.
-3. `cmd/loadout/stats.go` and `login.go`: wiring, log line, warning; `stats_test`.
-4. `internal/web`: `hostSection`, `hostTile`, `firstTile`, template changes, Hetzner panels hidden when off; `ui_server_test`. UI review by the `loadout-ui` agent with `loadout-preview` screenshots (light, dark, 390 px; with and without Hetzner), recorded in `docs/UI.md`.
+3. `cmd/loadout/stats.go` and `login.go`: wiring, log line, warning. `stats_test`.
+4. `internal/web`: `hostSection`, `hostTile`, `firstTile`, template changes, Hetzner panels hidden when off. `ui_server_test`. UI review by the `loadout-ui` agent with `loadout-preview` screenshots (light, dark, 390 px, with and without Hetzner), recorded in `docs/UI.md`.
 5. Docs: `docs/GUIDE.md` (server page section and its variable table), `docs/DESIGN.md` (env table and the `/account/server` paragraph), `deploy/README.md` ("Server page" section: host lines first, Hetzner as the optional part for a Hetzner VM), `docs/ARCHITECTURE.md` (the VM box no longer says Hetzner only). Rebuild with `docs/guide/build.sh`. `make check`.
 6. Live (ready-for-human): deploy, edit `loadout.env`, restart, check `journalctl -u loadout -n 20` and the page as an admin. No backup needed for the code, since nothing migrates.
 
@@ -130,16 +130,16 @@ Each step passes `make check` on its own.
 ## Tests
 
 - `internal/config/config_test.go`: table over the five variables: unset, trimmed, too long, control character, `Console` with `http`, `javascript:`, no host, and a good `https` link.
-- `internal/serverstats/serverstats_test.go`: `host()` with a fake `Hostname` (ok and error) and a temp os-release (quoted, unquoted, no `PRETTY_NAME`, missing file, a file over 16 KiB); `prettyName` as a table; `Report` carries `Host` and the other parts are unchanged.
-- `cmd/loadout/stats_test.go`: stated facts reach the report; the log line names the provider; the warning appears with a non-Hetzner provider plus a token, never the token.
+- `internal/serverstats/serverstats_test.go`: `host()` with a fake `Hostname` (ok and error) and a temp os-release (quoted, unquoted, no `PRETTY_NAME`, missing file, a file over 16 KiB). `prettyName` as a table. `Report` carries `Host` and the other parts are unchanged.
+- `cmd/loadout/stats_test.go`: stated facts reach the report. The log line names the provider. The warning appears with a non-Hetzner provider plus a token, never the token.
 - `internal/web/ui_server_test.go`: the "no token" case now wants the stated provider, the region, the contact and the console link, and wants out "Hetzner", "LOADOUT_HETZNER_TOKEN", "Estimated cost" and "€". The Hetzner case keeps its assertions and also shows the Host panel. A stated value with `<script>` is escaped. Empty stated values leave their rows out and show the one-line hint.
 - e2e in `cmd/loadout`: `serve` with a bad `LOADOUT_HOST_CONSOLE` exits with a plain sentence naming the variable.
 
 ## Risks
 
-- **An old token stays in the env file.** Then the page shows the Hetzner server next to the stated host. The startup warning and the deploy README step cover it; step 6 removes the lines.
+- **An old token stays in the env file.** Then the page shows the Hetzner server next to the stated host. The startup warning and the deploy README step cover it. Step 6 removes the lines.
 - **Stated facts go stale.** They are the operator's words, not measured. The panel says "as stated in loadout.env" in its footnote so nobody mistakes them for live readings.
-- **A host may not use the `deploy/` systemd unit.** If it runs in a container, the host name is the container's and `/etc/os-release` is the image's. The facts are still true of what runs loadout; the footnote says so. To confirm per host.
+- **A host may not use the `deploy/` systemd unit.** If it runs in a container, the host name is the container's and `/etc/os-release` is the image's. The facts are still true of what runs loadout. The footnote says so. To confirm per host.
 - **Contact details on a page.** Only admins see it, and the values are what the operator chose to write.
 
 ## Not in this step
