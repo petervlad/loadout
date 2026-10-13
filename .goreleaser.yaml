@@ -81,11 +81,9 @@ homebrew_casks:
       name: goreleaserbot
       email: bot@goreleaser.com
     commit_msg_template: "loadout {{ .Tag }}"
-    # Not uploaded until downloads are public (the repository is private,
-    # so a cask could not fetch the archives anyway). A tag then needs no
-    # HOMEBREW_TAP_TOKEN; set this back to auto (skips snapshots and
-    # prereleases) on the day releases are public.
-    skip_upload: true
+    # auto skips snapshots and prereleases. A release tag needs
+    # HOMEBREW_TAP_TOKEN with write access to the tap.
+    skip_upload: auto
     hooks:
       post:
         # Binaries are not notarized; drop the quarantine flag so macOS runs them.
