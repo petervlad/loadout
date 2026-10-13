@@ -11,6 +11,7 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+{{if .Demo}}<p class="demo-banner" role="note">Demo registry, fake data, resets with docker compose down -v</p>{{end}}
 <div class="app{{if .Bare}} bare{{end}}">
 {{if not .Bare}}<nav class="side" aria-label="Teams and projects">
 <a class="brand" href="/"{{if .HomeCurrent}} aria-current="page"{{end}}><span class="brand-name">{{template "icon-logo" 22}}loadout</span><span class="brand-motto">Sharing is caring</span></a>

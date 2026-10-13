@@ -1,0 +1,6 @@
+uses: acme/dev-loop@1
+bind:
+  plan: planner
+  build: builder
+  review: code-review
+work_folder: explorations/

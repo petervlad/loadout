@@ -330,3 +330,25 @@ func TestFilePermissions(t *testing.T) {
 		})
 	}
 }
+
+func TestDemoMarker(t *testing.T) {
+	ctx := t.Context()
+	path := filepath.Join(t.TempDir(), "registry.db")
+	if marked, err := sqlitestore.DemoMarked(ctx, path); err != nil || marked {
+		t.Fatalf("sqlitestore.DemoMarked(no file) = %v, %v; want false", marked, err)
+	}
+	s, err := sqlitestore.Open(ctx, path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if marked, err := sqlitestore.DemoMarked(ctx, path); err != nil || marked {
+		t.Fatalf("sqlitestore.DemoMarked(fresh) = %v, %v; want false", marked, err)
+	}
+	if err := s.MarkDemo(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if marked, err := sqlitestore.DemoMarked(ctx, path); err != nil || !marked {
+		t.Fatalf("sqlitestore.DemoMarked(marked) = %v, %v; want true", marked, err)
+	}
+}

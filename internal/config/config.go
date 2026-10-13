@@ -103,6 +103,10 @@ type Login struct {
 	// Simple is LOADOUT_LOGIN=simple: email and password only, a right
 	// password starts the session, no Google, no sign-up, no mail.
 	Simple bool
+	// Demo is LOADOUT_DEMO=1: a registry with fake data and one shared,
+	// public password. It implies Simple and Dev, and Load refuses any
+	// address but a localhost one, Google and SMTP.
+	Demo bool
 	// AdminPassword is LOADOUT_ADMIN_PASSWORD: the password of the first
 	// admin that serve creates in an empty simple-login registry. Empty
 	// means serve generates one and prints it once. It is a secret.
@@ -130,6 +134,7 @@ const (
 	EnvMailFrom           = "LOADOUT_MAIL_FROM"
 	EnvDev                = "LOADOUT_DEV"
 	EnvLogin              = "LOADOUT_LOGIN"
+	EnvDemo               = "LOADOUT_DEMO"
 	EnvDocsURL            = "LOADOUT_DOCS_URL"
 	EnvAdminPassword      = "LOADOUT_ADMIN_PASSWORD" //nolint:gosec // G101: a variable name, not a password
 	EnvTrustedProxies     = "LOADOUT_TRUSTED_PROXIES"
@@ -304,7 +309,35 @@ func loadLogin(getenv func(string) string) (Login, error) {
 		}
 		l.SMTPPort = port
 	}
+	if getenv(EnvDemo) == "1" {
+		if err := l.demo(); err != nil {
+			return Login{}, err
+		}
+	}
 	return l, nil
+}
+
+// demo turns the demo on. Its password is printed on the sign-in page, so
+// it must never meet a registry anyone else can reach: only a localhost
+// address is accepted, and nothing that signs in another way or sends mail.
+func (l *Login) demo() error {
+	u, err := url.Parse(l.PublicURL)
+	if err != nil || u.Scheme != "http" || !isLocalhost(u.Hostname()) {
+		return fmt.Errorf("%s=1 prints its password on the sign-in page, so %s must be a localhost address such as http://localhost:8080", EnvDemo, EnvPublicURL)
+	}
+	if l.GoogleClientID != "" || l.GoogleClientSecret != "" || l.SMTPHost != "" {
+		return fmt.Errorf("%s=1 signs in with its own password and only logs mail: unset the Google and SMTP settings", EnvDemo)
+	}
+	l.Demo, l.Simple, l.Dev = true, true, true
+	return nil
+}
+
+func isLocalhost(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	a, err := netip.ParseAddr(host)
+	return err == nil && a.IsLoopback()
 }
 
 // parseDocsURL checks LOADOUT_DOCS_URL: an absolute http or https address,

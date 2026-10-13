@@ -1,0 +1,4 @@
+name: acme/dev-loop
+kind: pipeline
+version: 1.0.0
+description: Plan, build and review a change, with a person at every gate.

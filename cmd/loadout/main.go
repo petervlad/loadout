@@ -255,6 +255,7 @@ func runWith(ctx context.Context, args []string, stdin io.Reader, stdout, stderr
 		},
 		OpenRegistry: registryOpener(log, cfg.Login, cfg.Stats, cfg.Proxies, build, ext.mailer),
 		Config:       cfg,
+		Demo:         demoSeeder{log: log, now: time.Now},
 		Environ:      ext.environ,
 		NewMailer:    mailerFor(log, ext.mailer),
 		CheckLogin:   checkLoginFor(ext.mailer),
@@ -330,6 +331,11 @@ func exitCode(err error) int {
 // the HTTP handler built on demand for serve.
 func registryOpener(log *slog.Logger, login config.Login, stats config.Stats, proxies config.Proxies, build buildinfo.Build, testMailer account.Mailer) func(context.Context, string) (cli.Registry, io.Closer, error) {
 	return func(ctx context.Context, dataDir string) (cli.Registry, io.Closer, error) {
+		if login.Demo {
+			if err := checkDemoFolder(ctx, dataDir); err != nil {
+				return cli.Registry{}, nil, err
+			}
+		}
 		store, err := sqlitestore.Open(ctx, filepath.Join(dataDir, dbFile), log)
 		if err != nil {
 			return cli.Registry{}, nil, err
@@ -405,11 +411,16 @@ type memoryServices struct {
 // newMemoryServices builds them over memory.db. roles answer a person's
 // rights, store tells whether a token's person still exists.
 func newMemoryServices(mem *sqlitestore.MemoryStore, store *sqlitestore.Store, roles *account.Roles, log *slog.Logger) (memoryServices, error) {
-	svc, err := memory.NewService(mem, mem.Switches(), roles, time.Now, log)
+	return memoryServicesAt(mem, store, roles, time.Now, log)
+}
+
+// memoryServicesAt is newMemoryServices on another clock, for the demo seed.
+func memoryServicesAt(mem *sqlitestore.MemoryStore, store *sqlitestore.Store, roles *account.Roles, now func() time.Time, log *slog.Logger) (memoryServices, error) {
+	svc, err := memory.NewService(mem, mem.Switches(), roles, now, log)
 	if err != nil {
 		return memoryServices{}, err
 	}
-	tokens, err := memory.NewTokens(mem, account.NewMemoryUsers(store), time.Now, log)
+	tokens, err := memory.NewTokens(mem, account.NewMemoryUsers(store), now, log)
 	if err != nil {
 		return memoryServices{}, err
 	}

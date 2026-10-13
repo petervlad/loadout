@@ -16,7 +16,7 @@ import (
 // must be embedded (or named here as not meant to be), so the skills that
 // ship these files never miss one.
 func TestFSHoldsTheDeployFiles(t *testing.T) {
-	notShipped := []string{"README.md", "files.go", "deploy_test.go", "downloads_test.go", "install_test.go", "files_test.go", "hostfacts_test.go", "site", "container"}
+	notShipped := []string{"README.md", "files.go", "deploy_test.go", "downloads_test.go", "install_test.go", "files_test.go", "hostfacts_test.go", "demo_test.go", "site", "container", "demo"}
 	embedded, err := fs.Glob(deploy.FS, "*")
 	if err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestEnvExampleMatchesWhatLoadoutReads(t *testing.T) {
 	// tests and previews.
 	notForTheFile := []string{
 		"LOADOUT_STATE_DIR", "LOADOUT_LOG", "LOADOUT_PUSHOVER_TOKEN", "LOADOUT_PUSHOVER_USER", "LOADOUT_UPDATE_NOTICE",
-		"LOADOUT_TOKEN", "LOADOUT_DATA", "LOADOUT_BACKUP_DIR", "LOADOUT_BACKUP_KEEP_DAYS", "LOADOUT_HETZNER_API",
+		"LOADOUT_TOKEN", "LOADOUT_DATA", "LOADOUT_BACKUP_DIR", "LOADOUT_BACKUP_KEEP_DAYS", "LOADOUT_HETZNER_API", "LOADOUT_DEMO",
 	}
 	for _, k := range config.Known() {
 		if _, ok := listed[k]; !ok && !slices.Contains(notForTheFile, k) {

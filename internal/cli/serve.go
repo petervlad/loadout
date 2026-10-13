@@ -71,6 +71,30 @@ func (d Deps) createFirstAdmin(ctx context.Context, reg Registry, out io.Writer)
 	return nil
 }
 
+// serve runs the registry in dataDir until the command's context ends.
+func (d Deps) serve(cmd *cobra.Command, dataDir, addr, tlsCert, tlsKey string) error {
+	// A server should show its access log.
+	if d.LogLevel != nil && d.LogLevel.Level() > slog.LevelInfo {
+		d.LogLevel.Set(slog.LevelInfo)
+	}
+	// A demo listens on every address inside its container and is published on
+	// localhost only, so the warning would only mislead.
+	if tlsCert == "" && !d.Config.Login.Demo && !strings.HasPrefix(addr, "127.0.0.1:") && !strings.HasPrefix(addr, "localhost:") {
+		d.Log.Warn("serving plain HTTP: tokens travel unencrypted, use only on a trusted network or put TLS in front", "addr", addr)
+	}
+	return withRegistry(cmd.Context(), d, dataDir, func(reg Registry) error {
+		d.Log.Info("registry data", "dir", dataDir) // the server logs "listening" once bound
+		if err := d.createFirstAdmin(cmd.Context(), reg, cmd.ErrOrStderr()); err != nil {
+			return err
+		}
+		h, err := reg.NewHandler()
+		if err != nil {
+			return err
+		}
+		return server.Run(cmd.Context(), addr, h, d.Log, tlsCert, tlsKey)
+	})
+}
+
 func newServeCmd(d Deps) *cobra.Command {
 	var dataDir, addr, tlsCert, tlsKey, envFile string
 	var check bool
@@ -98,24 +122,7 @@ Name an environment file with --env-file to check it before a restart.`,
 			if (tlsCert == "") != (tlsKey == "") {
 				return fmt.Errorf("--tls-cert and --tls-key must be given together")
 			}
-			// A server should show its access log.
-			if d.LogLevel != nil && d.LogLevel.Level() > slog.LevelInfo {
-				d.LogLevel.Set(slog.LevelInfo)
-			}
-			if tlsCert == "" && !strings.HasPrefix(addr, "127.0.0.1:") && !strings.HasPrefix(addr, "localhost:") {
-				d.Log.Warn("serving plain HTTP: tokens travel unencrypted, use only on a trusted network or put TLS in front", "addr", addr)
-			}
-			return withRegistry(cmd.Context(), d, dataDir, func(reg Registry) error {
-				d.Log.Info("registry data", "dir", dataDir) // the server logs "listening" once bound
-				if err := d.createFirstAdmin(cmd.Context(), reg, cmd.ErrOrStderr()); err != nil {
-					return err
-				}
-				h, err := reg.NewHandler()
-				if err != nil {
-					return err
-				}
-				return server.Run(cmd.Context(), addr, h, d.Log, tlsCert, tlsKey)
-			})
+			return d.serve(cmd, dataDir, addr, tlsCert, tlsKey)
 		},
 	}
 	f := cmd.Flags()

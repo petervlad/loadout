@@ -211,3 +211,44 @@ func TestLoadProxies(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadDemo(t *testing.T) {
+	tests := []struct {
+		name    string
+		vars    map[string]string
+		wantErr string
+	}{
+		{name: "localhost", vars: map[string]string{EnvPublicURL: "http://localhost:8080"}},
+		{name: "loopback address", vars: map[string]string{EnvPublicURL: "http://127.0.0.1:8080/"}},
+		{name: "no public url", vars: map[string]string{}, wantErr: EnvPublicURL},
+		{name: "a registry others reach", vars: map[string]string{EnvPublicURL: "https://registry.example.com"}, wantErr: "localhost"},
+		{name: "plain http on a real host", vars: map[string]string{EnvPublicURL: "http://registry.example.com"}, wantErr: "localhost"},
+		{name: "a name that only starts like localhost", vars: map[string]string{EnvPublicURL: "http://localhost.example.com"}, wantErr: "localhost"},
+		{name: "google", vars: map[string]string{EnvPublicURL: "http://localhost:8080", EnvGoogleClientID: "id", EnvGoogleClientSecret: "s"}, wantErr: "Google"},
+		{name: "smtp", vars: map[string]string{EnvPublicURL: "http://localhost:8080", EnvSMTPHost: "mail.example.com"}, wantErr: "SMTP"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			vars := map[string]string{"HOME": "/home/a", EnvDemo: "1"}
+			maps.Copy(vars, tc.vars)
+			got, err := Load(env(vars))
+			if tc.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("Load() error = %v, want one naming %q", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if l := got.Login; !l.Demo || !l.Simple || !l.Dev {
+				t.Errorf("Login = %+v, want demo, simple and dev on", l)
+			}
+		})
+	}
+	// Without the switch a public registry is untouched.
+	got, err := Load(env(map[string]string{"HOME": "/home/a", EnvPublicURL: "https://registry.example.com"}))
+	if err != nil || got.Login.Demo || got.Login.Simple {
+		t.Errorf("Load() without LOADOUT_DEMO = %+v, %v; want demo and simple off", got.Login, err)
+	}
+}

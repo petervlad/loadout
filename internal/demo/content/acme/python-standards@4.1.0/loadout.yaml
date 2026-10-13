@@ -1,0 +1,4 @@
+name: acme/python-standards
+kind: agent
+version: 4.1.0
+description: House rules for Python across every acme team

@@ -118,6 +118,10 @@ type Config struct {
 	// and starts the session at once; sign-up, the code page and Google are
 	// not routed (404). Google is ignored.
 	Simple bool
+	// Demo, when set, puts a banner on every page and lists the demo
+	// accounts and their shared password on the sign-in page. It needs
+	// Simple: the password is public.
+	Demo *Demo
 	// PerIP limits attempts per client address, PerEmail per address
 	// typed into a form.
 	PerIP    Limiter
@@ -130,10 +134,24 @@ type Config struct {
 	DocsURL string
 }
 
+// Demo describes a demo registry for its pages. The password is public on
+// purpose: the sign-in page prints it.
+type Demo struct {
+	Password string
+	Accounts []DemoAccount
+}
+
+// DemoAccount is one account the sign-in page lists, with what it can do.
+type DemoAccount struct {
+	Email string
+	Role  string
+}
+
 type handler struct {
 	accounts Accounts
 	google   *Google
 	simple   bool
+	demo     *Demo
 	perIP    Limiter
 	perEmail Limiter
 	log      *slog.Logger
@@ -165,6 +183,7 @@ func New(cfg Config, accounts Accounts) (http.Handler, error) {
 		accounts: accounts,
 		google:   cfg.Google,
 		simple:   cfg.Simple,
+		demo:     cfg.Demo,
 		perIP:    cfg.PerIP,
 		perEmail: cfg.PerEmail,
 		log:      cfg.Log,
@@ -258,6 +277,9 @@ type view struct {
 	Google    bool
 	// Simple is true in LOADOUT_LOGIN=simple: the sign-in form alone.
 	Simple bool
+	// Demo is set on a demo registry: the banner, and on the sign-in page
+	// the accounts.
+	Demo *Demo
 	// EmailLogin is false when no mailer is configured.
 	EmailLogin bool
 	// Token is a mailed link's token, confirmed with a button.
@@ -278,6 +300,7 @@ func (h *handler) render(w http.ResponseWriter, r *http.Request, status int, pag
 	v.CSRF = h.csrfToken(w, r)
 	v.Theme = h.theme(r)
 	v.Simple = h.simple
+	v.Demo = h.demo
 	v.Google = h.google != nil && !h.simple
 	v.EmailLogin = h.accounts.EmailEnabled() && !h.simple
 	t, ok := h.pages[page]
@@ -314,7 +337,7 @@ func (h *handler) fail(w http.ResponseWriter, r *http.Request, err error) {
 	h.log.ErrorContext(r.Context(), "web request failed", "route", r.Pattern, "err", err)
 	const text = "Something went wrong on our side. Please try again in a moment."
 	var buf strings.Builder
-	if t, ok := h.pages["message.html"]; ok && t.ExecuteTemplate(&buf, "layout", view{Title: "Something went wrong", Theme: h.theme(r), Error: text}) == nil {
+	if t, ok := h.pages["message.html"]; ok && t.ExecuteTemplate(&buf, "layout", view{Title: "Something went wrong", Theme: h.theme(r), Demo: h.demo, Error: text}) == nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = fmt.Fprint(w, buf.String())

@@ -99,6 +99,7 @@ func loginOptions(log *slog.Logger, login config.Login, stats statsSetup, testMa
 		PublicURL: login.PublicURL,
 		DocsURL:   login.DocsURL,
 		Simple:    login.Simple,
+		Demo:      webDemo(login.Demo),
 		Google:    google,
 		PerIP:     ratelimit.New(webIPBurst, webIPEvery, time.Now),
 		PerEmail:  ratelimit.New(webEmailBurst, webEmailEvery, time.Now),

@@ -46,6 +46,7 @@ type siteOptions struct {
 	google *web.Google
 	perIP  web.Limiter
 	simple bool
+	demo   *web.Demo
 }
 
 func newSite(t *testing.T, o siteOptions) *site {
@@ -69,7 +70,7 @@ func newSite(t *testing.T, o siteOptions) *site {
 	if perIP == nil {
 		perIP = allowAll{}
 	}
-	h, err := web.New(web.Config{PublicURL: "http://localhost", Google: o.google, Simple: o.simple, PerIP: perIP, PerEmail: allowAll{}, Log: log}, accounts)
+	h, err := web.New(web.Config{PublicURL: "http://localhost", Google: o.google, Simple: o.simple, Demo: o.demo, PerIP: perIP, PerEmail: allowAll{}, Log: log}, accounts)
 	if err != nil {
 		t.Fatal(err)
 	}

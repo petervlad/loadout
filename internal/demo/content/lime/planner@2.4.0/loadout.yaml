@@ -1,0 +1,4 @@
+name: lime/planner
+kind: agent
+version: 2.4.0
+description: Turns a ticket into an ordered plan with files, risks and checks

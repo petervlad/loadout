@@ -138,6 +138,9 @@ func enabled(on bool) string {
 }
 
 func loginMode(l config.Login) string {
+	if l.Demo {
+		return "demo (one fixed password, fake data, localhost only; no Google, no sign-up, mail only logged)"
+	}
 	if l.Simple {
 		return "simple (email and password only; no Google, no sign-up, no mail)"
 	}

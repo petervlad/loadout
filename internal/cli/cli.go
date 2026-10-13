@@ -115,6 +115,8 @@ type Deps struct {
 	// dataDir holds any account, for `serve --check`. Nil leaves the
 	// first-admin line out.
 	HasAccounts func(ctx context.Context, dataDir string) (bool, error)
+	// Demo seeds the demo registry. Nil leaves `demo` out of this build.
+	Demo DemoSeeder
 	// Hooks sets up and removes the session hooks in the AI tools: after
 	// login and on setup --hooks or --no-hooks. Nil leaves them out.
 	Hooks *hook.Service
@@ -195,6 +197,7 @@ func NewRoot(d Deps) *cobra.Command {
 		newDiffCmd(d),
 		newRollbackCmd(d),
 		newServeCmd(d),
+		newDemoCmd(d),
 		newTokenCmd(d),
 		newNamespaceCmd(d),
 		newMemberCmd(d),

@@ -1,0 +1,4 @@
+name: koala/release-checklist
+kind: agent
+version: 0.3.0
+description: Walks a mobile release through the store checks

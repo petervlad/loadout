@@ -408,6 +408,8 @@ type uiView struct {
 	Teams    []navItem
 	// AccountCurrent marks the account link in the sidebar.
 	AccountCurrent bool
+	// Demo shows the demo banner on top of the page.
+	Demo bool
 	// DocsURL opens the user guide, telling it which page to link back to.
 	DocsURL string
 	// WhatsNewURL opens the list of what each update changed, the same way.
@@ -522,6 +524,7 @@ func (h *handler) renderUI(w http.ResponseWriter, r *http.Request, status int, p
 	v.CSRF = h.csrfToken(w, r)
 	v.Theme = h.theme(r)
 	v.User = u
+	v.Demo = h.demo != nil
 	v.CreateLabel = createLabel(u, places)
 	v.SkillsNav = h.ui.Skills != nil
 	v.DocsURL = h.docsLink(r, "")

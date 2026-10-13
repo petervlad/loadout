@@ -13,6 +13,14 @@
 <button type="submit" class="btn btn-primary btn-block">Sign in</button>
 </form>
 </div>
+{{with .Demo}}<div class="card demo-accounts">
+<h2>Demo accounts</h2>
+<p class="small">Every account has the same password:</p>
+<p class="demo-password"><code>{{.Password}}</code></p>
+<ul>{{range .Accounts}}
+<li><code>{{.Email}}</code> <span class="muted">{{.Role}}</span></li>{{end}}
+</ul>
+</div>{{end}}
 {{else if or .EmailLogin .Google}}
 <div class="card">
 {{if and .Prefilled .EmailLogin}}<p class="small">First time here? <a href="/auth/signup?next={{.Next}}&amp;email={{.Email}}">Create your account</a> with this address{{if .Google}}, or continue with Google{{end}}.</p>

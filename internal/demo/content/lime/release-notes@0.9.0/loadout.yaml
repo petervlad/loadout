@@ -1,0 +1,4 @@
+name: lime/release-notes
+kind: agent
+version: 0.9.0
+description: Drafts release notes from merged pull requests

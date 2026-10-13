@@ -1,0 +1,4 @@
+name: lime/dev-loop
+kind: pipeline
+version: 1.0.0
+description: The lime team's dev loop, on acme's template.

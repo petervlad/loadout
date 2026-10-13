@@ -86,7 +86,7 @@ var knownEnv = []string{
 	EnvStateDir, EnvLog, EnvPushoverToken, EnvPushoverUser, EnvUpdateNotice,
 	EnvPublicURL, EnvGoogleClientID, EnvGoogleClientSecret,
 	EnvSMTPHost, EnvSMTPPort, EnvSMTPUser, EnvSMTPPassword, EnvMailFrom,
-	EnvDev, EnvLogin, EnvAdminPassword, EnvDocsURL, EnvTrustedProxies, EnvClientIPHeader,
+	EnvDev, EnvLogin, EnvDemo, EnvAdminPassword, EnvDocsURL, EnvTrustedProxies, EnvClientIPHeader,
 	EnvHetznerToken, EnvHetznerServer, EnvHetznerAPI, EnvBackupDir,
 	EnvHostProvider, EnvHostRegion, EnvHostSize, EnvHostContact, EnvHostConsole,
 	// Read by the CLI (remote.EnvToken) and by deploy/loadout-backup.sh.

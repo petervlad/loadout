@@ -1,0 +1,4 @@
+name: lime/dev-course
+kind: kb
+version: 1.0.0
+description: The lime dev loop in short lessons, from your first install to a release.

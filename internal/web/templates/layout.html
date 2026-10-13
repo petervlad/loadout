@@ -10,6 +10,7 @@
 <script src="{{static "ui.js"}}"></script>
 </head>
 <body>
+{{if .Demo}}<p class="demo-banner" role="note">Demo registry, fake data, resets with docker compose down -v</p>{{end}}
 <main class="auth">
 <div class="auth-col{{block "wide" .}}{{end}}">
 <div class="auth-top">
